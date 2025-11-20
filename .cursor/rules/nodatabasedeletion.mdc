@@ -1,0 +1,16 @@
+---
+alwaysApply: true
+---
+## CRITICAL SAFETY RULE - DATABASE PROTECTION
+
+NEVER run these commands without explicit user confirmation:
+- supabase db reset (wipes all local data)
+- supabase db push (modifies remote database)
+- rm -rf (deletes files)
+- git push --force
+
+BEFORE any destructive command:
+1. STOP and explain consequences
+2. WARN about data loss
+3. WAIT for explicit "yes, proceed"
+4. Suggest safe alternatives first

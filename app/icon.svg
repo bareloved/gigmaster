@@ -1,0 +1,6 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Musical note inspired icon for Ensemble -->
+  <rect width="32" height="32" rx="6" fill="hsl(262.1 83.3% 57.8%)"/>
+  <path d="M20 8v12c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3c.35 0 .687.06 1 .17V10.5l-6 1.5v10c0 1.657-1.343 3-3 3s-3-1.343-3-3 1.343-3 3-3c.35 0 .687.06 1 .17V11l8-2z" fill="white"/>
+</svg>
+

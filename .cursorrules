@@ -1,0 +1,334 @@
+# CURSOR AI RULES - CRITICAL SAFEGUARDS
+
+## DESTRUCTIVE COMMANDS - REQUIRE EXPLICIT USER APPROVAL
+
+**NEVER run these commands without explicit user confirmation:**
+
+### Database Operations (HIGHEST PRIORITY)
+- `supabase db reset` - WIPES ALL LOCAL DATA
+- `supabase db push` - MODIFIES REMOTE DATABASE  
+- `supabase db dump` - Only read-only, but confirm first
+- `DROP TABLE`, `DROP DATABASE`, `TRUNCATE` - Any SQL that deletes data
+
+**Before any database-modifying command:**
+1. STOP and explain what will happen
+2. WARN about data loss if applicable
+3. WAIT for explicit "yes, proceed" from user
+4. Suggest alternatives (migrations, backups, etc.)
+
+### Git Operations
+- `git push --force` or `git push -f` - Can break remote repo
+- `git reset --hard` - Loses uncommitted changes
+- `git clean -fd` - Deletes untracked files
+
+### File Operations  
+- `rm -rf` - Deletes files permanently
+- `rm -r` - Deletes directories
+- Any command that deletes multiple files
+
+### Deployment/Production
+- Any command that affects production environment
+- Any command that deploys to remote servers
+
+## SAFE ALTERNATIVES TO SUGGEST FIRST
+
+Instead of `supabase db reset`:
+- Apply only new migrations: `supabase migration up`
+- Repair migrations: `supabase migration repair`
+- Check migration status: `supabase migration list`
+
+## ENFORCEMENT
+
+If you (AI agent) are about to run a destructive command:
+1. **STOP IMMEDIATELY**
+2. **ASK THE USER**: "This command will [explain consequences]. Do you want me to proceed? (yes/no)"
+3. **WAIT FOR RESPONSE**
+4. Only proceed if user explicitly says "yes" or "proceed"
+
+## EXCEPTIONS
+
+The ONLY time you can run destructive commands without asking:
+- NEVER. Always ask.
+
+---
+
+## SUPABASE MCP TOOLS - MANDATORY USAGE
+
+**CRITICAL**: We work DIRECTLY with Supabase (remote database). 
+- ❌ Do NOT run local SQL migrations or `supabase db` commands
+- ❌ Do NOT use local Supabase instance or local psql
+- ✅ DO use MCP tools to query and modify the database
+
+### Required Tools for Database Work
+
+Before ANY database-related work (migrations, RLS, schema changes):
+
+1. **Check current state first**:
+   - `mcp_supabase_READ-ONLY_execute_sql` - Query database state
+   - `mcp_supabase_READ-ONLY_list_tables` - Verify schema
+   - `mcp_supabase_READ-ONLY_list_migrations` - Check migration history
+
+2. **Run advisors** (MANDATORY before migrations):
+   - `mcp_supabase_READ-ONLY_get_advisors` with type "security"
+   - `mcp_supabase_READ-ONLY_get_advisors` with type "performance"
+   - Fix any issues found before proceeding
+
+3. **Apply changes**:
+   - `mcp_supabase_READ-ONLY_apply_migration` with descriptive snake_case name
+   - NEVER run local SQL files or supabase CLI commands
+
+### Never Assume - Always Check
+
+- ❌ Never assume policy names exist
+- ❌ Never assume table structure
+- ❌ Never assume indexes exist
+- ❌ Never run local migrations
+- ✅ Always query first, then act
+- ✅ Always use MCP tools
+
+**Full protocol**: See `docs/agent-protocols/database-safety.md`
+
+---
+
+## RLS POLICY DEBUGGING - MANDATORY PROTOCOL
+
+**CRITICAL**: When debugging Row Level Security (RLS) policy issues in Supabase/Postgres:
+
+### STEP 1: ALWAYS CHECK WHAT EXISTS FIRST ⚠️
+
+Before attempting to drop or modify ANY RLS policy, you MUST use MCP:
+
+Use `mcp_supabase_READ-ONLY_execute_sql` with query:
+```sql
+SELECT 
+  policyname,
+  cmd,
+  qual,
+  with_check
+FROM pg_policies 
+WHERE tablename = 'table_name';
+```
+
+**NEVER ASSUME POLICY NAMES!** Policy names might be:
+- ❌ "gig_roles_select_policy" (what you expect)
+- ✅ "Users can view gig roles for their projects" (what actually exists)
+
+### STEP 2: DROP USING EXACT NAMES
+
+Use the EXACT policy names from the query above:
+
+```sql
+DROP POLICY IF EXISTS "Actual Policy Name From Database" ON table_name;
+```
+
+### STEP 3: WATCH FOR CIRCULAR DEPENDENCIES
+
+If you see "infinite recursion detected in policy" errors:
+
+1. **Identify the cycle**: Table A checks Table B, Table B checks Table A
+2. **Break the cycle**: Make ONE table's policies permissive
+3. **Common pattern**: 
+   - `gigs` ↔ `gig_roles` circular dependency
+   - Solution: Make `gig_roles` permissive, keep `gigs` strict
+
+### STEP 4: VERIFY AFTER CHANGES
+
+After modifying policies, always verify using MCP:
+
+Use `mcp_supabase_READ-ONLY_execute_sql` with queries:
+```sql
+-- Check policies were actually dropped/created
+SELECT policyname FROM pg_policies WHERE tablename = 'table_name';
+
+-- Test a query
+SELECT * FROM table_name LIMIT 1;
+```
+
+### WHY THIS MATTERS
+
+**What happened**: We spent 2+ hours debugging RLS issues because we:
+1. ❌ Assumed policy names instead of checking
+2. ❌ Tried to drop policies that didn't exist
+3. ❌ The REAL buggy policies kept running
+4. ❌ Got the same error 7+ times
+
+**What fixed it**: 
+1. ✅ Queried `pg_policies` to see actual names
+2. ✅ Dropped the CORRECT policies
+3. ✅ Fixed immediately
+
+### MANDATORY CHECKLIST
+
+Before providing ANY RLS fix:
+
+- [ ] Have you used `mcp_supabase_READ-ONLY_execute_sql` to query `pg_policies` for actual policy names?
+- [ ] Are you using the EXACT names from the database (not assumed names)?
+- [ ] Have you checked for circular dependencies between tables?
+- [ ] Have you provided verification queries using MCP tools?
+
+**If you answer NO to any of these, STOP and use MCP tools to get the information first!**
+
+---
+
+## ARCHITECTURAL CHANGES - COMPREHENSIVE IMPACT CHECK
+
+**CRITICAL**: When making changes that affect core data structures, column names, types, or API contracts, you MUST perform a COMPREHENSIVE impact analysis BEFORE making any changes.
+
+### Trigger Conditions (When to Apply This Protocol)
+
+Apply this protocol when making ANY of these changes:
+- ✅ Dropping/renaming database columns
+- ✅ Changing table schemas (adding NOT NULL, foreign keys, etc.)
+- ✅ Modifying TypeScript interfaces/types used across multiple files
+- ✅ Changing API function signatures
+- ✅ Altering data relationships (1:1 to 1:many, etc.)
+- ✅ Removing or renaming properties from shared types
+- ✅ Changing authentication/authorization logic
+
+### MANDATORY PROTOCOL: The 7-Step Check
+
+**STEP 1: SEARCH FIRST, CODE LATER**
+
+Before making ANY changes, run comprehensive searches:
+
+```bash
+# Search for the exact column/property/function name
+grep -r "old_column_name" /path/to/codebase
+
+# Search for patterns (property access)
+grep -r "\.old_column_name" /path/to/codebase
+grep -r "old_column_name\?" /path/to/codebase
+
+# Search in specific critical areas
+grep "old_column_name" lib/types/
+grep "old_column_name" lib/api/
+grep "old_column_name" components/
+grep "old_column_name" app/
+```
+
+**STEP 2: DOCUMENT ALL OCCURRENCES**
+
+Create a comprehensive list:
+- File path
+- Line number
+- Context (what the code does)
+- Required change
+
+**STEP 3: IDENTIFY THE LAYERS**
+
+Group occurrences by layer:
+1. **Database Layer** (migrations, RLS policies, functions)
+2. **Type Layer** (database.ts, shared types, interfaces)
+3. **API Layer** (lib/api/*, queries, mutations)
+4. **Component Layer** (UI components using the data)
+5. **Page Layer** (app routes consuming the data)
+
+**STEP 4: FIX IN CORRECT ORDER**
+
+Apply fixes in this exact order:
+1. Database migration (schema change)
+2. Type definitions (database.ts, shared types)
+3. API layer (data access functions)
+4. Components (reusable UI)
+5. Pages (route handlers and page components)
+
+**STEP 5: VERIFY EACH LAYER**
+
+After fixing each layer, verify:
+```bash
+# Check for linter errors
+npm run lint
+
+# Search again to confirm no references remain
+grep -r "old_name" src/
+
+# Run type checking
+npm run type-check (if available)
+```
+
+**STEP 6: TEST CRITICAL PATHS**
+
+After all changes, test:
+- ✅ Create operations
+- ✅ Read/fetch operations  
+- ✅ Update operations
+- ✅ Delete operations
+- ✅ Related features that use the changed data
+
+**STEP 7: FINAL COMPREHENSIVE GREP**
+
+Before declaring complete, run final searches:
+```bash
+# Search for any remaining references
+grep -ri "old_column" ./ --exclude-dir=node_modules --exclude-dir=.git
+
+# Search for common patterns
+grep -r "\.old_column" ./lib ./app ./components
+grep -r "data\.old_column" ./
+grep -r "old_column:" ./
+```
+
+### ENFORCEMENT: Zero-Tolerance Policy
+
+❌ **DO NOT** make changes incrementally as errors appear  
+❌ **DO NOT** fix only what's broken and move on  
+❌ **DO NOT** assume "that's probably all of them"  
+✅ **DO** perform the complete 7-step check UPFRONT  
+✅ **DO** fix ALL occurrences in a single comprehensive pass  
+✅ **DO** verify no references remain before declaring done  
+
+### Example: Removing a Column
+
+**BAD APPROACH (What NOT to do):**
+```
+1. Drop column in migration ❌
+2. Wait for error in frontend ❌
+3. Fix that one file ❌
+4. Wait for next error ❌
+5. Fix that file ❌
+6. Repeat 10 more times ❌❌❌
+```
+
+**GOOD APPROACH (What TO do):**
+```
+1. Search for ALL references to column ✅
+2. Document all 15 occurrences found ✅
+3. Create fix plan for each layer ✅
+4. Apply migration ✅
+5. Fix all 15 references systematically ✅
+6. Verify with grep - 0 results ✅
+7. Test and confirm working ✅
+```
+
+### Why This Matters
+
+**What happened**: Removed `owner_id` column from gigs table but didn't check all references. Result:
+- 🔥 Spent 2+ hours fixing errors one by one
+- 🔥 Found references in 12+ different files
+- 🔥 User had to explicitly ask for comprehensive check
+- 🔥 Fixed: database.ts, dashboard-gigs.ts, gig-pack.ts, gig-roles.ts, gigs page, gig detail page, etc.
+
+**What should have happened**: 
+- ✅ Run grep for `owner_id` before making ANY changes
+- ✅ Found all 21 occurrences across 5 files immediately
+- ✅ Fixed all at once in one systematic pass
+- ✅ Verified with final grep showing 0 results
+- ✅ Done in 20 minutes instead of 2+ hours
+
+### Checklist Before Declaring "Done"
+
+- [ ] Have you run comprehensive grep searches for the old name?
+- [ ] Have you checked ALL layers (DB, types, API, components, pages)?
+- [ ] Have you fixed type definitions (database.ts, shared types)?
+- [ ] Have you updated all API functions?
+- [ ] Have you updated all components?
+- [ ] Have you verified with a final grep showing 0 results?
+- [ ] Have you tested the actual feature end-to-end?
+
+**If you answer NO to ANY of these, you are NOT done!**
+
+---
+
+**This file protects the user from accidental data loss by AI agents.**
+**All Cursor AI agents MUST follow these rules.**
+

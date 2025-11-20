@@ -1,0 +1,561 @@
+---
+alwaysApply: true
+---
+Prompt for cursor:You are an AI developer working inside my Cursor codebase.
+
+I’m building a web app for **gigging musicians** that acts as a dedicated “gig brain” and operating system.
+
+IMPORTANT CONTEXT ABOUT THIS PROJECT
+-----------------------------------
+This is NOT my first attempt at this app.
+
+In my previous version, I ran into:
+- database design issues,
+- UI complexity,
+- general architectural messiness,
+- and performance problems (the app became slow very quickly as we built it).
+
+A lot of this could have been avoided with:
+- a clearer **domain model**,
+- better **separation of concerns**,
+- more careful **query design and data loading patterns**,
+- and a more thoughtful **architecture from the start**.
+
+Your job is not just to write code.
+Your job is to help me:
+- model the domain cleanly,
+- choose a solid architecture,
+- keep the codebase maintainable and extendable,
+- and avoid the same database/UI/performance problems I had before.
+
+Always favor:
+- clear data models,
+- straightforward flows,
+- efficient data loading (no unnecessary over-fetching),
+- and incremental implementation.
+
+==================================================
+0. TECH STACK & ARCHITECTURE PHILOSOPHY
+==================================================
+
+I want a stack that makes it easy to:
+
+1) Build the main **web app** (control center, dashboards, management tools).
+2) Build a **companion mobile app** soon after (for musicians on the go).
+3) Share types, logic, and backend between web and mobile.
+
+Use this tech stack as the baseline:
+
+Frontend (Web):
+- **Next.js** (App Router) with **React** and **TypeScript**
+- **Tailwind CSS** for styling
+- **shadcn/ui as the primary component library**
+  - Use shadcn components for layout and UI wherever possible:
+    - `Card`, `Button`, `Input`, `Textarea`
+    - `Tabs`, `Badge`, `Avatar`
+    - `Table`, `Dialog`, `DropdownMenu`, `Sheet`
+    - `Form` primitives for validated forms
+  - Favor shadcn’s design patterns (cards, stacked layouts, clean typography) to keep the UI consistent.
+- **TanStack Query** (React Query) for data fetching/caching where appropriate
+
+Backend / Database:
+- **Supabase** (preferred)
+  - Postgres database
+  - Auth (email/password, magic links, etc.)
+  - Storage (files: charts, PDFs, maybe audio refs)
+  - Row Level Security (RLS) for per-user data access
+- Use **Supabase migrations** / SQL files (not random manual edits) so schema stays consistent in code.
+
+API:
+- Use **Next.js Route Handlers** (`app/api/...`) for API endpoints where needed.
+- You can also use the **Supabase JS client** directly in server components or route handlers.
+- Keep a clean separation between:
+  - Data access layer (queries to Supabase/Postgres),
+  - Business logic (gig rules, roles, financial calculations),
+  - UI components.
+
+Mobile Companion App (Shortly After):
+- Plan from the start to support a **companion mobile app** built with:
+  - **Expo (React Native) + TypeScript**
+- The mobile app will:
+  - Reuse the same Supabase backend (auth, DB, storage).
+  - Likely reuse the same API endpoints where appropriate.
+  - Focus on:
+    - “My Gigs” view for musicians
+    - Gig Pack view (info, setlist, people, money)
+    - Possibly basic manager actions (confirm players, view statuses).
+
+To support this:
+- Keep **domain models and TypeScript types** in a sharable location:
+  - e.g. a `/types` or `/packages/types` folder that can be reused by both web and mobile clients.
+- Keep business logic server-side where possible so both web and mobile talk to the same backend.
+
+Calendar Integration (Later / Optional):
+- We may integrate external calendars (e.g. Google Calendar).
+- Model this as a separate integration layer (e.g. `/lib/integrations/calendar.ts`).
+- Do NOT tightly couple gig logic to any specific calendar provider.
+- Just store:
+  - externalCalendarProvider (e.g. "google")
+  - externalCalendarEventId
+  - importedFromCalendar flags, etc.
+
+==================================================
+1. CORE IDEA & REAL-WORLD FRICTION
+==================================================
+
+Real-world situation for gigging musicians:
+
+- Musicians are currently "okay" with:
+  - Google Calendar invites,
+  - WhatsApp groups,
+  - Notes apps,
+  - Spreadsheet trackers,
+  - Random PDFs and links.
+
+But the REALITY is:
+- Information is scattered across multiple apps.
+- Nobody has a single, structured view of:
+  - which gigs they’re playing,
+  - what exactly they’re playing (setlists/materials),
+  - who’s on the gig,
+  - and whether they’ve been paid.
+
+My app’s value is:
+- Not “a better calendar”.
+- Not a generic project manager.
+- It’s a **gig-focused system** that understands:
+  - projects/bands,
+  - musician roles per gig,
+  - confirmations and subs,
+  - setlists and musical materials,
+  - payments and income per gig/project/musician.
+
+We may integrate with external calendars so events still show up there,
+but the core product is the **gig structure and workflow**.
+
+==================================================
+2. PERSONAS & ROLE LOGIC
+==================================================
+
+There are 4 main personas. The SAME person can act in different roles in different gigs.
+
+1) MUSICIAN (PLAYER ONLY)
+- Just wants:
+  - Where do I need to be?
+  - When is load-in/soundcheck/showtime?
+  - What am I playing (setlist, charts, references)?
+  - How much am I getting paid and did they pay me yet?
+- Needs:
+  - Simple list of upcoming gigs.
+  - Clean per-gig view with info, setlist, files, people, payment status.
+
+2) BAND LEADER / MUSICAL DIRECTOR (MD)
+- Manages one or multiple bands/projects.
+- Needs:
+  - Create gigs and assign them to a project/band.
+  - Define roles (keys, MD, bass, drums, FOH, etc.).
+  - Invite musicians per role and see accepted/declined/pending.
+  - Handle subs.
+  - Track payouts per musician and total profit per gig.
+  - Attach setlists and all relevant materials.
+
+3) COMPANY / AGENCY
+- Has multiple projects/bands under it (e.g. 80s cover band, live-on-DJ project, EDM party band, etc.).
+- Needs:
+  - Overview of gigs per project.
+  - Revenue by project/client/date range.
+  - See which musicians are playing where (avoid double-booking).
+
+4) HYBRID PERSON
+- In one gig they are just keys.
+- In another gig they might be MD or company admin.
+- Needs:
+  - Clear separation and filtering:
+    - “Gigs I play”
+    - “Gigs I manage”
+    - “Gigs under my company/projects”
+  - One combined view, but filterable by role/project.
+
+Architecturally:
+- The same User can have different roles in different Projects and Gigs.
+- Views and permissions should adapt based on that context.
+
+==================================================
+3. CORE ENTITIES (DATA MODEL)
+==================================================
+
+Please help me model these in a relational way (likely Postgres via Supabase).
+Use TypeScript types or interfaces when appropriate and aim for clarity.
+
+Core entities and their key fields:
+
+1) User
+- id
+- name
+- email
+- phone
+- mainInstrument (string)
+- optional avatarUrl
+- Relations to roles in projects and gigs.
+
+2) Company (optional layer above projects)
+- id
+- name
+- logoUrl
+- description
+- owners/admins: [User]
+- Has many Projects.
+
+3) Project (Band / Act)
+- id
+- name
+- description
+- coverImageUrl
+- optional companyId
+- defaultRoster: list of userIds with roleName (e.g. keys, MD, bass)
+- defaultRates or payment templates (optional at first)
+- Has many Gigs.
+
+4) Gig
+- id
+- projectId
+- title (e.g. “Dana’s Wedding”, “Ibiza Rooftop Live Set”)
+- date (event date)
+- startTime, endTime
+- locationName
+- locationAddress
+- locationUrl (maps link)
+- gigType (wedding, club, corporate, rehearsal, etc.)
+- status: draft | invitations_sent | confirmed | completed | cancelled
+- notes (general MD notes)
+- clientName (optional)
+- clientFee (optional, numeric)
+- coverImageUrl (can be auto-assigned)
+
+5) GigRole / GigSlot (invited role for a specific gig)
+- id
+- gigId
+- roleName (keys, MD, drums, sound engineer, etc.)
+- musicianId (User) OPTIONAL if not yet assigned
+- invitationStatus: invited | accepted | declined | needs_sub | replaced
+- agreedFee (number, optional)
+- isPaid (boolean)
+- paidAt (timestamp, optional)
+- notes (e.g. “bring subkick”, “arrive earlier for line check”)
+
+6) Setlist & Materials
+At minimum, for each Gig:
+- Setlist item:
+  - id
+  - gigId
+  - title
+  - position/order
+  - key (e.g. “Bb”, “E minor”)
+  - bpm (optional)
+  - notes
+- Files/Attachments (generic):
+  - id
+  - gigId
+  - type: chart | audio_ref | stems | ableton_project | other
+  - url
+  - label
+
+7) Payment / Financial Tracking
+We can start simple using fields on Gig and GigRole:
+- On Gig:
+  - clientFee
+  - currency
+  - overallStatus: not_invoiced | invoiced | partially_paid | paid
+- On GigRole:
+  - agreedFee
+  - isPaid
+  - paidAt
+
+8) Optional Calendar Integration (just model relationship for now)
+- For each Gig:
+  - externalCalendarEventId (string, optional)
+  - externalCalendarProvider (e.g. "google")
+  - importedFromCalendar (boolean)
+  - importedRawTitle / rawDescription (for parsing)
+
+The architecture should keep calendar integration modular, not deeply coupled to core gig logic.
+
+==================================================
+4. KEY WORKFLOWS (MVP FIRST)
+==================================================
+
+Please structure the implementation roadmap around these workflows in this order:
+
+MVP STEP 1 – Data + Basic UI
+- Implement database schema / models for:
+  - User
+  - Project
+  - Gig
+  - GigRole
+  - Setlist (basic)
+- Basic authenticated UI where:
+  - I can create Projects.
+  - I can create Gigs under a Project.
+  - I can define GigRoles (slots) and assign users.
+  - I can see a “My Gigs” list for the current user (as musician and as manager).
+
+MVP STEP 2 – Role-based Views
+- Implement two main views for the current user:
+  1) “As Player”:
+     - List of upcoming gigs where the user has a GigRole.
+     - Each list item shows: date, time, project, location, role, fee, status.
+     - Gig detail page shows:
+       - Overview, setlist, attachments, people, money (their fee + paid/unpaid).
+  2) “As Manager”:
+     - List of gigs where the user is MD/manager (could be derived from a role or project permission).
+     - Gig detail page shows:
+       - All roles and their statuses (accepted/declined/pending).
+       - Ability to change assigned musician for a role.
+       - Basic money overview per gig.
+
+MVP STEP 3 – Gig Pack
+- For every gig, generate a **Gig Pack** view/page:
+  - Logistics:
+    - date, time(s): load-in, soundcheck, showtime (we might add explicit fields for these).
+    - location info.
+    - project/band.
+  - Music:
+    - setlist in order.
+    - attachments for charts, references, stems, etc.
+  - People:
+    - list of gig roles with assigned musicians.
+  - Money:
+    - For the current user: their fee & status.
+- For now, this can be internal-only (no public share link required yet).
+- Keep in mind that this screen should be easy to adapt later as the main view in the **mobile companion app**.
+
+MVP STEP 4 – Basic Financial View
+- For the current user (as Player):
+  - Simple “Money” page:
+    - List of gigs with: date, project, fee, isPaid.
+    - Summary for a given date range: total earned vs unpaid.
+- For a Project/Manager:
+  - Per project:
+    - Total clientFee sum.
+    - Total payouts (sum of GigRole fees).
+    - Simple profit calculation = sum(clientFee) – sum(payouts).
+
+MVP STEP 5 – Calendar Integration (Optional, Later)
+- Add support to:
+  - Export a Gig as an event to an external calendar.
+  - Optionally import existing calendar events as draft Gigs.
+- Keep this as a separate module/layer so it doesn’t pollute the core gig logic.
+
+==================================================
+5. UX / SCREEN STRUCTURE (WEB FIRST, MOBILE SOON)
+==================================================
+
+On the web (Next.js), please help design and implement the following main screens:
+
+1) Home / Dashboard
+- Shows:
+  - “Next Gig” card for the current user.
+  - Toggle or tabs:
+    - As Player
+    - As Manager
+- Under “As Player”:
+  - Simple list of upcoming gigs.
+- Under “As Manager”:
+  - List of gigs I manage.
+
+2) Projects Page
+- List/grid of Projects the user has access to.
+- Clicking a project:
+  - Shows upcoming gigs for that project.
+  - Shows basic stats (later).
+
+3) Gig Detail Page
+- Hero section:
+  - Title, project, date, time, location, cover image.
+- Tabs or sections:
+  - Overview (notes, schedule).
+  - People (roles and assigned musicians, statuses).
+  - Setlist (songs).
+  - Files/Materials.
+  - Money (client fee & payouts).
+
+4) Profile / Settings
+- User info.
+- Instrument.
+- Basic preferences (later: notification settings, currency, etc.).
+
+While building these for web, keep components and data flows structured in a way that will be easy to reuse or mirror in an Expo React Native app:
+- don’t bake web-only assumptions into the core domain logic,
+- keep core logic and types shared in separate modules.
+
+==================================================
+6. ARCHITECTURAL GUIDELINES (VERY IMPORTANT)
+==================================================
+
+Because my previous attempt suffered from architectural issues AND performance problems
+(the app became slow very quickly), please:
+
+- Start from the **data model and domain concepts first** before UI.
+- Keep a clear separation between:
+  - data models,
+  - API/data access layer,
+  - UI components.
+
+Performance & data loading:
+- Be intentional about **queries**:
+  - Avoid `select *` when unnecessary.
+  - Only fetch the fields needed for each view.
+  - Use **pagination** or infinite scroll for large lists (e.g., past gigs, money history).
+- Avoid N+1 query patterns in the backend.
+- Add **indexes** to Postgres (Supabase) on common filter/sort fields:
+  - userId, projectId, gigId, date, etc.
+- Prefer doing heavier work **server-side** rather than in the browser.
+- Use caching mechanisms where suitable (TanStack Query on the client, and reasonable server caching if needed).
+
+UI & rendering:
+- Keep components **lean**:
+  - Avoid giant “god components” that fetch and render everything at once.
+  - Split large screens (like Gig Detail) into smaller components that only fetch what they need.
+- Use loading/skeleton states instead of blocking on heavy requests.
+- For lists (gigs, money, etc.), don’t render hundreds of items at once:
+  - paginate or limit with “Load more”.
+
+Integration boundaries:
+- Avoid tightly coupling:
+  - core gig logic with any specific external provider (like calendar APIs).
+- Keep integrations (e.g., calendar) in separate modules/layers so they don't pollute core domain logic.
+
+Evolution & migrations:
+- Suggest migrations/refactors early if something in the schema looks like it will cause problems later.
+- Prefer small, incremental PR-style changes (schema → backend → UI) instead of giant leaps.
+- Keep TypeScript models/types in a shared place so we can reuse them from a future mobile app.
+
+General mindset:
+- Always ask: “Will this still be fast and understandable when there are:
+  - hundreds of gigs,
+  - multiple projects/companies,
+  - and many users?”
+- If a design will obviously slow down or become a tangle later, propose a better pattern before generating code.
+
+==================================================
+6.1 PERFORMANCE CHECKLIST (ALWAYS CONSIDER THIS)
+==================================================
+
+Before you (the agent) design or implement anything that touches data or lists,
+run through this checklist and align your solution with it as much as possible.
+
+DATA FETCHING & QUERIES
+- Are we fetching ONLY the fields we actually need for this screen/component?
+- Are we avoiding N+1 patterns? (e.g., looping and hitting the DB for each item)
+  - Prefer a single joined query or batched queries.
+- For lists (gigs, projects, money entries), are we:
+  - limiting the number of records (e.g., `limit 20`)?
+  - using pagination or “load more” instead of loading hundreds at once?
+- Are we filtering/sorting on indexed columns (userId, projectId, gig date, etc.)?
+
+DB & INDEXES
+- Does this new query filter or sort on a column that should be indexed?
+  - If yes, suggest adding an index in a migration.
+- Are we doing any heavy aggregation on large tables?
+  - If yes, consider:
+    - precomputing summaries for dashboards,
+    - or scoping queries to a reasonable date range.
+
+API / SERVER LAYER
+- Is this logic best done server-side instead of in the client?
+  - e.g., filtering, joining, aggregations.
+- Are we avoiding sending large payloads to the client when they only need a small subset?
+- Can this endpoint be structured in a way that supports pagination / filters easily later?
+
+UI & RENDERING
+- Does this screen try to render too much at once?
+  - If yes, consider:
+    - smaller cards,
+    - split sections into tabs,
+    - or paginated tables.
+- Are we using loading states / skeletons so the UI stays responsive?
+- For tables (gigs, money, lineup), are we:
+  - rendering a reasonable number of rows?
+  - ready to support pagination or infinite scroll?
+
+CACHING & STATE
+- On the client (TanStack Query):
+  - Are we caching data that is reused across screens (e.g., projects list, current user, etc.)?
+  - Are we invalidating queries surgically when mutations happen, instead of refetching everything?
+- On the server:
+  - If something is expensive but read-often (like a summary), can it be cached or precomputed later?
+
+SCALE MINDSET
+- Would this still feel fast with:
+  - 500–1000 gigs in the system?
+  - 50+ projects?
+  - multiple active users at once?
+- If the answer is “probably not”, propose a more scalable pattern BEFORE writing code.
+
+When in doubt:
+- Prefer a slightly more explicit, structured solution that scales,
+  over a quick hack that will become slow and messy as data grows.
+  
+  ==================================================
+7. IMPLEMENTATION STYLE & HOW TO HELP ME
+==================================================
+
+When you (the agent) help me:
+
+- Assume the stack:
+  - Frontend: Next.js (App Router) + React + TypeScript + Tailwind + shadcn/ui
+  - Backend: Supabase (Postgres, Auth, Storage)
+  - Data fetching: Next.js Route Handlers + Supabase client + TanStack Query where useful
+  - Future mobile: Expo + React Native + TypeScript talking to the same backend
+- Before generating code, briefly restate what you’re about to implement.
+- Prefer **incremental changes**:
+  - Propose schema first.
+  - Then API/DB functions.
+  - Then UI components/screens.
+- When editing code:
+  - Respect existing file structure.
+  - Explain which files you’ll create or modify.
+- Use clear TypeScript models/types for the entities described and keep them DRY.
+- Keep explanations concise and focus on what to code, unless I explicitly ask for longer explanations.
+
+Your main job:
+- Help me turn this product vision into a working app.
+- Keep all dev decisions aligned with:
+  - gig-focused structure,
+  - role-based views,
+  - good architecture,
+  - future mobile companion app,
+  - and tracking of lineups, materials, and money per gig/project/musician.
+
+  ==================================================
+8. DOCUMENTATION REQUIREMENT
+==================================================
+
+Every feature build MUST include documentation:
+
+DOCUMENTATION WORKFLOW:
+1. When a feature/step is complete and tested, IMMEDIATELY create/update documentation.
+2. Use the template: /docs/build-process/TEMPLATE.md
+3. Create file: /docs/build-process/step-X-[descriptive-name].md
+4. Update: /docs/build-process/README.md (move step from "In Progress" to "Completed")
+
+WHAT TO DOCUMENT:
+- Overview & goals of the feature
+- What was built (components, APIs, database changes)
+- Technical decisions & why they were made
+- Files created/modified (full list)
+- Code snippets of key implementations
+- How to test/verify it works
+- Performance considerations (aligned with 6.1 checklist)
+- Security considerations
+- Known limitations
+- Next steps
+
+DOCUMENTATION IS PART OF "DEFINITION OF DONE":
+- A feature is NOT complete until documented
+- No moving to next feature until docs are written
+- Docs should be clear enough for:
+  - Future reference when building similar features
+  - New developers joining the project
+  - Debugging issues months later
+  - Understanding why architectural decisions were made
