@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { heebo, anton, antonSC, notoSansHebrew, zalandoSansEn } from "@/lib/fonts";
 import "./globals.css";
 import { QueryProvider } from "@/lib/providers/query-provider";
 import { ThemeProvider } from "@/lib/providers/theme-provider";
@@ -20,7 +21,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.className} ${heebo.variable} ${anton.variable} ${antonSC.variable} ${notoSansHebrew.variable} ${zalandoSansEn.variable}`}>
         <ThemeProvider>
           <UserProvider>
             <QueryProvider>

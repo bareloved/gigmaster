@@ -173,6 +173,8 @@ export async function getMusicianLearningStatuses(
  * Get practice items for dashboard "Practice Focus" widget
  * Returns songs from upcoming gigs that the musician hasn't learned yet
  * 
+ * Note: setlist_items now uses section_id -> setlist_sections -> gigs (no direct gig_id)
+ * 
  * @param musicianId - The musician's user ID
  * @param limit - Maximum number of items to return (default: 10)
  * @param priorityFilter - Filter by priority: 'high', 'medium', 'low', or 'all' (default: 'all')
@@ -198,7 +200,7 @@ export async function getPracticeItems(
 
   if (gigRolesError) {
     console.error('Error fetching gig roles:', gigRolesError);
-    throw gigRolesError;
+    return []; // Return empty instead of throwing for graceful degradation
   }
 
   if (!gigRoles || gigRoles.length === 0) {
@@ -207,34 +209,37 @@ export async function getPracticeItems(
 
   const gigIds = gigRoles.map(role => role.gig_id);
 
-  // STEP 2: Get setlist items from those gigs with learning status
+  // STEP 2: Get setlist items from those gigs via setlist_sections
+  // Join path: setlist_items -> setlist_sections -> gigs
   const { data: setlistData, error: setlistError } = await supabase
     .from('setlist_items')
     .select(`
       id,
       title,
       key,
-      bpm,
-      position,
-      gig_id,
-      gigs!inner (
-        id,
-        title,
-        date,
-        owner_id,
-        owner:profiles!gigs_owner_id_fkey (
-          name
+      tempo,
+      sort_order,
+      setlist_sections!inner (
+        gig_id,
+        gigs!inner (
+          id,
+          title,
+          date,
+          owner_id,
+          owner:profiles!gigs_owner_profiles_fkey (
+            name
+          )
         )
       )
     `)
-    .in('gig_id', gigIds)
-    .gte('gigs.date', today)
-    .lte('gigs.date', future)
-    .order('position', { ascending: true });
+    .in('setlist_sections.gig_id', gigIds)
+    .gte('setlist_sections.gigs.date', today)
+    .lte('setlist_sections.gigs.date', future)
+    .order('sort_order', { ascending: true });
 
   if (setlistError) {
     console.error('Error fetching setlist items:', setlistError);
-    throw setlistError;
+    return []; // Return empty instead of throwing for graceful degradation
   }
 
   if (!setlistData || setlistData.length === 0) {
@@ -251,7 +256,7 @@ export async function getPracticeItems(
 
   if (learningError) {
     console.error('Error fetching learning statuses:', learningError);
-    throw learningError;
+    // Continue without learning statuses - treat all as unlearned
   }
 
   // Create a map for quick lookup
@@ -267,8 +272,14 @@ export async function getPracticeItems(
   const todayDate = new Date(today);
 
   for (const item of setlistData) {
-    // @ts-ignore - Supabase types
-    const gig = item.gigs;
+    // Navigate through the new nested structure
+    // @ts-ignore - Supabase nested types
+    const section = item.setlist_sections;
+    // @ts-ignore
+    const gig = section?.gigs;
+    
+    if (!gig) continue;
+    
     const learningStatus = statusMap.get(item.id);
 
     // Skip if already learned
@@ -294,7 +305,7 @@ export async function getPracticeItems(
       gigDate: gig.date,
       hostName: gig?.owner?.name || null,
       key: item.key,
-      bpm: item.bpm,
+      bpm: item.tempo, // Field is now 'tempo' in new schema
       learned: learningStatus?.learned || false,
       difficulty: learningStatus?.difficulty || null,
       priority,

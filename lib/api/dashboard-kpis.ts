@@ -132,14 +132,16 @@ async function fetchGigsThisWeek(
 /**
  * Fetch songs to learn count
  * Counts unlearned songs from setlist_learning_status for upcoming gigs
+ * Note: setlist_items now uses section_id (FK to setlist_sections) instead of direct gig_id
  */
 async function fetchSongsToLearn(
   supabase: any,
   userId: string
 ): Promise<{ total: number; acrossGigs: number }> {
-  const today = new Date().toISOString();
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
   // Query unlearned songs for upcoming gigs
+  // Join path: setlist_learning_status -> setlist_items -> setlist_sections -> gigs
   const { data, error } = await supabase
     .from("setlist_learning_status")
     .select(
@@ -148,30 +150,36 @@ async function fetchSongsToLearn(
       learned,
       setlist_items!inner (
         id,
-        gig_id,
-        gigs!inner (
-          id,
-          date
+        setlist_sections!inner (
+          gig_id,
+          gigs!inner (
+            id,
+            date
+          )
         )
       )
     `
     )
     .eq("musician_id", userId)
     .eq("learned", false)
-    .gte("setlist_items.gigs.date", today);
+    .gte("setlist_items.setlist_sections.gigs.date", today);
 
   if (error) {
+    // Don't throw on query errors - return 0 gracefully
+    // This handles cases where tables don't exist or have schema issues
     console.error("Error fetching songs to learn:", error);
-    throw error;
+    return { total: 0, acrossGigs: 0 };
   }
 
   if (!data || data.length === 0) {
     return { total: 0, acrossGigs: 0 };
   }
 
-  // Count unique gigs
+  // Count unique gigs (navigate through the nested structure)
   const uniqueGigs = new Set(
-    data.map((item: any) => item.setlist_items?.gig_id).filter(Boolean)
+    data
+      .map((item: any) => item.setlist_items?.setlist_sections?.gig_id)
+      .filter(Boolean)
   );
 
   return {

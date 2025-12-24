@@ -14,7 +14,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState } from "react";
-import { PlayerStatusActions } from "@/components/player-status-actions";
+import { PlayerStatusActions } from "@/components/roles/player-actions";
 
 function formatTime(time: string | null): string {
   if (!time) return "";

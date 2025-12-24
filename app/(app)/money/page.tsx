@@ -7,10 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MyEarningsSummaryCards } from '@/components/my-earnings-summary';
-import { MyEarningsTable } from '@/components/my-earnings-table';
-import { PayoutsTable } from '@/components/payouts-table';
-import { SummaryCardsSkeleton, MoneyTableSkeleton } from '@/components/money-table-skeleton';
+import { MyEarningsSummaryCards } from '@/components/dashboard/earnings-summary';
+import { MyEarningsTable } from '@/components/money/earnings-table';
+import { PayoutsTable } from '@/components/money/payouts-table';
+import { SummaryCardsSkeleton, MoneyTableSkeleton } from '@/components/money/table-skeleton';
 import { getMyEarnings, getPayouts, checkIsManager } from '@/lib/api/money';
 import { useUser } from '@/lib/providers/user-provider';
 import { Skeleton } from '@/components/ui/skeleton';

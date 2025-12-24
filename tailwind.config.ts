@@ -7,6 +7,12 @@ const config: Config = {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  // Safelist ensures dynamically-generated classes aren't purged
+  safelist: [
+    "poster-skin-clean",
+    "poster-skin-paper",
+    "poster-skin-grain",
+  ],
   theme: {
   	extend: {
   		colors: {
@@ -65,7 +71,37 @@ const config: Config = {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
-  		}
+  		},
+        fontFamily: {
+            sans: [
+              'var(--font-heebo)',
+              'system-ui',
+              '-apple-system',
+              'BlinkMacSystemFont',
+              '"Segoe UI"',
+              'Roboto',
+              '"Helvetica Neue"',
+              'Arial',
+              'sans-serif',
+            ],
+            mono: [
+              '"SF Mono"',
+              '"Monaco"',
+              '"Inconsolata"',
+              '"Fira Code"',
+              '"Droid Sans Mono"',
+              'monospace',
+            ],
+          },
+          animation: {
+            'slide-in': 'slideIn 0.2s ease-out',
+          },
+          keyframes: {
+            slideIn: {
+              '0%': { transform: 'translateY(-10px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)', opacity: '1' },
+            },
+          },
   	}
   },
   plugins: [require("tailwindcss-animate")],

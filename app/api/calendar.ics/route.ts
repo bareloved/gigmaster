@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         end_time,
         location_name,
         status,
-        owner:profiles!gigs_owner_id_fkey(name)
+        owner:profiles!gigs_owner_profiles_fkey(name)
       `)
       .eq("owner_id", userId)
       .gte("date", fromStr)
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
           end_time,
           location_name,
           status,
-          owner:profiles!gigs_owner_id_fkey(name)
+          owner:profiles!gigs_owner_profiles_fkey(name)
         )
       `)
       .eq("musician_id", userId)

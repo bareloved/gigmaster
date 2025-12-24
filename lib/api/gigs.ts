@@ -29,7 +29,7 @@ export async function getGig(gigId: string) {
     .from("gigs")
     .select(`
       *,
-      owner:profiles!gigs_owner_id_fkey (
+      owner:profiles!gigs_owner_profiles_fkey (
         id,
         name
       )
@@ -144,60 +144,4 @@ export async function deleteGig(gigId: string) {
     .eq("id", gigId);
 
   if (error) throw new Error(error.message || "Failed to delete gig");
-}
-
-// Dashboard views - gigs where user is a player
-export async function listGigsAsPlayer(userId: string) {
-  const supabase = createClient();
-
-  // Get gigs where user has a gig_role (is invited as musician)
-  // Exclude roles with 'pending' status (not yet officially invited)
-  // Exclude roles with 'declined' status (player declined)
-  const { data: gigs, error } = await supabase
-    .from("gigs")
-    .select(`
-      *,
-      owner:profiles!gigs_owner_id_fkey (
-        id,
-        name
-      ),
-      gig_roles!inner (
-        id,
-        role_name,
-        invitation_status,
-        musician_id
-      )
-    `)
-    .eq("gig_roles.musician_id", userId)
-    .neq("gig_roles.invitation_status", "pending")
-    .neq("gig_roles.invitation_status", "declined")
-    .gte("date", new Date().toISOString().split('T')[0]) // Only upcoming gigs
-    .order("date", { ascending: true })
-    .limit(20);
-
-  if (error) throw new Error(error.message || "Failed to fetch player gigs");
-  return gigs || [];
-}
-
-// Dashboard views - gigs where user is a manager/owner
-export async function listGigsAsManager(userId: string) {
-  const supabase = createClient();
-
-  // Get gigs where user is the gig owner
-  const { data: gigs, error } = await supabase
-    .from("gigs")
-    .select(`
-      *,
-      owner:profiles!gigs_owner_id_fkey (
-        id,
-        name
-      )
-    `)
-    .eq("owner_id", userId)
-    .gte("date", new Date().toISOString().split('T')[0]) // Only upcoming gigs
-    .order("date", { ascending: true })
-    .limit(20);
-
-  if (error) throw new Error(error.message || "Failed to fetch manager gigs");
-  return gigs || [];
 }

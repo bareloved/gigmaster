@@ -1,6 +1,6 @@
 "use client";
 
-import { TopNav } from "@/components/top-nav";
+import { TopNav } from "@/components/layout/top-nav";
 import { useUser } from "@/lib/providers/user-provider";
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";

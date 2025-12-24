@@ -12,24 +12,24 @@ import { getGig, deleteGig } from '@/lib/api/gigs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 // PERFORMANCE: Lazy load heavy dialogs and sections - only loads when needed
 import dynamic from 'next/dynamic';
-import { GigStatusSelect } from '@/components/gig-status-select';
-import { GigStatusBadge } from '@/components/gig-status-badge';
+import { GigStatusSelect } from '@/components/gigs/shared/status-select';
+import { GigStatusBadge } from '@/components/gigs/shared/status-badge';
 import { useUser } from '@/lib/providers/user-provider';
 
 // Lazy load dialogs (only when user clicks)
 const EditGigDialog = dynamic(
-  () => import('@/components/edit-gig-dialog').then((mod) => ({ default: mod.EditGigDialog })),
+  () => import('@/components/gigs/dialogs/edit-gig-dialog').then((mod) => ({ default: mod.EditGigDialog })),
   { ssr: false, loading: () => null }
 );
 
 const DeleteGigDialog = dynamic(
-  () => import('@/components/delete-gig-dialog').then((mod) => ({ default: mod.DeleteGigDialog })),
+  () => import('@/components/gigs/dialogs/delete-gig-dialog').then((mod) => ({ default: mod.DeleteGigDialog })),
   { ssr: false, loading: () => null }
 );
 
 // Lazy load heavy sections (reduces initial bundle, loads when tab is active)
 const GigPeopleSection = dynamic(
-  () => import('@/components/gig-people-section').then((mod) => ({ default: mod.GigPeopleSection })),
+  () => import('@/components/gigs/detail/people-section').then((mod) => ({ default: mod.GigPeopleSection })),
   { 
     ssr: false, 
     loading: () => (
@@ -42,7 +42,7 @@ const GigPeopleSection = dynamic(
 );
 
 const GigSetlistSection = dynamic(
-  () => import('@/components/gig-setlist-section').then((mod) => ({ default: mod.GigSetlistSection })),
+  () => import('@/components/gigs/detail/setlist-section').then((mod) => ({ default: mod.GigSetlistSection })),
   { 
     ssr: false, 
     loading: () => <Skeleton className="h-64 w-full" />
@@ -50,7 +50,7 @@ const GigSetlistSection = dynamic(
 );
 
 const GigResourcesSection = dynamic(
-  () => import('@/components/gig-resources-section').then((mod) => ({ default: mod.GigResourcesSection })),
+  () => import('@/components/gigs/detail/resources-section').then((mod) => ({ default: mod.GigResourcesSection })),
   { 
     ssr: false, 
     loading: () => <Skeleton className="h-48 w-full" />
@@ -58,7 +58,7 @@ const GigResourcesSection = dynamic(
 );
 
 const GigScheduleSection = dynamic(
-  () => import('@/components/gig-schedule-section').then((mod) => ({ default: mod.GigScheduleSection })),
+  () => import('@/components/gigs/detail/schedule-section').then((mod) => ({ default: mod.GigScheduleSection })),
   { 
     ssr: false, 
     loading: () => <Skeleton className="h-32 w-full" />
@@ -339,7 +339,7 @@ export default function GigDetailPage() {
           )}
 
           {/* Notes - if imported from calendar or added by user */}
-          {gig.notes && (
+          {gig.internal_notes && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <FileText className="h-4 w-4" />
@@ -347,7 +347,7 @@ export default function GigDetailPage() {
               </div>
               <div className="p-3 bg-gray-50 rounded-lg border">
                 <p className="text-sm whitespace-pre-wrap">
-                  {gig.notes}
+                  {gig.internal_notes}
                 </p>
               </div>
             </div>

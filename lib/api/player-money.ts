@@ -101,7 +101,7 @@ export async function getPlayerMoneyGigs(
         title,
         date,
         owner_id,
-        owner:profiles!gigs_owner_id_fkey(name)
+        owner:profiles!gigs_owner_profiles_fkey(name)
       )
     `
     )

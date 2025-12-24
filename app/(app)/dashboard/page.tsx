@@ -60,20 +60,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format, parseISO, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
 import dynamic from "next/dynamic";
-import { GigStatusBadge } from "@/components/gig-status-badge";
-import { PracticeFocusWidget } from "@/components/practice-focus-widget";
-import { GigActivityWidget } from "@/components/gig-activity-widget";
-import { DashboardKPICards } from "@/components/dashboard-kpi-cards";
+import { GigStatusBadge } from "@/components/gigs/shared/status-badge";
+import { PracticeFocusWidget } from "@/components/dashboard/practice-widget";
+import { GigActivityWidget } from "@/components/dashboard/activity-widget";
+import { DashboardKPICards } from "@/components/dashboard/kpi-cards";
 import { fetchDashboardKPIs, updateLastVisit, getLastVisit } from "@/lib/api/dashboard-kpis";
 import { useFocusMode } from "@/hooks/use-focus-mode";
 import { useDashboardFilters } from "@/hooks/use-dashboard-filters";
 import { useDashboardKeyboardShortcuts } from "@/hooks/use-dashboard-keyboard-shortcuts";
-
-// Lazy load Create Gig Dialog
-const CreateGigDialog = dynamic(
-  () => import("@/components/create-gig-dialog").then((mod) => ({ default: mod.CreateGigDialog })),
-  { ssr: false, loading: () => null }
-);
 
 // ========================================
 // HELPER FUNCTIONS
@@ -124,7 +118,6 @@ export default function DashboardPage() {
   // UI State - with localStorage persistence
   const [focusMode, setFocusMode] = useFocusMode(user?.id);
   const [roleFilter, setRoleFilter] = useDashboardFilters(user?.id);
-  const [createGigDialogOpen, setCreateGigDialogOpen] = useState(false);
   const [showReadinessBreakdown, setShowReadinessBreakdown] = useState(false);
   
   // Gig selector state
@@ -811,7 +804,7 @@ export default function DashboardPage() {
                   <p className="text-sm text-muted-foreground max-w-sm mb-4">
                     You don't have any gigs in the next 7 days.
                   </p>
-                  <Button onClick={() => setCreateGigDialogOpen(true)} className="gap-2">
+                  <Button onClick={() => router.push("/gigs/new")} className="gap-2">
                     <Plus className="h-4 w-4" />
                     Create a Gig
                   </Button>
@@ -1013,19 +1006,6 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Create Gig Dialog */}
-      <CreateGigDialog
-        open={createGigDialogOpen}
-        onOpenChange={setCreateGigDialogOpen}
-        onSuccess={(gigId) => {
-          queryClient.invalidateQueries({ 
-            queryKey: ["dashboard-gigs"],
-            refetchType: 'active'
-          });
-          setCreateGigDialogOpen(false);
-          router.push(`/gigs/${gigId}`);
-        }}
-      />
     </div>
   );
 }

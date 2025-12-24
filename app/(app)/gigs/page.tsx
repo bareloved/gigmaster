@@ -17,9 +17,8 @@ import {
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/providers/user-provider";
-import { DashboardGigItem } from "@/components/dashboard-gig-item";
-import { DashboardGigItemGrid } from "@/components/dashboard-gig-item-grid";
-import { CreateGigDialog } from "@/components/create-gig-dialog";
+import { DashboardGigItem } from "@/components/dashboard/gig-item";
+import { DashboardGigItemGrid } from "@/components/dashboard/gig-item-grid";
 import type { DashboardGig } from "@/lib/types/shared";
 import { parseISO } from "date-fns";
 
@@ -33,7 +32,6 @@ export default function AllGigsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  const [createGigDialogOpen, setCreateGigDialogOpen] = useState(false);
 
   // Debounce search query
   useEffect(() => {
@@ -71,7 +69,7 @@ export default function AllGigsPage() {
           end_time,
           location_name,
           status,
-          owner:profiles!gigs_owner_id_fkey (
+          owner:profiles!gigs_owner_profiles_fkey (
             id,
             name
           ),
@@ -287,7 +285,7 @@ export default function AllGigsPage() {
                   ? "Try adjusting your filters or search query."
                   : "Create your first gig to get started."}
               </p>
-              <Button onClick={() => setCreateGigDialogOpen(true)} size="sm" className="gap-2">
+              <Button onClick={() => router.push("/gigs/new")} size="sm" className="gap-2">
                 <Plus className="h-4 w-4" />
                 Create Gig
               </Button>
@@ -323,18 +321,6 @@ export default function AllGigsPage() {
         </>
       )}
 
-      {/* Create Gig Dialog */}
-      <CreateGigDialog
-        open={createGigDialogOpen}
-        onOpenChange={setCreateGigDialogOpen}
-        onSuccess={(gigId) => {
-          queryClient.invalidateQueries({ queryKey: ["all-gigs"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard-gigs"] });
-          queryClient.invalidateQueries({ queryKey: ["gigs"] });
-          setCreateGigDialogOpen(false);
-          router.push(`/gigs/${gigId}?returnUrl=/gigs`);
-        }}
-      />
     </div>
   );
 }

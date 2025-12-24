@@ -10,8 +10,8 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Music, Briefcase, Calendar, Grid3x3, List, CalendarDays, Search, X, History as HistoryIcon } from "lucide-react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { listAllPastGigs, type DashboardGig } from "@/lib/api/dashboard-gigs";
-import { DashboardGigItem } from "@/components/dashboard-gig-item";
-import { DashboardGigItemGrid } from "@/components/dashboard-gig-item-grid";
+import { DashboardGigItem } from "@/components/dashboard/gig-item";
+import { DashboardGigItemGrid } from "@/components/dashboard/gig-item-grid";
 import { useUser } from "@/lib/providers/user-provider";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { 

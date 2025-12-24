@@ -49,7 +49,7 @@ export async function getMyEarnings(
         date,
         location_name,
         owner_id,
-        owner:profiles!gigs_owner_id_fkey(
+        owner:profiles!gigs_owner_profiles_fkey(
           name
         )
       )
