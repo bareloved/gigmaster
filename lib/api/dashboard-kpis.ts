@@ -77,9 +77,9 @@ export async function fetchDashboardKPIs(
     lastVisit
       ? fetchChangesSinceLastVisit(supabase, userId, lastVisit)
       : Promise.resolve({
-          total: 0,
-          breakdown: { setlists: 0, notes: 0, files: 0, roles: 0 },
-        }),
+        total: 0,
+        breakdown: { setlists: 0, notes: 0, files: 0, roles: 0 },
+      }),
     fetchPendingInvitations(supabase, userId),
   ]);
 
@@ -102,28 +102,49 @@ async function fetchGigsThisWeek(
   startOfWeek: Date,
   endOfWeek: Date
 ): Promise<{ total: number; hosted: number; playing: number }> {
-  // Use existing dashboard gigs API
-  const result = await listDashboardGigs(userId, {
-    from: startOfWeek,
-    to: endOfWeek,
-    limit: 1000, // High limit to get all gigs in the week
-  });
+  const fromStr = startOfWeek.toISOString();
+  const toStr = endOfWeek.toISOString();
 
-  if (!result || !result.gigs || result.gigs.length === 0) {
-    return { total: 0, hosted: 0, playing: 0 };
+  // 1. Count gigs where user is owner (hosted)
+  const { count: hostedCount, error: hostedError } = await supabase
+    .from("gigs")
+    .select("*", { count: "exact", head: true })
+    .eq("owner_id", userId)
+    .gte("date", fromStr)
+    .lte("date", toStr);
+
+  if (hostedError) {
+    console.error("Error fetching hosted gigs count:", hostedError);
   }
 
-  // Count hosted vs playing
-  let hosted = 0;
-  let playing = 0;
+  // 2. Count gigs where user is a player (playing)
+  // Join gig_roles -> gigs to filter by date
+  const { count: playingCount, error: playingError } = await supabase
+    .from("gig_roles")
+    .select(
+      `
+      gigs!inner (
+        id,
+        date
+      )
+    `,
+      { count: "exact", head: true }
+    )
+    .eq("musician_id", userId)
+    .neq("invitation_status", "pending")
+    .neq("invitation_status", "declined")
+    .gte("gigs.date", fromStr)
+    .lte("gigs.date", toStr);
 
-  result.gigs.forEach((gig) => {
-    if (gig.isManager) hosted++;
-    if (gig.isPlayer) playing++;
-  });
+  if (playingError) {
+    console.error("Error fetching playing gigs count:", playingError);
+  }
+
+  const hosted = hostedCount || 0;
+  const playing = playingCount || 0;
 
   return {
-    total: result.gigs.length,
+    total: hosted + playing,
     hosted,
     playing,
   };
@@ -292,21 +313,23 @@ async function fetchChangesSinceLastVisitFallback(
     roles: number;
   };
 }> {
-  // Get all gigs user is involved in using existing API
-  const result = await listDashboardGigs(userId, {
-    limit: 1000, // High limit to get all user's gigs
-  });
+  // Get IDs of all gigs user is involved in
+  // Efficient query using RLS (which now allows viewing gigs user is in)
+  const { data: userGigs, error: gigsError } = await supabase
+    .from("gigs")
+    .select("id")
+    .limit(100); // Limit to reasonable number of recent/active gigs to check
 
-  if (!result || !result.gigs || result.gigs.length === 0) {
+  if (gigsError || !userGigs || userGigs.length === 0) {
     return {
       total: 0,
       breakdown: { setlists: 0, notes: 0, files: 0, roles: 0 },
     };
   }
 
-  const gigIds = result.gigs.map((gig) => gig.gigId);
+  const gigIds = userGigs.map((g: any) => g.id);
 
-  // Query activity log
+  // Query activity log for these gigs
   const { data: activities, error: activityError } = await supabase
     .from("gig_activity_log")
     .select("activity_type")

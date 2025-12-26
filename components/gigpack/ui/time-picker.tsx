@@ -58,6 +58,8 @@ interface TimePickerProps {
   placeholder?: string
   disabled?: boolean
   className?: string
+  name?: string
+  id?: string
 }
 
 export function TimePicker({
@@ -66,6 +68,8 @@ export function TimePicker({
   placeholder = "--:--",
   disabled = false,
   className,
+  name,
+  id,
 }: TimePickerProps) {
   const [open, setOpen] = React.useState(false)
   const [inputValue, setInputValue] = React.useState(value || "")
@@ -165,6 +169,8 @@ export function TimePicker({
           <input
             ref={inputRef}
             type="text"
+            name={name}
+            id={id}
             value={inputValue}
             onChange={handleInputChange}
             onBlur={handleInputBlur}
@@ -175,13 +181,13 @@ export function TimePicker({
           />
         </div>
       </PopoverAnchor>
-      <PopoverContent 
-        className="w-[100px] p-0" 
+      <PopoverContent
+        className="w-[100px] p-0"
         align="start"
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
-        <div 
+        <div
           ref={scrollContainerRef}
           onWheel={handleWheel}
           className="max-h-[280px] overflow-y-auto p-1"

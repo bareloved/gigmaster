@@ -79,21 +79,25 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
 }
 
 @layer utilities {
+
   /* Hide scrollbar for Chrome, Safari and Opera */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
-  
+
   /* Hide scrollbar for IE, Edge and Firefox */
   .no-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
   }
 }
 
@@ -106,7 +110,8 @@
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
-  unicode-range: U+0590-05FF, U+FB1D-FB4F; /* Hebrew Unicode ranges */
+  unicode-range: U+0590-05FF, U+FB1D-FB4F;
+  /* Hebrew Unicode ranges */
 }
 
 @layer base {
@@ -128,19 +133,19 @@
   .gig-card {
     @apply rounded-xl border-2 bg-card shadow-sm transition-all duration-200;
   }
-  
+
   .gig-card:hover {
     @apply shadow-lg scale-[1.02] border-primary/30;
   }
-  
+
   .date-pill {
     @apply inline-flex items-center rounded-lg bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary border border-primary/20;
   }
-  
+
   .section-divider {
     @apply border-t-2 border-dashed border-border my-6;
   }
-  
+
   .gig-section-header {
     @apply text-xs uppercase tracking-wider font-bold text-muted-foreground mb-3 flex items-center gap-2;
   }
@@ -167,9 +172,12 @@
 
   /* Subtle wiggle animation for hand-drawn elements */
   @keyframes wiggle {
-    0%, 100% {
+
+    0%,
+    100% {
       transform: rotate(-0.5deg);
     }
+
     50% {
       transform: rotate(0.5deg);
     }
@@ -181,12 +189,16 @@
 
   /* Floating animation for decorative elements */
   @keyframes float {
-    0%, 100% {
+
+    0%,
+    100% {
       transform: translateY(0px) rotate(0deg);
     }
+
     33% {
       transform: translateY(-3px) rotate(1deg);
     }
+
     66% {
       transform: translateY(2px) rotate(-1deg);
     }
@@ -237,26 +249,26 @@
 /* Paper skin: Warm cream/aged paper look */
 .poster-skin-paper {
   background-color: hsl(45, 35%, 93%);
-  background-image: 
+  background-image:
     url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)' opacity='0.08'/%3E%3C/svg%3E");
 }
 
 .dark .poster-skin-paper {
   background-color: hsl(30, 15%, 15%);
-  background-image: 
+  background-image:
     url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)' opacity='0.12'/%3E%3C/svg%3E");
 }
 
 /* Grain skin: Strong vintage film grain effect */
 .poster-skin-grain {
   background-color: hsl(40, 25%, 90%);
-  background-image: 
+  background-image:
     url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.2'/%3E%3C/svg%3E");
 }
 
 .dark .poster-skin-grain {
   background-color: hsl(220, 12%, 12%);
-  background-image: 
+  background-image:
     url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.25'/%3E%3C/svg%3E");
 }
 
@@ -296,4 +308,20 @@
     box-shadow: none !important;
     border: none !important;
   }
+}
+
+/* Fix for Google Maps Autocomplete blue highlight */
+[class*="gmp-"],
+gmp-place-autocomplete,
+gmp-place-autocomplete:focus,
+gmp-place-autocomplete:focus-visible,
+gmp-place-autocomplete:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+gmp-place-autocomplete::part(input) {
+  outline: none !important;
+  box-shadow: none !important;
 }

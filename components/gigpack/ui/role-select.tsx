@@ -17,6 +17,8 @@ interface RoleSelectProps {
   onChange: (value: string) => void
   disabled?: boolean
   className?: string
+  name?: string
+  id?: string
 }
 
 const PREDEFINED_ROLES = [
@@ -37,29 +39,29 @@ const PREDEFINED_ROLES = [
 
 const CUSTOM_VALUE = "__custom__"
 
-export function RoleSelect({ value, onChange, disabled, className }: RoleSelectProps) {
+export function RoleSelect({ value, onChange, disabled, className, name, id }: RoleSelectProps) {
   const t = useTranslations("gigpack.roles")
   const tCommon = useTranslations("gigpack")
   const locale = useLocale()
-  
+
   // Check if current value is a predefined role
   const isPredefinedRole = PREDEFINED_ROLES.some(
     (role) => t(role).toLowerCase() === value?.toLowerCase()
   )
-  
+
   const [showCustom, setShowCustom] = React.useState(!isPredefinedRole && value !== "")
   const [customValue, setCustomValue] = React.useState(isPredefinedRole ? "" : value)
-  
+
   const selectValue = React.useMemo(() => {
     if (!value) return ""
-    
+
     const matchingRole = PREDEFINED_ROLES.find(
       (role) => t(role).toLowerCase() === value.toLowerCase()
     )
-    
+
     return matchingRole || CUSTOM_VALUE
   }, [value, t])
-  
+
   const handleSelectChange = (newValue: string) => {
     if (newValue === CUSTOM_VALUE) {
       setShowCustom(true)
@@ -70,13 +72,13 @@ export function RoleSelect({ value, onChange, disabled, className }: RoleSelectP
       onChange(t(newValue as typeof PREDEFINED_ROLES[number]))
     }
   }
-  
+
   const handleCustomInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newCustomValue = e.target.value
     setCustomValue(newCustomValue)
     onChange(newCustomValue)
   }
-  
+
   if (showCustom) {
     return (
       <div className={cn("flex gap-2", className)}>
@@ -96,6 +98,8 @@ export function RoleSelect({ value, onChange, disabled, className }: RoleSelectP
           </SelectContent>
         </Select>
         <Input
+          name={name}
+          id={id}
           value={customValue}
           onChange={handleCustomInputChange}
           placeholder={tCommon("customRolePlaceholder")}
@@ -106,9 +110,9 @@ export function RoleSelect({ value, onChange, disabled, className }: RoleSelectP
       </div>
     )
   }
-  
+
   return (
-    <Select value={selectValue} onValueChange={handleSelectChange} disabled={disabled}>
+    <Select name={name} value={selectValue} onValueChange={handleSelectChange} disabled={disabled}>
       <SelectTrigger className={cn("h-8 text-sm", className)} dir={locale === "he" ? "rtl" : "ltr"}>
         <SelectValue placeholder={tCommon("rolePlaceholder")} />
       </SelectTrigger>

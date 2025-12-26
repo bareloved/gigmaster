@@ -48,6 +48,18 @@ RESEND_API_KEY=re_your_resend_api_key
 1. Sign up at https://resend.com
 2. Create an API key in your dashboard
 
+### Google Maps (Venue Autocomplete)
+```
+NEXT_PUBLIC_GOOGLE_PLACES_API_KEY=your-google-maps-api-key
+```
+
+**Note:** If not set, the venue autocomplete will fall back to a standard text input.
+
+**Where to get this:**
+1. Go to Google Cloud Console
+2. Enable "Maps JavaScript API" and "Places API"
+3. Create an API key and restrict it to your domain for security.
+
 ### Application URL
 ```
 NEXT_PUBLIC_APP_URL=https://your-app.vercel.app

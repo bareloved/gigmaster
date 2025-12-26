@@ -90,13 +90,17 @@ export default function GigDetailPage() {
     router.push(returnUrl);
   };
 
-  // Loading state
+  // Loading state handled inside GigEditorPanel for a smoother sliding experience
   if (isLoading) {
     return (
-      <div className="w-full h-full space-y-6">
-        <Skeleton className="h-12 w-1/3" />
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-64 w-full" />
+      <div className="pb-6">
+        <GigEditorPanel
+          mode="sheet"
+          loading={true}
+          isEditing={true}
+          open={true}
+          onOpenChange={() => { }}
+        />
       </div>
     );
   }
@@ -140,10 +144,17 @@ export default function GigDetailPage() {
   return (
     <div className="pb-6">
       <GigEditorPanel
-        mode="page"
+        mode="sheet"
+        loading={isLoading}
+        isEditing={true}
         gigPack={gig ?? undefined}
         open={true}
-        onOpenChange={() => router.push('/dashboard')}
+        onOpenChange={(open) => {
+          if (!open) {
+            const returnUrl = searchParams.get('returnUrl') || '/gigs';
+            router.push(returnUrl);
+          }
+        }}
         onDelete={handleDeleteGig}
         onUpdateSuccess={() => {
           // Invalidate and refetch gig data

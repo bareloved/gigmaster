@@ -66,8 +66,13 @@ import { GigActivityWidget } from "@/components/dashboard/activity-widget";
 import { DashboardKPICards } from "@/components/dashboard/kpi-cards";
 import { fetchDashboardKPIs, updateLastVisit, getLastVisit } from "@/lib/api/dashboard-kpis";
 import { useFocusMode } from "@/hooks/use-focus-mode";
-import { useDashboardFilters } from "@/hooks/use-dashboard-filters";
 import { useDashboardKeyboardShortcuts } from "@/hooks/use-dashboard-keyboard-shortcuts";
+import { getGig } from "../gigs/actions";
+
+const GigEditorPanel = dynamic(
+  () => import("@/components/gigpack/editor/gig-editor-panel").then((mod) => mod.GigEditorPanel),
+  { ssr: false }
+);
 
 // ========================================
 // HELPER FUNCTIONS
@@ -75,7 +80,7 @@ import { useDashboardKeyboardShortcuts } from "@/hooks/use-dashboard-keyboard-sh
 
 function getInvitationStatusBadge(status: string | null) {
   if (!status) return null;
-  
+
   switch (status) {
     case "accepted":
       return <Badge variant="default" className="bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500/20">Accepted</Badge>;
@@ -114,15 +119,30 @@ export default function DashboardPage() {
   const { user } = useUser();
   const router = useRouter();
   const queryClient = useQueryClient();
-  
+
   // UI State - with localStorage persistence
   const [focusMode, setFocusMode] = useFocusMode(user?.id);
-  const [roleFilter, setRoleFilter] = useDashboardFilters(user?.id);
   const [showReadinessBreakdown, setShowReadinessBreakdown] = useState(false);
-  
+
   // Gig selector state
   const [selectedGigIndex, setSelectedGigIndex] = useState(0);
   const [gigSelectorOpen, setGigSelectorOpen] = useState(false);
+
+  // Editor state
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingGigId, setEditingGigId] = useState<string | null>(null);
+
+  // Fetch gig data when editing
+  const { data: editingGig, isLoading: isLoadingEditingGig } = useQuery({
+    queryKey: ["gig-editor", editingGigId],
+    queryFn: () => editingGigId ? getGig(editingGigId) : null,
+    enabled: !!editingGigId && isEditorOpen,
+  });
+
+  const handleEditGig = (gigId: string) => {
+    setEditingGigId(gigId);
+    setIsEditorOpen(true);
+  };
 
   // Fetch gigs for next 7 days
   const today = new Date();
@@ -169,11 +189,11 @@ export default function DashboardPage() {
     queryKey: ["dashboard-kpis", user?.id],
     queryFn: () => {
       // Get last visit from localStorage
-      const lastVisitStr = typeof window !== 'undefined' 
+      const lastVisitStr = typeof window !== 'undefined'
         ? localStorage.getItem(`dashboard_last_visit_${user!.id}`)
         : null;
       const lastVisit = lastVisitStr ? new Date(lastVisitStr) : undefined;
-      
+
       return fetchDashboardKPIs(lastVisit);
     },
     enabled: !!user,
@@ -192,7 +212,7 @@ export default function DashboardPage() {
   // Split gigs into today and upcoming
   const { todayGigs, upcomingGigs } = useMemo(() => {
     const todayStr = format(today, "yyyy-MM-dd");
-    
+
     return {
       todayGigs: allGigs.filter(g => g.date === todayStr),
       upcomingGigs: allGigs.filter(g => g.date > todayStr),
@@ -210,7 +230,7 @@ export default function DashboardPage() {
     if (upcomingGigs.length > 0) return upcomingGigs[0];
     return null;
   }, [todayGigs, upcomingGigs, allGigs, selectedGigIndex]);
-  
+
   // Reset to next gig function
   const resetToNextGig = () => {
     setSelectedGigIndex(0);
@@ -236,15 +256,15 @@ export default function DashboardPage() {
   const updateReadinessMutation = useMutation({
     mutationFn: async (updates: { field: string; value: boolean | number }) => {
       if (!nextGig || !user) throw new Error("No gig or user");
-      
+
       // If no readiness exists yet, create it first
       if (!readiness) {
         await getOrCreateGigReadiness(nextGig.gigId, user.id, 0);
       }
-      
+
       const updateData: any = {};
       updateData[updates.field] = updates.value;
-      
+
       return updateGigReadiness(nextGig.gigId, user.id, updateData);
     },
     onSuccess: () => {
@@ -252,15 +272,6 @@ export default function DashboardPage() {
     },
   });
 
-  // Filter gigs by role
-  const filteredGigs = useMemo(() => {
-    if (roleFilter === "all") return upcomingGigs;
-    if (roleFilter === "hosted") return upcomingGigs.filter(g => g.isManager);
-    if (roleFilter === "playing") return upcomingGigs.filter(g => g.isPlayer && !g.isManager);
-    if (roleFilter === "subbing") return upcomingGigs.filter(g => g.invitationStatus === "needs_sub");
-    if (roleFilter === "md") return upcomingGigs.filter(g => g.playerRoleName?.toLowerCase().includes("md"));
-    return upcomingGigs;
-  }, [upcomingGigs, roleFilter]);
 
   // Keyboard shortcuts (G, P, S, F)
   useDashboardKeyboardShortcuts(nextGig?.gigId, !!nextGig);
@@ -273,7 +284,7 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground mt-1">Get ready for your next gigs.</p>
         </div>
-        
+
         {/* Focus Mode Toggle */}
         <TooltipProvider>
           <Tooltip>
@@ -388,9 +399,8 @@ export default function DashboardPage() {
                                     setSelectedGigIndex(index);
                                     setGigSelectorOpen(false);
                                   }}
-                                  className={`w-full text-left px-2 py-2 rounded-md hover:bg-accent transition-colors ${
-                                    index === selectedGigIndex ? 'bg-accent' : ''
-                                  }`}
+                                  className={`w-full text-left px-2 py-2 rounded-md hover:bg-accent transition-colors ${index === selectedGigIndex ? 'bg-accent' : ''
+                                    }`}
                                 >
                                   <div className="flex items-start justify-between gap-2">
                                     <div className="flex-1 min-w-0">
@@ -431,7 +441,7 @@ export default function DashboardPage() {
                       {format(parseISO(nextGig.date), "d")}
                     </div>
                   </div>
-                  
+
                   {/* Gig Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-2">
@@ -498,21 +508,36 @@ export default function DashboardPage() {
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Link href={`/gigs/${nextGig.gigId}`}>
-                          <Button variant="default" size="sm" className="gap-2 group relative">
+                        {nextGig.isManager ? (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="gap-2 group relative"
+                            onClick={() => handleEditGig(nextGig.gigId)}
+                          >
                             <FileText className="h-4 w-4" />
-                            View Gig Details
+                            Edit Gig Details
                             <kbd className="hidden group-hover:inline-flex ml-2 pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
                               G
                             </kbd>
                           </Button>
-                        </Link>
+                        ) : (
+                          <Link href={`/gigs/${nextGig.gigId}/pack`}>
+                            <Button variant="default" size="sm" className="gap-2 group relative">
+                              <FileText className="h-4 w-4" />
+                              View Gig Details
+                              <kbd className="hidden group-hover:inline-flex ml-2 pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+                                G
+                              </kbd>
+                            </Button>
+                          </Link>
+                        )}
                       </TooltipTrigger>
                       <TooltipContent>
                         <p className="text-xs">Press <kbd className="px-1.5 py-0.5 text-xs font-semibold border rounded">G</kbd> to open</p>
                       </TooltipContent>
                     </Tooltip>
-                    
+
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Link href={`/gigs/${nextGig.gigId}/pack`}>
@@ -529,7 +554,7 @@ export default function DashboardPage() {
                         <p className="text-xs">Press <kbd className="px-1.5 py-0.5 text-xs font-semibold border rounded">P</kbd> to open</p>
                       </TooltipContent>
                     </Tooltip>
-                    
+
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Link href={`/gigs/${nextGig.gigId}?tab=setlist`}>
@@ -546,7 +571,7 @@ export default function DashboardPage() {
                         <p className="text-xs">Press <kbd className="px-1.5 py-0.5 text-xs font-semibold border rounded">S</kbd> to open</p>
                       </TooltipContent>
                     </Tooltip>
-                    
+
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Link href={`/gigs/${nextGig.gigId}?tab=resources`}>
@@ -614,43 +639,43 @@ export default function DashboardPage() {
                         </Button>
                       </div>
                     </div>
-                    
+
                     {/* Segmented Progress Bar */}
                     <div className="relative mb-2">
                       <div className="flex h-3 w-full overflow-hidden rounded-full bg-secondary">
                         {/* Songs segment - 40% of total width */}
-                        <div 
+                        <div
                           className="bg-blue-500 transition-all duration-300"
                           style={{ width: `${(readinessScore.songs / 100) * 40}%` }}
                           title={`Songs: ${readinessScore.songs}%`}
                         />
                         {/* Charts segment - 15% of total width */}
-                        <div 
+                        <div
                           className="bg-green-500 transition-all duration-300"
                           style={{ width: `${(readinessScore.charts / 100) * 15}%` }}
                           title={`Charts: ${readinessScore.charts}%`}
                         />
                         {/* Sounds segment - 15% of total width */}
-                        <div 
+                        <div
                           className="bg-purple-500 transition-all duration-300"
                           style={{ width: `${(readinessScore.sounds / 100) * 15}%` }}
                           title={`Sounds: ${readinessScore.sounds}%`}
                         />
                         {/* Travel segment - 15% of total width */}
-                        <div 
+                        <div
                           className="bg-amber-500 transition-all duration-300"
                           style={{ width: `${(readinessScore.travel / 100) * 15}%` }}
                           title={`Travel: ${readinessScore.travel}%`}
                         />
                         {/* Gear segment - 15% of total width */}
-                        <div 
+                        <div
                           className="bg-emerald-500 transition-all duration-300"
                           style={{ width: `${(readinessScore.gear / 100) * 15}%` }}
                           title={`Gear: ${readinessScore.gear}%`}
                         />
                       </div>
                     </div>
-                    
+
                     {/* Breakdown Legend (only when expanded) */}
                     {showReadinessBreakdown && (
                       <div className="mb-4 p-3 bg-muted/50 rounded-lg space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -682,7 +707,7 @@ export default function DashboardPage() {
                         </p>
                       </div>
                     )}
-                    
+
                     <div className="space-y-2.5">
                       {/* Songs */}
                       <button
@@ -709,9 +734,9 @@ export default function DashboardPage() {
 
                       {/* Charts */}
                       <button
-                        onClick={() => updateReadinessMutation.mutate({ 
-                          field: 'chartsReady', 
-                          value: !readiness?.chartsReady 
+                        onClick={() => updateReadinessMutation.mutate({
+                          field: 'chartsReady',
+                          value: !readiness?.chartsReady
                         })}
                         className="w-full flex items-center gap-2.5 text-left hover:bg-muted/50 rounded p-1.5 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
                         disabled={updateReadinessMutation.isPending}
@@ -730,9 +755,9 @@ export default function DashboardPage() {
 
                       {/* Sounds */}
                       <button
-                        onClick={() => updateReadinessMutation.mutate({ 
-                          field: 'soundsReady', 
-                          value: !readiness?.soundsReady 
+                        onClick={() => updateReadinessMutation.mutate({
+                          field: 'soundsReady',
+                          value: !readiness?.soundsReady
                         })}
                         className="w-full flex items-center gap-2.5 text-left hover:bg-muted/50 rounded p-1.5 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
                         disabled={updateReadinessMutation.isPending}
@@ -751,9 +776,9 @@ export default function DashboardPage() {
 
                       {/* Travel */}
                       <button
-                        onClick={() => updateReadinessMutation.mutate({ 
-                          field: 'travelChecked', 
-                          value: !readiness?.travelChecked 
+                        onClick={() => updateReadinessMutation.mutate({
+                          field: 'travelChecked',
+                          value: !readiness?.travelChecked
                         })}
                         className="w-full flex items-center gap-2.5 text-left hover:bg-muted/50 rounded p-1.5 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
                         disabled={updateReadinessMutation.isPending}
@@ -772,9 +797,9 @@ export default function DashboardPage() {
 
                       {/* Gear */}
                       <button
-                        onClick={() => updateReadinessMutation.mutate({ 
-                          field: 'gearPacked', 
-                          value: !readiness?.gearPacked 
+                        onClick={() => updateReadinessMutation.mutate({
+                          field: 'gearPacked',
+                          value: !readiness?.gearPacked
                         })}
                         className="w-full flex items-center gap-2.5 text-left hover:bg-muted/50 rounded p-1.5 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
                         disabled={updateReadinessMutation.isPending}
@@ -820,52 +845,6 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">This Week on Stage</CardTitle>
                 </div>
-                {/* Filter Chips */}
-                <div className="flex flex-wrap gap-2 mt-3">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground mr-2">
-                    Role:
-                  </div>
-                  <Button
-                    variant={roleFilter === "all" ? "default" : "outline"}
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => setRoleFilter("all")}
-                  >
-                    All
-                  </Button>
-                  <Button
-                    variant={roleFilter === "hosted" ? "default" : "outline"}
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => setRoleFilter("hosted")}
-                  >
-                    Hosted
-                  </Button>
-                  <Button
-                    variant={roleFilter === "playing" ? "default" : "outline"}
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => setRoleFilter("playing")}
-                  >
-                    Playing
-                  </Button>
-                  <Button
-                    variant={roleFilter === "subbing" ? "default" : "outline"}
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => setRoleFilter("subbing")}
-                  >
-                    Subbing
-                  </Button>
-                  <Button
-                    variant={roleFilter === "md" ? "default" : "outline"}
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => setRoleFilter("md")}
-                  >
-                    MD
-                  </Button>
-                </div>
               </CardHeader>
               <CardContent>
                 {isLoadingGigs ? (
@@ -874,15 +853,25 @@ export default function DashboardPage() {
                     <Skeleton className="h-24 w-full" />
                     <Skeleton className="h-24 w-full" />
                   </div>
-                ) : filteredGigs.length === 0 ? (
+                ) : upcomingGigs.length === 0 ? (
                   <div className="text-center py-8 text-sm text-muted-foreground">
-                    No gigs match your current filters.
+                    No gigs for this week.
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {filteredGigs.map((gig) => (
-                      <Link key={gig.gigId} href={`/gigs/${gig.gigId}`}>
-                        <Card className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
+                    {upcomingGigs.map((gig) => (
+                      <div
+                        key={gig.gigId}
+                        onClick={() => {
+                          if (gig.isManager) {
+                            handleEditGig(gig.gigId);
+                          } else {
+                            router.push(`/gigs/${gig.gigId}/pack`);
+                          }
+                        }}
+                        className="cursor-pointer"
+                      >
+                        <Card className="overflow-hidden hover:shadow-md transition-shadow">
                           <CardContent className="p-4 relative">
                             {/* Gig Status Badge - Top Right */}
                             <div className="absolute top-3 right-3 scale-90 origin-top-right">
@@ -933,7 +922,7 @@ export default function DashboardPage() {
                             </div>
                           </CardContent>
                         </Card>
-                      </Link>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -947,8 +936,8 @@ export default function DashboardPage() {
           <div className="space-y-6">
             {/* Band & Changes Activity Feed */}
             {nextGig && (
-              <GigActivityWidget 
-                gigId={nextGig.gigId} 
+              <GigActivityWidget
+                gigId={nextGig.gigId}
                 limit={10}
                 showViewAll={true}
               />
@@ -1006,6 +995,27 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* Gig Editor Sliding Panel */}
+      <GigEditorPanel
+        mode="sheet"
+        open={isEditorOpen}
+        loading={isLoadingEditingGig}
+        isEditing={!!editingGigId}
+        onOpenChange={(open) => {
+          setIsEditorOpen(open);
+          if (!open) setEditingGigId(null);
+        }}
+        gigPack={editingGig || undefined}
+        onCreateSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["dashboard-gigs"] });
+          setIsEditorOpen(false);
+          setEditingGigId(null);
+        }}
+        onUpdateSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["dashboard-gigs"] });
+          queryClient.invalidateQueries({ queryKey: ["gig-editor", editingGigId] });
+        }}
+      />
     </div>
   );
 }

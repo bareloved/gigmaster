@@ -1,30 +1,22 @@
 "use client"
 
 import * as React from "react"
-import { MapPin, Loader2, AlertCircle } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useMapsLibrary } from "@vis.gl/react-google-maps"
+import { MapPin, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
-
-// Stub for Google Maps - we will use simple input for now since we don't have the API key setup in this context
-// or simply pass through the props to Input.
-// If the user adds API key later, we can re-enable the full implementation.
-
-interface PlaceResult {
-  name: string
-  address: string
-  mapsUrl: string
-}
+import { cn } from "@/lib/utils"
+import { useDebounce } from "@/hooks/use-debounce"
 
 interface VenueAutocompleteProps {
   value?: string
   onChange?: (value: string) => void
-  onPlaceSelect?: (place: PlaceResult) => void
+  onPlaceSelect?: (place: { name: string; address: string; mapsUrl: string }) => void
   placeholder?: string
   disabled?: boolean
   className?: string
 }
 
-export function VenueAutocomplete({
+function VenueAutocompleteInner({
   value,
   onChange,
   onPlaceSelect,
@@ -32,35 +24,202 @@ export function VenueAutocomplete({
   disabled,
   className,
 }: VenueAutocompleteProps) {
-  // Simplified version without Google Maps for now to avoid complexity and errors
-  // since we didn't check for API key in env vars.
-  // The original component had a fallback, let's use that logic.
-  
-  const [inputValue, setInputValue] = React.useState(value || "")
+  const places = useMapsLibrary("places")
+  const [sessionToken, setSessionToken] = React.useState<google.maps.places.AutocompleteSessionToken | null>(null)
 
+  const [inputValue, setInputValue] = React.useState(value || "")
+  const [predictions, setPredictions] = React.useState<google.maps.places.AutocompleteSuggestion[]>([])
+  const [isOpen, setIsOpen] = React.useState(false)
+  const [loading, setLoading] = React.useState(false)
+
+  const containerRef = React.useRef<HTMLDivElement>(null)
+
+  // Initialization
   React.useEffect(() => {
-    setInputValue(value || "")
+    if (!places) return
+    setSessionToken(new places.AutocompleteSessionToken())
+  }, [places])
+
+  // Sync prop value to local state
+  React.useEffect(() => {
+    if (value !== undefined) {
+      setInputValue(value)
+    }
   }, [value])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const debouncedInput = useDebounce(inputValue, 300)
+
+  // Fetch predictions
+  React.useEffect(() => {
+    if (!debouncedInput || !places || !sessionToken) {
+      setPredictions([])
+      return
+    }
+
+    if (debouncedInput === value) return // Don't search if value hasn't changed from props
+
+    const fetchSuggestions = async () => {
+      setLoading(true)
+      try {
+        const request: google.maps.places.AutocompleteRequest = {
+          input: debouncedInput,
+          sessionToken: sessionToken,
+        }
+
+        const { suggestions } = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions(request)
+        setPredictions(suggestions)
+        setIsOpen(true)
+      } catch (error) {
+        console.error("Error fetching suggestions:", error)
+        setPredictions([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSuggestions()
+  }, [debouncedInput, places, sessionToken, value])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
     setInputValue(val)
     onChange?.(val)
+    if (!val) {
+      setPredictions([])
+      setIsOpen(false)
+    }
   }
 
+  const handleSelect = async (suggestion: google.maps.places.AutocompleteSuggestion) => {
+    if (!places || !sessionToken || !suggestion.placePrediction) return
+
+    const placePrediction = suggestion.placePrediction
+    const mainText = placePrediction.mainText.text
+
+    setInputValue(mainText)
+    onChange?.(mainText)
+    setIsOpen(false)
+    setPredictions([])
+
+    try {
+      const place = placePrediction.toPlace() // Returns a Place object
+
+      // We need to fetch fields. ensure "displayName" is requested for name.
+      // Note: In new API, 'name' is the resource name (e.g. places/LOC_ID). 'displayName' is the human readable name.
+      await place.fetchFields({
+        fields: ["displayName", "formattedAddress", "googleMapsURI"],
+      })
+
+      if (onPlaceSelect) {
+        onPlaceSelect({
+          name: place.displayName || "", // displayName is a string in the Place class (or sometimes undefined)
+          address: place.formattedAddress || "",
+          mapsUrl: place.googleMapsURI || "",
+        })
+
+        // Reset session token
+        setSessionToken(new places.AutocompleteSessionToken())
+      }
+    } catch (error) {
+      console.error("Error fetching place details:", error)
+    }
+  }
+
+  // Handle outside click
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
   return (
-    <div className="relative">
-      <Input
-        value={inputValue}
-        onChange={handleChange}
-        placeholder={placeholder}
-        disabled={disabled}
-        className={className}
-      />
-      <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-        <MapPin className="h-4 w-4" />
+    <div className={cn("relative", className)} ref={containerRef}>
+      <div className="relative">
+        <MapPin className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Input
+          name="venue"
+          id="venue-autocomplete"
+          value={inputValue}
+          onChange={handleInputChange}
+          onFocus={() => {
+            if (predictions.length > 0) setIsOpen(true)
+          }}
+          placeholder={placeholder}
+          disabled={disabled}
+          className="pl-9"
+        />
+        {loading && (
+          <div className="absolute right-3 top-2.5">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+          </div>
+        )}
       </div>
+
+      {isOpen && predictions.length > 0 && (
+        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+          {predictions.map((suggestion) => {
+            const prediction = suggestion.placePrediction
+            if (!prediction) return null
+
+            return (
+              <div
+                key={prediction.placeId}
+                className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                onClick={() => handleSelect(suggestion)}
+              >
+                <MapPin className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                <div className="flex flex-col">
+                  <span className="font-medium">
+                    {prediction.mainText.text}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {prediction.secondaryText.text}
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
 
+// Wrapper to provide API context if needed, but usually APIProvider is higher up.
+// However, existing usage had APIProvider inside.
+// We should check if APIProvider is up the tree. 
+// Based on previous code, APIProvider was here.
+
+import { APIProvider } from "@vis.gl/react-google-maps"
+import { AlertCircle } from "lucide-react"
+
+export function VenueAutocomplete(props: VenueAutocompleteProps) {
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
+  if (!apiKey) {
+    return (
+      <div className="relative">
+        <Input
+          value={props.value}
+          onChange={(e) => props.onChange?.(e.target.value)}
+          placeholder={props.placeholder}
+          disabled={props.disabled}
+          className={props.className}
+        />
+        <div className="absolute right-3 top-2.5 text-muted-foreground" title="Google Places API Key missing">
+          <AlertCircle className="h-4 w-4 text-orange-500" />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <APIProvider apiKey={apiKey} libraries={["places"]}>
+      <VenueAutocompleteInner {...props} />
+    </APIProvider>
+  )
+}

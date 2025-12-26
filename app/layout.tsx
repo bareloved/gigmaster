@@ -20,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${inter.className} ${heebo.variable} ${anton.variable} ${antonSC.variable} ${notoSansHebrew.variable} ${zalandoSansEn.variable}`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${inter.className} ${heebo.variable} ${anton.variable} ${antonSC.variable} ${notoSansHebrew.variable} ${zalandoSansEn.variable}`} suppressHydrationWarning>
         <ThemeProvider>
           <UserProvider>
             <QueryProvider>

@@ -21,6 +21,13 @@ import { DashboardGigItem } from "@/components/dashboard/gig-item";
 import { DashboardGigItemGrid } from "@/components/dashboard/gig-item-grid";
 import type { DashboardGig } from "@/lib/types/shared";
 import { parseISO } from "date-fns";
+import dynamic from "next/dynamic";
+import { getGig } from "./actions";
+
+const GigEditorPanel = dynamic(
+  () => import("@/components/gigpack/editor/gig-editor-panel").then((mod) => mod.GigEditorPanel),
+  { ssr: false }
+);
 
 type ViewMode = "list" | "grid";
 
@@ -32,6 +39,32 @@ export default function AllGigsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
+  // Editor state
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingGigId, setEditingGigId] = useState<string | null>(null);
+
+  // Fetch gig data when editing
+  const { data: editingGig, isLoading: isLoadingEditingGig } = useQuery({
+    queryKey: ["gig-editor", editingGigId],
+    queryFn: () => editingGigId ? getGig(editingGigId) : null,
+    enabled: !!editingGigId && isEditorOpen,
+  });
+
+  const handleCreateGig = () => {
+    setEditingGigId(null);
+    setIsEditorOpen(true);
+  };
+
+  const handleEditGig = (gig: DashboardGig) => {
+    if (gig.isManager) {
+      setEditingGigId(gig.gigId);
+      setIsEditorOpen(true);
+    } else {
+      // Players go to pack
+      router.push(`/gigs/${gig.gigId}/pack`);
+    }
+  };
 
   // Debounce search query
   useEffect(() => {
@@ -98,9 +131,9 @@ export default function AllGigsPage() {
         .filter((gig: any) => {
           const roles = Array.isArray(gig.gig_roles) ? gig.gig_roles : [];
           // Only consider roles that are not pending or declined
-          const userRoles = roles.filter((r: any) => 
-            r?.musician_id === user?.id && 
-            r?.invitation_status !== 'pending' && 
+          const userRoles = roles.filter((r: any) =>
+            r?.musician_id === user?.id &&
+            r?.invitation_status !== 'pending' &&
             r?.invitation_status !== 'declined'
           );
           // Check if user is manager (owner of the gig)
@@ -112,9 +145,9 @@ export default function AllGigsPage() {
         .map((gig: any) => {
           const roles = Array.isArray(gig.gig_roles) ? gig.gig_roles : [];
           // Only consider roles that are not pending or declined
-          const userRoles = roles.filter((r: any) => 
-            r?.musician_id === user?.id && 
-            r?.invitation_status !== 'pending' && 
+          const userRoles = roles.filter((r: any) =>
+            r?.musician_id === user?.id &&
+            r?.invitation_status !== 'pending' &&
             r?.invitation_status !== 'declined'
           );
           // Check if user is manager (owner of the gig)
@@ -212,6 +245,10 @@ export default function AllGigsPage() {
             Manage all your gigs in one place
           </p>
         </div>
+        <Button onClick={handleCreateGig} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Create Gig
+        </Button>
       </div>
 
       {/* Filters - Search and View Controls */}
@@ -289,7 +326,7 @@ export default function AllGigsPage() {
                   ? "Try adjusting your filters or search query."
                   : "Create your first gig to get started."}
               </p>
-              <Button onClick={() => router.push("/gigs/new")} size="sm" className="gap-2">
+              <Button onClick={handleCreateGig} size="sm" className="gap-2">
                 <Plus className="h-4 w-4" />
                 Create Gig
               </Button>
@@ -301,13 +338,21 @@ export default function AllGigsPage() {
           {viewMode === "list" ? (
             <div className="space-y-3">
               {filteredGigs.map((gig) => (
-                <DashboardGigItem key={gig.gigId} gig={gig} />
+                <DashboardGigItem
+                  key={gig.gigId}
+                  gig={gig}
+                  onClick={() => handleEditGig(gig)}
+                />
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredGigs.map((gig) => (
-                <DashboardGigItemGrid key={gig.gigId} gig={gig} />
+                <DashboardGigItemGrid
+                  key={gig.gigId}
+                  gig={gig}
+                  onClick={() => handleEditGig(gig)}
+                />
               ))}
             </div>
           )}
@@ -325,7 +370,30 @@ export default function AllGigsPage() {
         </>
       )}
 
+      {/* Gig Editor Sliding Panel */}
+      <GigEditorPanel
+        mode="sheet"
+        open={isEditorOpen}
+        loading={isLoadingEditingGig}
+        isEditing={!!editingGigId}
+        onOpenChange={(open) => {
+          setIsEditorOpen(open);
+          if (!open) setEditingGigId(null);
+        }}
+        gigPack={editingGig || undefined}
+        onCreateSuccess={(newGig) => {
+          queryClient.invalidateQueries({ queryKey: ["all-gigs"] });
+          setIsEditorOpen(false);
+          setEditingGigId(null);
+          // Optional: navigate to the new pack or stay here
+        }}
+        onUpdateSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["all-gigs"] });
+          // We don't necessarily need to close if they want to keep editing,
+          // but usually on success it's good to close or show success.
+          // For now, let's just refresh.
+        }}
+      />
     </div>
   );
 }
-

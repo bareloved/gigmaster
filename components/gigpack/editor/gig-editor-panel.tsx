@@ -10,7 +10,10 @@ import {
   Sheet,
   SheetContent,
   SheetTitle,
+  SheetDescription,
 } from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -123,6 +126,10 @@ export interface GigEditorPanelProps {
   onUserTemplatesChange?: () => void;
   /** Display mode: sheet (modal) or page (full screen) */
   mode?: "sheet" | "page";
+  /** Loading state for data fetching */
+  loading?: boolean;
+  /** Explicit edit mode (useful during loading) */
+  isEditing?: boolean;
 }
 
 // ============================================================================
@@ -179,14 +186,24 @@ interface MetadataRowProps {
   label: string;
   children: React.ReactNode;
   className?: string;
+  inputId?: string;
 }
 
-function MetadataRow({ label, children, className }: MetadataRowProps) {
+function MetadataRow({ label, children, className, inputId }: MetadataRowProps) {
   return (
     <div className={cn("flex items-center gap-4", className)}>
-      <span className="w-24 shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
+      {inputId ? (
+        <Label
+          htmlFor={inputId}
+          className="w-24 shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground cursor-pointer"
+        >
+          {label}
+        </Label>
+      ) : (
+        <span className="w-24 shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </span>
+      )}
       <div className="flex-1 flex items-center gap-2">{children}</div>
     </div>
   );
@@ -257,8 +274,10 @@ export function GigEditorPanel({
   onUpdateSuccess,
   onDelete,
   onTemplateSaved,
-  userTemplates = [],
+  onUserTemplatesChange,
   mode = "sheet",
+  loading = false,
+  isEditing: isEditingProp,
 }: GigEditorPanelProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -268,7 +287,7 @@ export function GigEditorPanel({
   const tTemplates = useTranslations("templates");
   const locale = useLocale();
   const [, startTransition] = useTransition();
-  const isEditing = !!gigPack;
+  const isEditing = isEditingProp ?? !!gigPack;
   const dateLocale = locale === "he" ? he : undefined;
 
   // Famous gig placeholders for random selection (localized lists)
@@ -804,8 +823,67 @@ export function GigEditorPanel({
     { id: "info", label: t("logistics"), icon: <Package className="h-4 w-4" /> },
   ];
 
+  function EditorSkeleton() {
+    return (
+      <div className="flex flex-col h-full bg-background">
+        {/* Header Skeleton */}
+        <div className="border-b border-border p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-8 w-8 rounded-full" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-48" />
+          </div>
+        </div>
+
+        {/* Tabs Skeleton */}
+        <div className="border-b border-border px-4 py-2 flex gap-4">
+          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-8 w-20" />
+          <Skeleton className="h-8 w-20" />
+        </div>
+
+        {/* Content Skeleton */}
+        <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-24" />
+            <div className="grid grid-cols-2 gap-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </div>
+          <div className="space-y-3 pt-4 border-t">
+            <Skeleton className="h-4 w-32" />
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer Skeleton */}
+        <div className="border-t border-border p-4 flex gap-3">
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+      </div>
+    );
+  }
+
   const content = (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full bg-background">
+    <form key={gigPack?.id || "new"} onSubmit={handleSubmit} className="flex flex-col h-full bg-background">
       <div className="sr-only">
         {isEditing ? t("editGigPackTitle") : t("createGigPackTitle")}
       </div>
@@ -923,8 +1001,10 @@ export function GigEditorPanel({
                 Scrollable Content Area
                 ================================================================ */}
       <div className="flex-1 overflow-y-auto px-6 pb-4 min-h-0">
-        {/* Title - Large inline editable */}
+        {/* Title / Name */}
         <InlineInput
+          name="title"
+          id="gig-title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={t("gigTitlePlaceholderWithExample", {
@@ -939,6 +1019,7 @@ export function GigEditorPanel({
         {/* Band Selector */}
         <div className="mt-1 mb-6 max-w-xs">
           <Select
+            name="band"
             value={bandId || ""}
             onValueChange={handleBandSelect}
             disabled={isLoading}
@@ -1007,11 +1088,13 @@ export function GigEditorPanel({
           </MetadataRow>
 
           {/* Call Time */}
-          <MetadataRow label={t("soundcheckTime")}>
+          <MetadataRow label={t("soundcheckTime")} inputId="call-time">
             <div className="flex items-center gap-2">
               <Clock3 className="h-4 w-4 text-muted-foreground" />
               <div className="w-16">
                 <TimePicker
+                  name="call_time"
+                  id="call-time"
                   value={callTime}
                   onChange={setCallTime}
                   disabled={isLoading}
@@ -1021,11 +1104,13 @@ export function GigEditorPanel({
           </MetadataRow>
 
           {/* On Stage Time */}
-          <MetadataRow label={t("onStageTime")}>
+          <MetadataRow label={t("onStageTime")} inputId="on-stage-time">
             <div className="flex items-center gap-2">
               <Clock3 className="h-4 w-4 text-muted-foreground" />
               <div className="w-16">
                 <TimePicker
+                  name="on_stage_time"
+                  id="on-stage-time"
                   value={onStageTime}
                   onChange={setOnStageTime}
                   disabled={isLoading}
@@ -1035,7 +1120,7 @@ export function GigEditorPanel({
           </MetadataRow>
 
           {/* Venue */}
-          <MetadataRow label={t("venueName")}>
+          <MetadataRow label={t("venueName")} inputId="venue-autocomplete">
             <div className="flex-1 space-y-1">
               <VenueAutocomplete
                 value={venueName}
@@ -1056,13 +1141,14 @@ export function GigEditorPanel({
           </MetadataRow>
 
           {/* Gig Type */}
-          <MetadataRow label={t("gigTypeLabel")}>
+          <MetadataRow label={t("gigTypeLabel")} inputId="gig-type">
             <Select
+              name="gig_type"
               value={gigType || ""}
               onValueChange={(value) => setGigType(value || null)}
               disabled={isLoading}
             >
-              <SelectTrigger className="w-full max-w-[200px] h-8" dir={locale === "he" ? "rtl" : "ltr"}>
+              <SelectTrigger id="gig-type" className="h-8">
                 <SelectValue placeholder={t("selectGigType")} />
               </SelectTrigger>
               <SelectContent dir={locale === "he" ? "rtl" : "ltr"}>
@@ -1101,6 +1187,7 @@ export function GigEditorPanel({
                     {/* Name - primary field, takes more space on desktop */}
                     <div className="md:flex-[2]">
                       <Input
+                        name={`lineup[${index}].name`}
                         placeholder={t("namePlaceholder")}
                         value={member.name || ""}
                         onChange={(e) => updateLineupMember(index, "name", e.target.value)}
@@ -1110,9 +1197,10 @@ export function GigEditorPanel({
                       />
                     </div>
 
-                    {/* Role - now a dropdown with predefined options + custom support */}
-                    <div className="md:flex-[1]">
+                    {/* Role */}
+                    <div className="md:flex-[1.5]">
                       <RoleSelect
+                        name={`lineup[${index}].role`}
                         value={member.role}
                         onChange={(value) => updateLineupMember(index, "role", value)}
                         disabled={isLoading}
@@ -1122,6 +1210,7 @@ export function GigEditorPanel({
                     {/* Notes - optional, same as before */}
                     <div className="md:flex-[1.5]">
                       <Input
+                        name={`lineup[${index}].notes`}
                         placeholder={t("notesPlaceholder")}
                         value={member.notes || ""}
                         onChange={(e) => updateLineupMember(index, "notes", e.target.value)}
@@ -1170,6 +1259,7 @@ export function GigEditorPanel({
                 {t("setlistTip")}
               </p>
               <Textarea
+                name="setlist"
                 value={setlistText}
                 onChange={(e) => setSetlistText(e.target.value)}
                 rows={16}
@@ -1215,6 +1305,7 @@ export function GigEditorPanel({
                     {/* Label Input */}
                     <div className="flex-1">
                       <Input
+                        name={`schedule[${index}].label`}
                         value={item.label}
                         onChange={(e) => {
                           const newSchedule = [...schedule];
@@ -1307,6 +1398,7 @@ export function GigEditorPanel({
                   </div>
                   <div className="flex h-8 w-full items-center rounded-md border border-input bg-transparent px-2 py-1 text-sm shadow-sm transition-colors focus-within:ring-1 focus-within:ring-ring">
                     <input
+                      name="dress_code"
                       type="text"
                       value={dressCode}
                       onChange={(e) => setDressCode(e.target.value)}
@@ -1339,6 +1431,7 @@ export function GigEditorPanel({
                     </button>
                   </div>
                   <Textarea
+                    name="backline_notes"
                     value={backlineNotes}
                     onChange={(e) => setBacklineNotes(e.target.value)}
                     placeholder={t("backlineNotesPlaceholder")}
@@ -1370,6 +1463,7 @@ export function GigEditorPanel({
                     </button>
                   </div>
                   <Textarea
+                    name="parking_notes"
                     value={parkingNotes}
                     onChange={(e) => setParkingNotes(e.target.value)}
                     placeholder={t("parkingNotesPlaceholder")}
@@ -1401,6 +1495,7 @@ export function GigEditorPanel({
                     </button>
                   </div>
                   <Textarea
+                    name="internal_notes"
                     value={internalNotes}
                     onChange={(e) => setInternalNotes(e.target.value)}
                     placeholder={t("internalNotesPlaceholder")}
@@ -1490,6 +1585,7 @@ export function GigEditorPanel({
                     <div className="flex gap-2">
                       {/* Label Input */}
                       <Input
+                        name={`materials[${index}].label`}
                         className="flex-1"
                         value={material.label}
                         onChange={(e) => {
@@ -1503,6 +1599,7 @@ export function GigEditorPanel({
 
                       {/* Kind Select */}
                       <Select
+                        name={`materials[${index}].kind`}
                         value={material.kind}
                         onValueChange={(value: GigMaterialKind) => {
                           const newMaterials = [...materials];
@@ -1526,6 +1623,7 @@ export function GigEditorPanel({
 
                     {/* URL Input */}
                     <Input
+                      name={`materials[${index}].url`}
                       value={material.url}
                       onChange={(e) => {
                         const newMaterials = [...materials];
@@ -1690,7 +1788,10 @@ export function GigEditorPanel({
           <SheetTitle className="sr-only">
             {isEditing ? t("editGigPackTitle") : t("createGigPackTitle")}
           </SheetTitle>
-          {content}
+          <SheetDescription className="sr-only">
+            {isEditing ? t("editGigPackTitle") : t("createGigPackTitle")}
+          </SheetDescription>
+          {loading && isEditing ? <EditorSkeleton /> : content}
         </SheetContent>
       </Sheet>
 
