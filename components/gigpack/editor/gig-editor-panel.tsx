@@ -43,6 +43,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { generateSlug } from "@/lib/gigpack/utils";
 import { uploadImage, deleteImage, getPathFromUrl } from "@/lib/gigpack/image-upload";
+import { useSaveGigPack } from "@/hooks/use-gig-mutations";
 import { Calendar } from "@/components/ui/calendar";
 import { TimePicker } from "@/components/gigpack/ui/time-picker";
 import { VenueAutocomplete } from "@/components/gigpack/ui/venue-autocomplete";
@@ -76,7 +77,6 @@ import { SaveAsTemplateDialog } from "@/components/gigpack/dialogs/save-as-templ
 import { PasteScheduleDialog } from "@/components/gigpack/dialogs/paste-schedule-dialog";
 import { GIGPACK_TEMPLATES, GigPackTemplate, applyTemplateToFormDefaults, userTemplateToGigPackTemplate } from "@/lib/gigpack/templates";
 import type { UserTemplate } from "@/lib/gigpack/types";
-import { saveGigPack } from "@/app/(app)/gigs/actions";
 
 // ============================================================================
 // Types
@@ -314,6 +314,9 @@ export function GigEditorPanel({
       return a.time.localeCompare(b.time);
     });
   };
+
+  // Mutation hook for saving gigs
+  const saveGigPackMutation = useSaveGigPack();
 
   // Active tab
   const [activeTab, setActiveTab] = useState("schedule");
@@ -711,12 +714,10 @@ export function GigEditorPanel({
         public_slug: isEditing && gigPack?.public_slug ? gigPack.public_slug : undefined,
       };
 
-      const result = await saveGigPack(gigPackData, isEditing, gigPack?.id);
-
-      toast({
-        title: isEditing ? tCommon("saved") : t("created"),
-        description: isEditing ? t("savedDescription") : t("createdDescription"),
-        duration: 2000,
+      const result = await saveGigPackMutation.mutateAsync({
+        data: gigPackData,
+        isEditing,
+        gigId: gigPack?.id
       });
 
       if (isEditing) {

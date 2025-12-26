@@ -163,3 +163,4 @@
 - **Legacy Projects:** Are there any lingering DB columns or code paths that still expect a `project_id`?
 - **Notifications:** Are they real-time (Supabase Realtime) or pull-based? Migration `20241118190000_notifications_system.sql` suggests DB-backed notifications, but the delivery mechanism (Toast vs Webhook vs Email) needs verification.
 
+

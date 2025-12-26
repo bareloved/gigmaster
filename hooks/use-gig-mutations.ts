@@ -8,7 +8,9 @@ import {
   declineInvitation,
   updateGigStatus,
 } from "@/lib/api/gig-actions";
+import { saveGigPack } from "@/app/(app)/gigs/actions";
 import type { DashboardGig } from "@/lib/types/shared";
+import type { GigPack } from "@/lib/gigpack/types";
 
 /**
  * Shared mutation hooks for gig actions
@@ -21,31 +23,37 @@ import type { DashboardGig } from "@/lib/types/shared";
  */
 function invalidateDashboardQueries(queryClient: ReturnType<typeof useQueryClient>, userId?: string) {
   // Invalidate dashboard queries
-  queryClient.invalidateQueries({ 
+  queryClient.invalidateQueries({
     queryKey: ["dashboard-gigs", userId],
     refetchType: 'active'
   });
-  
+
+  // Invalidate all gigs page queries
+  queryClient.invalidateQueries({
+    queryKey: ["all-gigs", userId],
+    refetchType: 'active'
+  });
+
   // Invalidate recent past gigs
-  queryClient.invalidateQueries({ 
+  queryClient.invalidateQueries({
     queryKey: ["recent-past-gigs", userId],
     refetchType: 'active'
   });
-  
+
   // Invalidate all past gigs (history page)
-  queryClient.invalidateQueries({ 
+  queryClient.invalidateQueries({
     queryKey: ["all-past-gigs", userId],
     refetchType: 'active'
   });
-  
+
   // Invalidate individual gig queries
-  queryClient.invalidateQueries({ 
+  queryClient.invalidateQueries({
     queryKey: ["gig"],
     refetchType: 'active'
   });
-  
+
   // Invalidate money queries
-  queryClient.invalidateQueries({ 
+  queryClient.invalidateQueries({
     queryKey: ["my-earnings", userId],
     refetchType: 'active'
   });
@@ -312,6 +320,35 @@ export function useUpdateGigStatus() {
         );
       }
       toast.error(`Failed to update status: ${error.message}`);
+    },
+  });
+}
+
+/**
+ * Hook for creating or updating a gig pack
+ * Includes cache invalidation for immediate UI updates
+ */
+export function useSaveGigPack() {
+  const queryClient = useQueryClient();
+  const { user } = useUser();
+
+  return useMutation({
+    mutationFn: ({
+      data,
+      isEditing,
+      gigId
+    }: {
+      data: Partial<GigPack>;
+      isEditing: boolean;
+      gigId?: string;
+    }) => saveGigPack(data, isEditing, gigId),
+    onSuccess: (result, variables) => {
+      // Invalidate all gig-related queries to ensure fresh data
+      invalidateDashboardQueries(queryClient, user?.id);
+      toast.success(variables.isEditing ? "Gig updated successfully" : "Gig created successfully");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to save gig: ${error.message}`);
     },
   });
 }

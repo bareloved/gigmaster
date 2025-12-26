@@ -5,12 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  DollarSign,
+  // DollarSign, // FROZEN: Money page
   User,
   LogOut,
-  Users,
+  // Users, // FROZEN: My Circle page
   History,
-  Calendar,
+  // Calendar, // FROZEN: Calendar page
   Settings,
   Music,
 } from "lucide-react";
@@ -45,28 +45,30 @@ import { getInitials, getUserDisplayName } from "@/lib/utils";
 
 // Menu items (non-projects, non-dashboard, non-my-circle)
 // Order: All Gigs, Money, Calendar, History
-const navItems = [
-  {
-    title: "All Gigs",
-    href: "/gigs",
-    icon: Music,
-  },
-  {
-    title: "Money",
-    href: "/money",
-    icon: DollarSign,
-  },
-  {
-    title: "Calendar",
-    href: "/calendar",
-    icon: Calendar,
-  },
-  {
-    title: "History",
-    href: "/history",
-    icon: History,
-  },
-];
+// NOTE: navItems array is not currently used - navigation is hardcoded in JSX below
+// FROZEN: Money, Calendar, My Circle pages are commented out
+// const navItems = [
+//   {
+//     title: "All Gigs",
+//     href: "/gigs",
+//     icon: Music,
+//   },
+//   {
+//     title: "Money",
+//     href: "/money",
+//     icon: DollarSign,
+//   },
+//   {
+//     title: "Calendar",
+//     href: "/calendar",
+//     icon: Calendar,
+//   },
+//   {
+//     title: "History",
+//     href: "/history",
+//     icon: History,
+//   },
+// ];
 
 export function AppSidebar() {
   const pathname = usePathname();
@@ -125,35 +127,35 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
-              {/* Money */}
-              <SidebarMenuItem>
+              {/* Money - FROZEN */}
+              {/* <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/money"}>
                   <Link href="/money" prefetch={false}>
                     <DollarSign />
                     <span>Money</span>
                   </Link>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
+              </SidebarMenuItem> */}
 
-              {/* Calendar */}
-              <SidebarMenuItem>
+              {/* Calendar - FROZEN */}
+              {/* <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/calendar"}>
                   <Link href="/calendar" prefetch={false}>
                     <Calendar />
                     <span>Calendar</span>
                   </Link>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
+              </SidebarMenuItem> */}
 
-              {/* My Circle */}
-              <SidebarMenuItem>
+              {/* My Circle - FROZEN */}
+              {/* <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/my-circle"}>
                   <Link href="/my-circle" prefetch={false}>
                     <Users />
                     <span>My Circle</span>
                   </Link>
                 </SidebarMenuButton>
-              </SidebarMenuItem>
+              </SidebarMenuItem> */}
 
               {/* History */}
               <SidebarMenuItem>

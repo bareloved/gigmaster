@@ -259,7 +259,7 @@ export function HandDrawnStar({ className = "", color = "currentColor", variatio
  */
 export function HandDrawnDoodle({ className = "", color = "currentColor", type = "sparkle", variation = 0, ...props }: HandDrawnProps & { type?: "sparkle" | "note" | "heart" }) {
   const sparkles = [
-    "M12,2 L13,11 L12,12 L11,11 Z M2,12 L11,13 L12,12 L11,11 Z M12,22 L13,13 L12,12 L11,13 Z M22,12 L13,13 L12,12 L13,11 Z",
+    "M12,2 L13,11 L12,12 L11,11 Z M2,12 L11,13 L12,12 L11,13 Z M12,22 L13,13 L12,12 L11,13 Z M22,12 L13,13 L12,12 L13,11 Z",
     "M12,3 L12,11 M3,12 L11,12 M12,21 L12,13 M21,12 L13,12 M8,8 L10,10 M16,8 L14,10 M16,16 L14,14 M8,16 L10,14",
   ];
 
@@ -297,4 +297,3 @@ export function HandDrawnDoodle({ className = "", color = "currentColor", type =
     </svg>
   );
 }
-

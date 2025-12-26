@@ -6,14 +6,16 @@ import { useState, useRef, useEffect } from "react";
 import {
   LayoutDashboard,
   Music,
-  DollarSign,
-  Calendar,
-  Users,
+  // DollarSign, // FROZEN: Money page
+  // Calendar, // FROZEN: Calendar page
+  // Users, // FROZEN: My Circle page
   MoreHorizontal,
   History,
   Plus,
   Menu,
   Mail,
+  Building2,
+  Guitar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,33 +39,39 @@ const mainNavItems = [
     icon: LayoutDashboard,
   },
   {
-    title: "Invitations",
-    href: "/invitations",
-    icon: Mail,
-  },
-  {
     title: "Gigs",
     href: "/gigs",
     icon: Music,
   },
   {
-    title: "Money",
-    href: "/money",
-    icon: DollarSign,
+    title: "Bands",
+    href: "/bands",
+    icon: Guitar,
   },
   {
-    title: "Calendar",
-    href: "/calendar",
-    icon: Calendar,
-  },
-  {
-    title: "My Circle",
-    href: "/my-circle",
-    icon: Users,
+    title: "Invitations",
+    href: "/invitations",
+    icon: Mail,
   },
 ];
 
 const moreNavItems = [
+  // FROZEN: Money, Calendar, My Circle
+  // {
+  //   title: "Money",
+  //   href: "/money",
+  //   icon: DollarSign,
+  // },
+  // {
+  //   title: "Calendar",
+  //   href: "/calendar",
+  //   icon: Calendar,
+  // },
+  // {
+  //   title: "My Circle",
+  //   href: "/my-circle",
+  //   icon: Users,
+  // },
   {
     title: "History",
     href: "/history",
