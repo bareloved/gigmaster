@@ -1,4 +1,36 @@
-<!-- 8742b366-0c8f-49b1-b1bb-64429d1af386 7fd57e7c-7c41-4f1f-91cf-8602f66256bf -->
+---
+name: Complete Gig Status Workflow Feature
+overview: ""
+todos:
+  - id: c22e6a49-ef1c-40cc-a51a-99cde3b7b863
+    content: Add invitations_sent to GigStatus type definitions
+    status: pending
+  - id: 174a421e-4525-4534-9284-79c601c89c98
+    content: Create GigStatusBadge component with color-coded styling
+    status: pending
+  - id: ec94ab9c-14db-4021-8d0f-a987f25672b3
+    content: Create GigStatusSelect component with workflow enforcement
+    status: pending
+  - id: 74ad6a95-d10f-4435-904d-a50e4624913e
+    content: Replace static badge with GigStatusSelect for managers
+    status: pending
+  - id: 214f3af7-1a8f-4336-980b-6cd49ab6af63
+    content: Add automatic draft→invitations_sent transition when roles added
+    status: pending
+  - id: 466ace33-49d1-4145-9572-5346137f2215
+    content: Add notifications for status changes (confirmed, cancelled)
+    status: pending
+  - id: 41865c6f-482f-44a0-8fa3-bae988451cfc
+    content: Update dashboard components to use new badge component
+    status: pending
+  - id: 6c2584ec-e5c4-4107-8bbf-83230ec4d88d
+    content: Replace all status badges with new component across app
+    status: pending
+  - id: eb645dfa-07a4-4a89-8c89-3f43e945f153
+    content: Test complete status workflow and all transitions
+    status: pending
+---
+
 # Complete Gig Status Workflow Feature
 
 ## Current State
@@ -13,38 +45,40 @@
 
 ## Proposed Status Workflow
 
-```
+```javascript
 draft → invitations_sent → confirmed → completed
          ↓                    ↓
       cancelled           cancelled
 ```
 
+
+
 ### Status Definitions
 
 1. **draft** - Initial state, gig is being set up
 
-   - Manager can edit everything freely
-   - Musicians can be added but NOT invited yet
+- Manager can edit everything freely
+- Musicians can be added but NOT invited yet
 
 2. **invitations_sent** - Invitations have been sent to musicians
 
-   - Triggered manually via "Invite All" button
-   - Manager awaiting responses
+- Triggered manually via "Invite All" button
+- Manager awaiting responses
 
 3. **confirmed** - Gig is locked in
 
-   - All critical roles accepted OR manager manually confirms
-   - Setlist/materials are being finalized
+- All critical roles accepted OR manager manually confirms
+- Setlist/materials are being finalized
 
 4. **completed** - Gig has happened
 
-   - For historical tracking
-   - Focus shifts to payment tracking
+- For historical tracking
+- Focus shifts to payment tracking
 
 5. **cancelled** - Gig was cancelled
 
-   - Can transition from any status
-   - Notifications sent to all invited musicians
+- Can transition from any status
+- Notifications sent to all invited musicians
 
 ## Implementation Plan
 
@@ -57,9 +91,7 @@ draft → invitations_sent → confirmed → completed
 
 ### 2. Create Status Management UI Component
 
-**New file:** `components/gig-status-select.tsx`
-
-A dropdown/select component for managers to change gig status:
+**New file:** `components/gig-status-select.tsx`A dropdown/select component for managers to change gig status:
 
 - Only show valid transitions (workflow enforcement)
 - Styled as a badge-like select (compact, inline)
@@ -76,9 +108,7 @@ Valid transitions:
 
 ### 3. Add UI to Gig Detail Page
 
-**File:** `app/(app)/gigs/[id]/page.tsx`
-
-Replace the static badge with `GigStatusSelect`:
+**File:** `app/(app)/gigs/[id]/page.tsx`Replace the static badge with `GigStatusSelect`:
 
 - Only show for managers (check if current user is project owner)
 - For players, show read-only badge
@@ -86,9 +116,7 @@ Replace the static badge with `GigStatusSelect`:
 
 ### 4. Improve Badge Styling
 
-**New file:** `components/gig-status-badge.tsx`
-
-Create dedicated status badge component with better visual design:
+**New file:** `components/gig-status-badge.tsx`Create dedicated status badge component with better visual design:
 
 - **draft**: Gray (secondary)
 - **invitations_sent**: Blue (default)
@@ -105,9 +133,7 @@ Use this in:
 
 ### 5. Add "Invite All" Button to People Section
 
-**File:** `components/gig-people-section.tsx`
-
-Add button at the bottom of the People section table:
+**File:** `components/gig-people-section.tsx`Add button at the bottom of the People section table:
 
 - Only visible to managers (project owners)
 - Only shows when gig status is "draft" and there are musicians with roles
@@ -129,9 +155,7 @@ Clicking the button triggers:
 
 ### 6. Add Notifications for Status Changes
 
-**File:** `lib/api/gigs.ts` (in `updateGig` function or new helper)
-
-When status changes:
+**File:** `lib/api/gigs.ts` (in `updateGig` function or new helper)When status changes:
 
 - **→ invitations_sent**: (optional) Notify all musicians "You're invited to {gig title}"
 - **→ confirmed**: Notify all invited musicians "Gig is confirmed!"
@@ -140,18 +164,14 @@ When status changes:
 
 ### 7. Dashboard Quick Actions (Already Exists)
 
-**Files:** `components/dashboard-gig-item.tsx`, `components/dashboard-gig-item-grid.tsx`
-
-These already have `updateGigStatus` integration but need:
+**Files:** `components/dashboard-gig-item.tsx`, `components/dashboard-gig-item-grid.tsx`These already have `updateGigStatus` integration but need:
 
 - Update to include "invitations_sent" in the status type
 - Ensure dropdown shows valid transitions only
 
 ### 8. Add Status Filter to Dashboard (Optional)
 
-**File:** `app/(app)/dashboard/page.tsx`
-
-Add status filter to "Upcoming Gigs" section:
+**File:** `app/(app)/dashboard/page.tsx`Add status filter to "Upcoming Gigs" section:
 
 - All statuses
 - Draft only
@@ -207,17 +227,3 @@ After implementation:
 - Status history/audit trail
 - Bulk status updates across gigs
 - "Smart" status suggestions based on role acceptance rate
-- Email notifications (not just in-app)
-- When all roles accepted → auto-suggest "confirmed"
-
-### To-dos
-
-- [ ] Add invitations_sent to GigStatus type definitions
-- [ ] Create GigStatusBadge component with color-coded styling
-- [ ] Create GigStatusSelect component with workflow enforcement
-- [ ] Replace static badge with GigStatusSelect for managers
-- [ ] Add automatic draft→invitations_sent transition when roles added
-- [ ] Add notifications for status changes (confirmed, cancelled)
-- [ ] Update dashboard components to use new badge component
-- [ ] Replace all status badges with new component across app
-- [ ] Test complete status workflow and all transitions

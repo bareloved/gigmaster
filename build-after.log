@@ -1,0 +1,64 @@
+
+> ensemble@0.1.0 build
+> next build
+
+▲ Next.js 16.1.1 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 9.0s
+  Skipping validation of types
+  Collecting page data using 9 workers ...
+  Generating static pages using 9 workers (0/31) ...
+  Generating static pages using 9 workers (7/31) 
+  Generating static pages using 9 workers (15/31) 
+  Generating static pages using 9 workers (23/31) 
+✓ Generating static pages using 9 workers (31/31) in 496.7ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/auth/google-calendar/callback
+├ ƒ /api/calendar.ics
+├ ƒ /api/calendar/connect
+├ ƒ /api/calendar/disconnect
+├ ƒ /api/calendar/events
+├ ƒ /api/calendar/import
+├ ƒ /api/gig/[id]/pack
+├ ƒ /api/gigpack/[slug]
+├ ƒ /api/send-invitation
+├ ƒ /api/setlists/pdf
+├ ƒ /api/test-db
+├ ƒ /auth/callback
+├ ○ /auth/sign-in
+├ ○ /auth/sign-up
+├ ƒ /bands
+├ ○ /calendar
+├ ○ /calendar/import
+├ ○ /dashboard
+├ ○ /dashboard-artistry-preview
+├ ○ /gigs
+├ ƒ /gigs/[id]
+├ ƒ /gigs/[id]/edit
+├ ƒ /gigs/[id]/pack
+├ ○ /gigs/new
+├ ○ /history
+├ ○ /icon.svg
+├ ○ /invitations
+├ ○ /invitations/accept
+├ ○ /money
+├ ○ /my-circle
+├ ƒ /p/[token]
+├ ○ /privacy
+├ ○ /profile
+├ ƒ /setlists/print
+├ ○ /settings/calendar
+└ ○ /terms
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

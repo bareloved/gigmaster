@@ -325,3 +325,18 @@ gmp-place-autocomplete::part(input) {
   outline: none !important;
   box-shadow: none !important;
 }
+
+/* Performance: CSS Containment to prevent layout shifts */
+@layer utilities {
+  .dashboard-card {
+    contain: layout;
+  }
+
+  .gig-item-card {
+    contain: layout;
+  }
+
+  .kpi-card {
+    contain: layout;
+  }
+}

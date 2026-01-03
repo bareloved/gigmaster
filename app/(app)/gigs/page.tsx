@@ -311,9 +311,9 @@ export default function AllGigsPage() {
       {/* Gigs List/Grid */}
       {isLoading ? (
         <div className="space-y-3">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-40 w-full" />
         </div>
       ) : filteredGigs.length === 0 ? (
         <Card>

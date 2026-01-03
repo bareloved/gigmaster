@@ -1,20 +1,16 @@
 import localFont from "next/font/local";
 
-// Use local fonts to avoid Google Fonts network dependency during build
-export const heebo = localFont({
-  src: [
-    {
-      path: "../public/fonts/ZalandoSansSemiExpanded-VariableFont_wght.ttf",
-      weight: "100 900",
-      style: "normal",
-    },
-  ],
-  variable: "--font-heebo",
+// Primary UI font - Zalando Sans (preload for critical rendering)
+export const zalandoSansEn = localFont({
+  src: "../public/fonts/ZalandoSansSemiExpanded-VariableFont_wght.ttf",
+  weight: "100 900",
+  variable: "--font-zalando-en",
   display: "swap",
-  preload: true,
+  preload: true, // Only preload the primary UI font
   fallback: ["system-ui", "sans-serif"],
 });
 
+// Secondary/Display fonts - Load on demand for setlist/print views
 export const anton = localFont({
   src: [
     {
@@ -25,22 +21,8 @@ export const anton = localFont({
   ],
   variable: "--font-anton",
   display: "swap",
-  preload: true,
+  preload: false, // Don't preload - used only in specific views
   fallback: ["system-ui", "serif"],
-});
-
-// Stage-friendly fonts for setlist PDF/preview
-export const antonSC = localFont({
-  src: [
-    {
-      path: "../public/fonts/anton-sc-400.woff2",
-      weight: "400",
-      style: "normal",
-    },
-  ],
-  variable: "--font-anton-sc",
-  display: "swap",
-  preload: false,
 });
 
 export const notoSansHebrew = localFont({
@@ -53,15 +35,10 @@ export const notoSansHebrew = localFont({
   ],
   variable: "--font-noto-sans-hebrew",
   display: "swap",
-  preload: true,
+  preload: false, // Don't preload - used only for Hebrew content
 });
 
-// Zalando Sans SemiExpanded - English UI font only (Variable Font)
-export const zalandoSansEn = localFont({
-  src: "../public/fonts/ZalandoSansSemiExpanded-VariableFont_wght.ttf",
-  weight: "100 900",
-  variable: "--font-zalando-en",
-  display: "swap",
-  preload: true,
-});
+// Aliases for backwards compatibility
+export const heebo = zalandoSansEn; // Heebo was duplicate of Zalando Sans
+export const antonSC = anton; // antonSC was duplicate of anton
 

@@ -349,8 +349,8 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Next Gig Hero Card */}
           {isLoadingGigs ? (
-            <Card className="overflow-hidden">
-              <CardContent className="p-6 space-y-4">
+            <Card className="overflow-hidden min-h-[600px]">
+              <CardContent className="p-6 space-y-4 min-h-[600px]">
                 <div className="flex items-start gap-4">
                   <Skeleton className="h-20 w-20 rounded-lg" />
                   <div className="flex-1 space-y-2">
@@ -368,8 +368,8 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           ) : nextGig ? (
-            <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
-              <CardContent className="p-6 relative">
+            <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200 min-h-[600px]">
+              <CardContent className="p-6 relative min-h-[600px]">
                 {/* Gig Selector - Top Right Corner */}
                 {allGigs.length > 1 && (
                   <div className="absolute top-4 right-4">
@@ -840,21 +840,21 @@ export default function DashboardPage() {
 
           {/* This Week on Stage - Hidden in Focus Mode */}
           {!focusMode && (
-            <Card>
+            <Card className="min-h-[400px]">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl">This Week on Stage</CardTitle>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="min-h-[300px]">
                 {isLoadingGigs ? (
-                  <div className="space-y-3">
+                  <div className="space-y-3 min-h-[300px]">
                     <Skeleton className="h-24 w-full" />
                     <Skeleton className="h-24 w-full" />
                     <Skeleton className="h-24 w-full" />
                   </div>
                 ) : upcomingGigs.length === 0 ? (
-                  <div className="text-center py-8 text-sm text-muted-foreground">
+                  <div className="text-center py-8 text-sm text-muted-foreground min-h-[300px]">
                     No gigs for this week.
                   </div>
                 ) : (

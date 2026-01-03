@@ -26,8 +26,8 @@ export function DashboardKPICards({ kpis, isLoading }: DashboardKPICardsProps) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i}>
-            <CardContent className="p-4 flex flex-col justify-between h-full">
+          <Card key={i} className="min-h-[112px]">
+            <CardContent className="p-4 flex flex-col justify-between h-full min-h-[112px]">
               <div className="flex justify-between items-start mb-2">
                 <Skeleton className="h-4 w-12" />
                 <Skeleton className="h-4 w-4 rounded-full" />
@@ -47,8 +47,8 @@ export function DashboardKPICards({ kpis, isLoading }: DashboardKPICardsProps) {
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {/* Gigs This Week */}
       {/* Gigs This Week */}
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
+      <Card className="hover:shadow-md transition-shadow min-h-[112px]">
+        <CardContent className="p-4 min-h-[112px]">
           <div className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div className="text-sm font-medium text-muted-foreground">Gigs This Week</div>
             <Calendar className="h-4 w-4 text-primary" />
@@ -67,8 +67,8 @@ export function DashboardKPICards({ kpis, isLoading }: DashboardKPICardsProps) {
 
       {/* Songs to Learn */}
       {/* Songs to Learn */}
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
+      <Card className="hover:shadow-md transition-shadow min-h-[112px]">
+        <CardContent className="p-4 min-h-[112px]">
           <div className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div className="text-sm font-medium text-muted-foreground">Songs to Learn</div>
             <Music2 className="h-4 w-4 text-blue-500" />
@@ -86,8 +86,8 @@ export function DashboardKPICards({ kpis, isLoading }: DashboardKPICardsProps) {
 
       {/* Changes Since Last Visit */}
       {/* Changes Since Last Visit */}
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
+      <Card className="hover:shadow-md transition-shadow min-h-[112px]">
+        <CardContent className="p-4 min-h-[112px]">
           <div className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div className="text-sm font-medium text-muted-foreground">New Activity</div>
             <Bell className="h-4 w-4 text-amber-500" />
@@ -115,8 +115,8 @@ export function DashboardKPICards({ kpis, isLoading }: DashboardKPICardsProps) {
 
       {/* Pending Invitations */}
       {/* Pending Invitations */}
-      <Card className="hover:shadow-md transition-shadow">
-        <CardContent className="p-4">
+      <Card className="hover:shadow-md transition-shadow min-h-[112px]">
+        <CardContent className="p-4 min-h-[112px]">
           <div className="flex flex-row items-center justify-between space-y-0 pb-2">
             <div className="text-sm font-medium text-muted-foreground">Invitations</div>
             <Mail className="h-4 w-4 text-purple-500" />

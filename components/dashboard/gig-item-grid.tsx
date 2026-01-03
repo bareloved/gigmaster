@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,10 +46,14 @@ function GigGridInnerContent({ gig, gigDate, formattedDate, heroImage }: GigGrid
     <>
       {/* Hero Image - always show with fallback */}
       <div className="relative w-full h-32 overflow-hidden">
-        <img
+        <Image
           src={heroImage}
           alt={gig.gigTitle}
-          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          quality={75}
+          className="object-cover transition-transform group-hover:scale-105"
+          priority={false}
         />
         {/* Date overlay on image */}
         <div className="absolute top-2 left-2 flex flex-col items-center bg-background/90 backdrop-blur-sm rounded-lg p-2 min-w-[50px] shadow-sm">
@@ -296,7 +301,7 @@ export function DashboardGigItemGrid({
 
   return (
     <>
-      <Card className={`overflow-hidden hover:bg-muted/50 transition-colors group h-full flex flex-col ${isPastGig ? 'opacity-70 saturate-75' : ''}`}>
+      <Card className={`overflow-hidden hover:bg-muted/50 transition-colors group h-full flex flex-col min-h-[400px] ${isPastGig ? 'opacity-70 saturate-75' : ''}`}>
         {onClick ? (
           <div
             onClick={() => onClick(gig)}
