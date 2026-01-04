@@ -44,7 +44,8 @@ export async function inviteMusicianByEmail(
         title,
         date,
         start_time,
-        projects (
+        owner_id,
+        owner:profiles(
           id,
           name
         )
@@ -108,16 +109,15 @@ export async function inviteMusicianByEmail(
   if (profile) {
     // User exists, send them an in-app notification
     const gig = role.gigs as any;
-    const project = gig.projects as any;
+    const hostName = gig.owner?.name || null;
     
     await createNotification({
       user_id: profile.id,
       type: 'invitation_received',
       title: `Invitation: ${gig.title}`,
-      message: `You've been invited to play ${role.role_name} for ${project.name}`,
+      message: `You've been invited to play ${role.role_name}${hostName ? ` for ${hostName}` : ''}`,
       link_url: `/gigs/${gig.id}/pack`,
       gig_id: gig.id,
-      project_id: project.id,
       gig_role_id: gigRoleId,
     });
   }
@@ -148,7 +148,8 @@ export async function inviteViaWhatsApp(
         date,
         start_time,
         location_name,
-        projects (
+        owner_id,
+        owner:profiles(
           id,
           name
         )
@@ -195,13 +196,13 @@ export async function inviteViaWhatsApp(
   
   // Get gig details from role
   const gig = Array.isArray(role.gigs) ? role.gigs[0] : role.gigs;
-  const project = Array.isArray(gig?.projects) ? gig.projects[0] : gig?.projects;
+  const hostName = gig?.owner?.name || null;
   
   // Generate WhatsApp deep link
   const whatsappLink = generateWhatsAppInviteLink(
     phone,
     gig?.title || 'Gig',
-    project?.name || 'Project',
+    hostName || 'Host',
     role.role_name,
     magicLink
   );
@@ -219,10 +220,9 @@ export async function inviteViaWhatsApp(
       user_id: profile.id,
       type: 'invitation_received',
       title: `Invitation: ${gig?.title}`,
-      message: `You've been invited to play ${role.role_name} for ${project?.name}`,
+      message: `You've been invited to play ${role.role_name}${hostName ? ` by ${hostName}` : ''}`,
       link_url: `/gigs/${gig?.id}/pack`,
       gig_id: gig?.id,
-      project_id: project?.id,
       gig_role_id: gigRoleId,
     });
   }
@@ -459,7 +459,7 @@ async function sendInvitationEmail(
   
   // Get gig details from role
   const gig = Array.isArray(role.gigs) ? role.gigs[0] : role.gigs;
-  const project = Array.isArray(gig?.projects) ? gig.projects[0] : gig?.projects;
+  const hostName = gig?.owner?.name || null;
   
   // Send email via API route
   try {
@@ -470,7 +470,7 @@ async function sendInvitationEmail(
         to: email,
         inviteLink,
         gigTitle: gig?.title,
-        projectName: project?.name,
+        hostName,
         roleName: role.role_name,
         gigDate: gig?.date,
         gigTime: gig?.start_time,

@@ -111,7 +111,6 @@ export async function updateGigStatus(gigId: string, status: GigStatus): Promise
     .from("gigs")
     .select(`
       title,
-      project_id,
       gig_roles (
         musician_id
       )
@@ -146,7 +145,6 @@ export async function updateGigStatus(gigId: string, status: GigStatus): Promise
               message: 'This gig has been confirmed!',
               link_url: `/gigs/${gigId}/pack`,
               gig_id: gigId,
-              project_id: gig.project_id,
             });
           }
           
@@ -159,7 +157,6 @@ export async function updateGigStatus(gigId: string, status: GigStatus): Promise
               message: 'This gig has been cancelled',
               link_url: `/dashboard`,
               gig_id: gigId,
-              project_id: gig.project_id,
             });
           }
         }

@@ -38,8 +38,8 @@ interface CalendarEvent {
   end: Date;
   resource: {
     gigId: string;
-    projectId: string | null;
-    projectName: string | null;
+    hostId: string | null;
+    hostName: string | null;
     isManager: boolean;
     isPlayer: boolean;
     playerRoleName?: string | null;
@@ -132,13 +132,13 @@ export default function CalendarPage() {
 
       return {
         id: gig.gigId,
-        title: gig.projectName ? `[${gig.projectName}] ${gig.gigTitle}` : gig.gigTitle,
+        title: gig.hostName ? `[${gig.hostName}] ${gig.gigTitle}` : gig.gigTitle,
         start,
         end,
         resource: {
           gigId: gig.gigId,
-          projectId: gig.projectId,
-          projectName: gig.projectName,
+          hostId: gig.hostId,
+          hostName: gig.hostName,
           isManager: gig.isManager,
           isPlayer: gig.isPlayer,
           playerRoleName: gig.playerRoleName,
@@ -270,8 +270,8 @@ export default function CalendarPage() {
             views={["month", "week", "day"]}
             popup
             tooltipAccessor={(event) => {
-              const { projectName, locationName, playerRoleName, isManager, isPlayer } = event.resource;
-              let tooltip = projectName || "";
+              const { hostName, locationName, playerRoleName, isManager, isPlayer } = event.resource;
+              let tooltip = hostName || "";
               if (locationName) {
                 if (tooltip) tooltip += ` • ${locationName}`;
                 else tooltip = locationName;

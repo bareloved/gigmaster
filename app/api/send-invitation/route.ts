@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
       to,
       inviteLink,
       gigTitle,
-      projectName,
+      hostName,
       roleName,
       gigDate,
       gigTime,
@@ -28,8 +28,8 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!to || !inviteLink || !gigTitle || !projectName || !roleName || !gigDate) {
-      console.error('Missing required fields:', { to, inviteLink, gigTitle, projectName, roleName, gigDate });
+    if (!to || !inviteLink || !gigTitle || !roleName || !gigDate) {
+      console.error('Missing required fields:', { to, inviteLink, gigTitle, hostName, roleName, gigDate });
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     const { subject, text } = buildInvitationEmail({
       inviteLink,
       gigTitle,
-      projectName,
+      hostName: hostName ?? null,
       roleName,
       gigDate,
       gigTime,

@@ -145,7 +145,6 @@ export async function fetchGoogleCalendarEvents(
  */
 export async function importCalendarEventAsGig(
   userId: string,
-  projectId: string,
   event: GoogleCalendarEvent
 ): Promise<string> {
   const supabase = await createClient();
@@ -167,7 +166,7 @@ export async function importCalendarEventAsGig(
   const { data: gig, error: gigError } = await supabase
     .from("gigs")
     .insert({
-      project_id: projectId,
+      owner_id: userId,
       title: event.summary,
       date,
       start_time: startTime,

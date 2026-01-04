@@ -1,208 +1,110 @@
-# Vercel Deployment Instructions - Ensemble App
+# Vercel Deployment Protocol & Agent Instructions
 
-## ✅ Pre-Deployment Checklist Complete
+**Role:** Senior Next.js + Vercel Deployment Engineer
+**Objective:** Run a full PREDEPLOY CHECK, fix anything that would cause a Vercel deployment failure, and provide evidence of success.
 
-All preparation tasks have been completed successfully:
+---
 
-- [x] TypeScript type errors fixed (20+ fixes)
-- [x] Database types updated from Supabase
-- [x] Production build succeeds (`npm run build`)
-- [x] All changes committed and pushed to GitHub
-- [x] Environment variables documented
-- [x] No sensitive data in commits
-- [x] `.env` files properly ignored
+## 🚨 Critical Project Context (READ FIRST)
 
-## Deployment Steps
+This project has specific constraints that you **MUST** respect. Do not refactor these away without explicit permission:
 
-### Step 1: Connect to Vercel
+1.  **TypeScript Strategy (`ignoreBuildErrors: true`):**
+    -   **Context:** The codebase contains ~300 legacy type errors, mostly due to mismatch between the Database Schema and Frontend Types.
+    -   **Config:** `next.config.ts` has `typescript.ignoreBuildErrors: true`.
+    -   **Instruction:** Do **NOT** remove this flag. Your goal is Deployment Reliability, not 100% Type Correctness.
+    -   **Verification:** Run `npm run typecheck` to see errors, but `npm run build` should pass despite them.
 
-1. Go to [vercel.com](https://vercel.com) and sign in
-2. Click "Add New..." → "Project"
-3. Import your GitHub repository: `bareloved/ensemble-dev`
-4. Select the `main` branch
+2.  **ESLint Configuration (ESLint 9):**
+    -   **Context:** This project uses ESLint 9 with a flat config file: `eslint.config.mjs`.
+    -   **Instruction:** Do NOT create or rely on `.eslintrc.json`. It is ignored.
+    -   **Script:** Use `npm run lint` or `npx eslint .`.
 
-### Step 2: Configure Environment Variables
+3.  **Vendor Code:**
+    -   **Context:** Core logic exists in `vendor/gigpack`.
+    -   **Instruction:** This directory is excluded from `tsconfig.json` to prevent vendor type errors from breaking the build.
 
-Before deploying, add these environment variables in Vercel:
+---
 
-#### Required (App Will Not Work Without These):
-```
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
-```
+## 🛠️ The Predeploy Check Workflow (Steps A-J)
 
-#### Optional (Features Disabled Without These):
-```
-GOOGLE_CALENDAR_CLIENT_ID=your-google-client-id
-GOOGLE_CALENDAR_CLIENT_SECRET=your-google-client-secret
-GOOGLE_CALENDAR_REDIRECT_URI=https://your-app.vercel.app/api/auth/google-calendar/callback
-RESEND_API_KEY=re_your_resend_api_key
-NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
-```
+Execute these steps in order to guarantee a successful deployment.
 
-**To add variables in Vercel:**
-1. In your project settings, go to "Environment Variables"
-2. Add each variable
-3. Select "Production" environment
-4. Click "Save"
+### A) Identify Project State
+-   **Detect:** Next.js version (App Router), TypeScript, ESLint 9, npm (package-lock.json).
+-   **Output:** Confirm strictness levels (e.g. "React 19, Next 16").
 
-See `ENVIRONMENT_VARIABLES.md` for detailed instructions on where to get each value.
+### B) Reproduce Build (The "Truth" Test)
+-   **Command:** Run `npm run predeploy` locally.
+    -   *Note:* This script runs `npm run typecheck` (allowing failure) followed by `npm run build`.
+-   **Goal:** Capture the *first* failing error. If `npm run build` succeeds locally, Vercel should succeed.
 
-### Step 3: Configure Build Settings
+### C) Dependency Integrity
+-   **Lockfile:** Ensure only `package-lock.json` exists.
+-   **Deps:** Check for missing critical runtime dependencies (e.g., `next-intl`, `@supabase/ssr`).
+-   **Validation:** Run `npm ls` to check for peer dependency warnings that might crash a linux build.
 
-Vercel should auto-detect Next.js. Verify these settings:
+### D) Node & Runtime Compatibility
+-   **Engines:** Check `package.json` for `"engines": { "node": ">=20.0.0" }`.
+-   **Verify:** Ensure local node version matches (run `node -v`).
 
-- **Framework Preset:** Next.js
-- **Build Command:** `npm run build` (auto-detected)
-- **Output Directory:** `.next` (auto-detected)
-- **Install Command:** `npm install` (auto-detected)
-- **Node Version:** 20.x (recommended)
+### E) Next.js Build Blockers
+-   **Typecheck:** Run `npm run typecheck`. (Expect legacy errors, but ensure no *new* critical errors in pages).
+-   **Lint:** Run `npm run lint`. Fix any `next/core-web-vitals` errors that would fail the build (unless ignored/warn-only).
+-   **Path Sensitivity:** Ensure all imports match filesystem casing exactly (e.g. `Component.tsx` vs `component.tsx`). Linux is case-sensitive!
+-   **"Use Client":** Verify Client Components don't import Server-only modules (`server-only`).
 
-### Step 4: Deploy
+### F) Environment Variables
+-   **Scan:** Grep for `process.env`.
+-   **Requirement:** Ensure the app does not crash at *build time* if standard runtime vars (like `GOOGLE_CLIENT_ID`) are missing.
+-   **Vercel Vars:** Ensure `NEXT_PUBLIC_` vars needed for static generation are documented (see below).
 
-1. Click "Deploy"
-2. Wait for the build to complete (usually 2-3 minutes)
-3. Vercel will show you the deployment URL
+### G) Serverless & Edge Constraints
+-   **Writes:** Ensure no code attempts to write to the filesystem at runtime (`fs.writeFile`), as Vercel Lambdas are read-only.
+-   **Bundles:** Watch for massive dependencies that could exceed lambda limits.
 
-## Post-Deployment Checklist
+### H) Static Assets
+-   **Public Dir:** Validate that images referenced in `src` or `public` actually exist.
+-   **Config:** Check `next.config.ts` for strictly defined `images.remotePatterns`.
 
-After deployment succeeds, test these features:
+### I) Automation Validation
+-   **Scripts:** Verify `package.json` has:
+    ```json
+    "predeploy": "npm run typecheck || echo '...' && npm run build"
+    ```
+-   **Test:** execute `npm run predeploy` yourself.
 
-### Critical Features (Must Work):
-- [ ] App loads at deployment URL
-- [ ] User can sign up / sign in
-- [ ] Dashboard shows gigs
-- [ ] Can create a new project
-- [ ] Can create a new gig
-- [ ] Can add roles to a gig
-- [ ] Profile page loads
-- [ ] Money page loads
+### J) Final Verification
+-   **Re-run:** Run the full `npm run predeploy` sequence one last time.
+-   **Evidence:** The output must end with `Exit code: 0`.
 
-### Optional Features (If Configured):
-- [ ] Google Calendar integration works
-- [ ] Email invitations send correctly
-- [ ] Calendar ICS feed generates
+---
 
-### Database Migrations
+## 📦 Required Environment Variables (Vercel)
 
-**IMPORTANT:** Make sure all database migrations are applied to your production Supabase instance:
+Ensure these are set in Vercel Project Settings:
 
 ```bash
-# Check which migrations exist locally
-ls supabase/migrations/
+# Core (App Crashes Without These)
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 
-# These migrations must be applied:
-- 20251120000003_setup_avatars_storage.sql
-- 20251120000004_extract_google_avatar.sql
-- 20251120000005_money_view_v1.sql
+# Auth & Integrations
+GOOGLE_CALENDAR_CLIENT_ID=...
+GOOGLE_CALENDAR_CLIENT_SECRET=...
+GOOGLE_CALENDAR_REDIRECT_URI=...
+RESEND_API_KEY=...
+NEXT_PUBLIC_APP_URL=...
 ```
 
-See `docs/deployment/migration-testing-checklist.md` for detailed migration verification steps.
-
-## Troubleshooting
-
-### If Build Fails:
-
-1. **Check build logs in Vercel**
-   - Look for TypeScript errors
-   - Look for missing dependencies
-   - Look for environment variable issues
-
-2. **Common Issues:**
-   - Missing environment variables → Add them in Vercel settings
-   - TypeScript errors → Should not happen (we tested locally)
-   - Memory issues → Increase memory limit in Vercel settings
-
-### If App Loads But Doesn't Work:
-
-1. **Check browser console for errors**
-   - Often related to environment variables
-   - Check Network tab for failed API calls
-
-2. **Verify Supabase connection:**
-   - Make sure `NEXT_PUBLIC_SUPABASE_URL` is correct
-   - Make sure `NEXT_PUBLIC_SUPABASE_ANON_KEY` is correct
-   - Test with: Open browser console and try to sign in
-
-3. **Check Vercel function logs:**
-   - Go to Vercel dashboard → Deployments → Your deployment
-   - Click "Functions" tab to see serverless function logs
-
-### If Database Queries Fail:
-
-1. **Check RLS policies:**
-   - Make sure Row Level Security policies are set up
-   - Test queries in Supabase SQL editor
-
-2. **Check migrations:**
-   - Verify all migrations are applied to production database
-   - Use Supabase dashboard → Database → Migrations
-
-## Rollback Plan
-
-If deployment fails or causes issues:
-
-1. **In Vercel dashboard:**
-   - Go to Deployments
-   - Find the previous working deployment
-   - Click "..." menu → "Promote to Production"
-
-2. **Fix issues locally:**
-   - Pull the latest code
-   - Fix the issue
-   - Test with `npm run build`
-   - Commit and push
-   - Vercel will auto-deploy again
-
-## Performance Monitoring
-
-After deployment:
-
-1. **Monitor Vercel Analytics:**
-   - Check page load times
-   - Monitor function execution times
-   - Watch for errors in logs
-
-2. **Check Supabase metrics:**
-   - Monitor database query performance
-   - Check connection pool usage
-   - Watch for slow queries
-
-## Domain Setup (Optional)
-
-To use a custom domain:
-
-1. In Vercel project settings → Domains
-2. Add your domain
-3. Follow DNS configuration instructions
-4. Update `NEXT_PUBLIC_APP_URL` environment variable
-5. Update `GOOGLE_CALENDAR_REDIRECT_URI` if using Google Calendar
-
-## Success Criteria
-
-Deployment is successful when:
-
-✅ Build completes without errors  
-✅ App loads at Vercel URL  
-✅ Users can sign up and sign in  
-✅ Dashboard displays correctly  
-✅ Can create projects and gigs  
-✅ No console errors in browser  
-✅ Database queries work correctly  
-
 ---
 
-## Need Help?
+## � Deliverable Format
 
-- Vercel Docs: https://vercel.com/docs
-- Next.js Deployment: https://nextjs.org/docs/deployment
-- Supabase + Vercel: https://supabase.com/docs/guides/hosting/vercel
-- Our docs: `docs/deployment/post-deployment-checklist.md`
+When asking an agent to run this, expect the following output structure:
 
----
-
-**Prepared:** November 21, 2025  
-**Commit:** b65ecfb  
-**Branch:** main  
-**Status:** Ready for deployment ✅
-
+1.  **Diagnosis:** Bullet list of any root causes found (file paths).
+2.  **Fix Plan:** Ordered steps taken.
+3.  **Applied Changes:** Summary of files edited.
+4.  **Validation:** Terminal output showing `npm run predeploy` success.
+5.  **Final Status:** "Ready for Deployment" or "Blocked".

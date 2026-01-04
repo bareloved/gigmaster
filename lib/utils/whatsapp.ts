@@ -11,7 +11,7 @@
 export function generateWhatsAppInviteLink(
   phone: string,
   gigTitle: string,
-  projectName: string,
+  hostName: string | null,
   roleName: string,
   magicLink: string
 ): string {
@@ -19,7 +19,7 @@ export function generateWhatsAppInviteLink(
   const message = `Hi! 🎵
 
 You've been invited to play *${roleName}* for:
-${projectName} - ${gigTitle}
+${hostName ? `Host: ${hostName}\n` : ''}${gigTitle}
 
 Click here to accept:
 ${magicLink}

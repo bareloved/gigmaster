@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,11 +17,17 @@ import {
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/providers/user-provider";
-import { DashboardGigItem } from "@/components/dashboard-gig-item";
-import { DashboardGigItemGrid } from "@/components/dashboard-gig-item-grid";
-import { CreateGigDialog } from "@/components/create-gig-dialog";
+import { DashboardGigItem } from "@/components/dashboard/gig-item";
+import { DashboardGigItemGrid } from "@/components/dashboard/gig-item-grid";
 import type { DashboardGig } from "@/lib/types/shared";
 import { parseISO } from "date-fns";
+import dynamic from "next/dynamic";
+import { getGig } from "./actions";
+
+const GigEditorPanel = dynamic(
+  () => import("@/components/gigpack/editor/gig-editor-panel").then((mod) => mod.GigEditorPanel),
+  { ssr: false }
+);
 
 type ViewMode = "list" | "grid";
 
@@ -29,15 +35,36 @@ export default function AllGigsPage() {
   const { user } = useUser();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const searchParams = useSearchParams();
 
-  // Get project filter from URL params (set by ProjectBar)
-  const projectFilter = searchParams.get("project") || "all";
-
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  const [createGigDialogOpen, setCreateGigDialogOpen] = useState(false);
+
+  // Editor state
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingGigId, setEditingGigId] = useState<string | null>(null);
+
+  // Fetch gig data when editing
+  const { data: editingGig, isLoading: isLoadingEditingGig } = useQuery({
+    queryKey: ["gig-editor", editingGigId],
+    queryFn: () => editingGigId ? getGig(editingGigId) : null,
+    enabled: !!editingGigId && isEditorOpen,
+  });
+
+  const handleCreateGig = () => {
+    setEditingGigId(null);
+    setIsEditorOpen(true);
+  };
+
+  const handleEditGig = (gig: DashboardGig) => {
+    if (gig.isManager) {
+      setEditingGigId(gig.gigId);
+      setIsEditorOpen(true);
+    } else {
+      // Players go to pack
+      router.push(`/gigs/${gig.gigId}/pack`);
+    }
+  };
 
   // Debounce search query
   useEffect(() => {
@@ -68,21 +95,18 @@ export default function AllGigsPage() {
         .select(
           `
           id,
+          owner_id,
           title,
           date,
           start_time,
           end_time,
           location_name,
           status,
-          project_id,
-          projects (
+          hero_image_url,
+          gig_type,
+          owner:profiles!gigs_owner_profiles_fkey (
             id,
-            name,
-            owner_id,
-            is_personal,
-            owner:profiles!projects_owner_id_fkey (
-              name
-            )
+            name
           ),
           gig_roles (
             id,
@@ -102,21 +126,32 @@ export default function AllGigsPage() {
 
       // Transform to DashboardGig format
       // Filter and transform gigs where user is either manager or player
+      // Exclude declined invitations from player perspective
       const transformedGigs: DashboardGig[] = (gigs || [])
         .filter((gig: any) => {
           const roles = Array.isArray(gig.gig_roles) ? gig.gig_roles : [];
-          const userRoles = roles.filter((r: any) => r?.musician_id === user?.id);
-          // Check if user is manager (owner of the project)
-          const isManager = gig.projects?.owner_id === user?.id;
+          // Only consider roles that are not pending or declined
+          const userRoles = roles.filter((r: any) =>
+            r?.musician_id === user?.id &&
+            r?.invitation_status !== 'pending' &&
+            r?.invitation_status !== 'declined'
+          );
+          // Check if user is manager (owner of the gig)
+          const isManager = gig.owner_id === user?.id;
           const isPlayer = userRoles.length > 0;
-          // Only include gigs where user is manager or player
+          // Only include gigs where user is manager or player (with active invitation)
           return isManager || isPlayer;
         })
         .map((gig: any) => {
           const roles = Array.isArray(gig.gig_roles) ? gig.gig_roles : [];
-          const userRoles = roles.filter((r: any) => r?.musician_id === user?.id);
-          // Check if user is manager (owner of the project)
-          const isManager = gig.projects?.owner_id === user?.id;
+          // Only consider roles that are not pending or declined
+          const userRoles = roles.filter((r: any) =>
+            r?.musician_id === user?.id &&
+            r?.invitation_status !== 'pending' &&
+            r?.invitation_status !== 'declined'
+          );
+          // Check if user is manager (owner of the gig)
+          const isManager = gig.owner_id === user?.id;
           const isPlayer = userRoles.length > 0;
 
           const playerRole = userRoles[0];
@@ -125,13 +160,8 @@ export default function AllGigsPage() {
             paymentStatus = playerRole.payment_status === 'paid' ? "paid" : "unpaid";
           }
 
-          // Extract host name from project owner
-          const projectOwner = gig.projects
-            ? (Array.isArray(gig.projects.owner)
-              ? gig.projects.owner[0]
-              : gig.projects.owner)
-            : null;
-          const hostName = projectOwner?.name || null;
+          const ownerData = Array.isArray(gig.owner) ? gig.owner[0] : gig.owner;
+          const hostName = ownerData?.name || null;
 
           return {
             gigId: gig.id,
@@ -141,15 +171,15 @@ export default function AllGigsPage() {
             endTime: gig.end_time,
             locationName: gig.location_name,
             status: gig.status,
-            projectId: gig.project_id,
-            projectName: gig.projects?.name || null,
             isManager,
             isPlayer,
             playerRoleName: playerRole?.role_name || null,
             invitationStatus: playerRole?.invitation_status || null,
             paymentStatus,
+            hostId: gig.owner_id,
             hostName,
-            isPersonalProject: gig.projects?.is_personal || false,
+            heroImageUrl: gig.hero_image_url || null,
+            gigType: gig.gig_type || null,
           };
         });
 
@@ -188,29 +218,20 @@ export default function AllGigsPage() {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Filter by project
-  const projectFilteredGigs = useMemo(() => {
-    if (projectFilter === "all") return allGigs;
-    if (projectFilter === "none") {
-      return allGigs.filter((g) => !g.projectId);
-    }
-    return allGigs.filter((g) => g.projectId === projectFilter);
-  }, [allGigs, projectFilter]);
-
   // Filter by search query
   const searchFilteredGigs = useMemo(() => {
-    if (!debouncedSearchQuery.trim()) return projectFilteredGigs;
+    if (!debouncedSearchQuery.trim()) return allGigs;
 
     const query = debouncedSearchQuery.toLowerCase().trim();
 
-    return projectFilteredGigs.filter((gig) => {
+    return allGigs.filter((gig) => {
       return (
         gig.gigTitle.toLowerCase().includes(query) ||
-        (gig.projectName && gig.projectName.toLowerCase().includes(query)) ||
+        (gig.hostName && gig.hostName.toLowerCase().includes(query)) ||
         (gig.locationName && gig.locationName.toLowerCase().includes(query))
       );
     });
-  }, [projectFilteredGigs, debouncedSearchQuery]);
+  }, [allGigs, debouncedSearchQuery]);
 
   const filteredGigs = searchFilteredGigs;
 
@@ -221,11 +242,13 @@ export default function AllGigsPage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">All Gigs</h2>
           <p className="text-muted-foreground">
-            {projectFilter === "all" 
-              ? "Manage all your gigs in one place"
-              : "Filtered by project"}
+            Manage all your gigs in one place
           </p>
         </div>
+        <Button onClick={handleCreateGig} className="gap-2">
+          <Plus className="h-4 w-4" />
+          Create Gig
+        </Button>
       </div>
 
       {/* Filters - Search and View Controls */}
@@ -288,9 +311,9 @@ export default function AllGigsPage() {
       {/* Gigs List/Grid */}
       {isLoading ? (
         <div className="space-y-3">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-40 w-full" />
         </div>
       ) : filteredGigs.length === 0 ? (
         <Card>
@@ -299,11 +322,11 @@ export default function AllGigsPage() {
               <Music className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-1">No gigs found</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                {searchQuery || projectFilter !== "all"
+                {searchQuery
                   ? "Try adjusting your filters or search query."
                   : "Create your first gig to get started."}
               </p>
-              <Button onClick={() => setCreateGigDialogOpen(true)} size="sm" className="gap-2">
+              <Button onClick={handleCreateGig} size="sm" className="gap-2">
                 <Plus className="h-4 w-4" />
                 Create Gig
               </Button>
@@ -315,13 +338,21 @@ export default function AllGigsPage() {
           {viewMode === "list" ? (
             <div className="space-y-3">
               {filteredGigs.map((gig) => (
-                <DashboardGigItem key={gig.gigId} gig={gig} />
+                <DashboardGigItem
+                  key={gig.gigId}
+                  gig={gig}
+                  onClick={() => handleEditGig(gig)}
+                />
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredGigs.map((gig) => (
-                <DashboardGigItemGrid key={gig.gigId} gig={gig} />
+                <DashboardGigItemGrid
+                  key={gig.gigId}
+                  gig={gig}
+                  onClick={() => handleEditGig(gig)}
+                />
               ))}
             </div>
           )}
@@ -339,20 +370,30 @@ export default function AllGigsPage() {
         </>
       )}
 
-      {/* Create Gig Dialog */}
-      <CreateGigDialog
-        open={createGigDialogOpen}
-        onOpenChange={setCreateGigDialogOpen}
-        projectId={null}
-        onSuccess={(gigId) => {
+      {/* Gig Editor Sliding Panel */}
+      <GigEditorPanel
+        mode="sheet"
+        open={isEditorOpen}
+        loading={isLoadingEditingGig}
+        isEditing={!!editingGigId}
+        onOpenChange={(open) => {
+          setIsEditorOpen(open);
+          if (!open) setEditingGigId(null);
+        }}
+        gigPack={editingGig || undefined}
+        onCreateSuccess={(newGig) => {
           queryClient.invalidateQueries({ queryKey: ["all-gigs"] });
-          queryClient.invalidateQueries({ queryKey: ["dashboard-gigs"] });
-          queryClient.invalidateQueries({ queryKey: ["gigs"] });
-          setCreateGigDialogOpen(false);
-          router.push(`/gigs/${gigId}?returnUrl=/gigs`);
+          setIsEditorOpen(false);
+          setEditingGigId(null);
+          // Optional: navigate to the new pack or stay here
+        }}
+        onUpdateSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["all-gigs"] });
+          // We don't necessarily need to close if they want to keep editing,
+          // but usually on success it's good to close or show success.
+          // For now, let's just refresh.
         }}
       />
     </div>
   );
 }
-

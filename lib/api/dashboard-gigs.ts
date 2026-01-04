@@ -53,21 +53,16 @@ export async function listDashboardGigs(
     .from("gigs")
     .select(`
       id,
-      project_id,
+      owner_id,
       title,
       date,
       start_time,
       end_time,
       location_name,
       status,
-      projects (
+      owner:profiles!gigs_owner_profiles_fkey(
         id,
-        name,
-        owner_id,
-        is_personal,
-        owner:profiles!projects_owner_id_fkey (
-          name
-        )
+        name
       ),
       gig_roles (
         id,
@@ -92,27 +87,33 @@ export async function listDashboardGigs(
 
   if (allGigs) {
     for (const gig of allGigs) {
-      const projectData = Array.isArray(gig.projects) ? gig.projects[0] : gig.projects;
       const roles = Array.isArray(gig.gig_roles) ? gig.gig_roles : [gig.gig_roles];
-      // Only consider user a player if they have a role that's been invited (not pending)
-      const userRole = roles.find(r => r?.musician_id === userId && r?.invitation_status !== 'pending');
+      // Only consider user a player if they have a role that's been invited (not pending or declined)
+      const userRole = roles.find(r => 
+        r?.musician_id === userId && 
+        r?.invitation_status !== 'pending' && 
+        r?.invitation_status !== 'declined'
+      );
 
-      // Determine if user is manager (owns the project)
-      const isManager = projectData?.owner_id === userId;
+      // Determine if user is manager (owns the gig)
+      const isManager = gig.owner_id === userId;
 
-      // Determine if user is player (has a role that's been invited)
+      // Determine if user is player (has a role that's been invited and not declined)
       const isPlayer = !!userRole;
+      
+      // Skip gigs where user is neither manager nor player
+      // (e.g., gigs where they only have declined/pending roles)
+      if (!isManager && !isPlayer) {
+        continue;
+      }
 
       let paymentStatus: "paid" | "unpaid" | null = null;
       if (isPlayer && userRole) {
         paymentStatus = userRole.payment_status === 'paid' ? "paid" : "unpaid";
       }
 
-      // Extract host name from project owner (if gig has a project)
-      const projectOwner = projectData ? (Array.isArray(projectData.owner) 
-        ? projectData.owner[0] 
-        : projectData.owner) : null;
-      const hostName = projectOwner?.name || null;
+      const ownerData = Array.isArray(gig.owner) ? gig.owner[0] : gig.owner;
+      const hostName = ownerData?.name || null;
 
       // Calculate role statistics for managers
       let roleStats = null;
@@ -128,8 +129,6 @@ export async function listDashboardGigs(
 
       gigMap.set(gig.id, {
         gigId: gig.id,
-        projectId: gig.project_id,
-        projectName: projectData?.name || null,
         gigTitle: gig.title,
         date: gig.date,
         startTime: gig.start_time,
@@ -142,8 +141,8 @@ export async function listDashboardGigs(
         playerGigRoleId: userRole?.id || null,
         invitationStatus: userRole?.invitation_status || null,
         paymentStatus,
+        hostId: gig.owner_id,
         hostName,
-        isPersonalProject: projectData?.is_personal || false,
         roleStats,
       });
     }
@@ -202,21 +201,16 @@ export async function listRecentPastGigs(
     .from("gigs")
     .select(`
       id,
-      project_id,
+      owner_id,
       title,
       date,
       start_time,
       end_time,
       location_name,
       status,
-      projects (
+      owner:profiles!gigs_owner_profiles_fkey(
         id,
-        name,
-        owner_id,
-        is_personal,
-        owner:profiles!projects_owner_id_fkey (
-          name
-        )
+        name
       ),
       gig_roles (
         id,
@@ -241,12 +235,11 @@ export async function listRecentPastGigs(
 
   if (allGigs) {
     for (const gig of allGigs) {
-      const projectData = Array.isArray(gig.projects) ? gig.projects[0] : gig.projects;
       const roles = Array.isArray(gig.gig_roles) ? gig.gig_roles : [gig.gig_roles];
       // Only consider user a player if they have a role that's been invited (not pending)
       const userRole = roles.find(r => r?.musician_id === userId && r?.invitation_status !== 'pending');
 
-      const isManager = projectData?.owner_id === userId;
+      const isManager = gig.owner_id === userId;
       const isPlayer = !!userRole;
 
       // Skip if user has no connection to this gig
@@ -257,16 +250,11 @@ export async function listRecentPastGigs(
         paymentStatus = userRole.payment_status === 'paid' ? "paid" : "unpaid";
       }
 
-      // Extract host name from project owner (if gig has a project)
-      const projectOwner = projectData ? (Array.isArray(projectData.owner) 
-        ? projectData.owner[0] 
-        : projectData.owner) : null;
-      const hostName = projectOwner?.name || null;
+      const ownerData = Array.isArray(gig.owner) ? gig.owner[0] : gig.owner;
+      const hostName = ownerData?.name || null;
 
       gigMap.set(gig.id, {
         gigId: gig.id,
-        projectId: gig.project_id,
-        projectName: projectData?.name || null,
         gigTitle: gig.title,
         date: gig.date,
         startTime: gig.start_time,
@@ -279,8 +267,8 @@ export async function listRecentPastGigs(
         playerGigRoleId: userRole?.id || null,
         invitationStatus: userRole?.invitation_status || null,
         paymentStatus,
+        hostId: gig.owner_id,
         hostName,
-        isPersonalProject: projectData?.is_personal || false,
       });
     }
   }
@@ -316,21 +304,16 @@ export async function listAllPastGigs(
     .from("gigs")
     .select(`
       id,
-      project_id,
+      owner_id,
       title,
       date,
       start_time,
       end_time,
       location_name,
       status,
-      projects (
+      owner:profiles!gigs_owner_profiles_fkey(
         id,
-        name,
-        owner_id,
-        is_personal,
-        owner:profiles!projects_owner_id_fkey (
-          name
-        )
+        name
       ),
       gig_roles (
         id,
@@ -354,12 +337,11 @@ export async function listAllPastGigs(
 
   if (allGigs) {
     for (const gig of allGigs) {
-      const projectData = Array.isArray(gig.projects) ? gig.projects[0] : gig.projects;
       const roles = Array.isArray(gig.gig_roles) ? gig.gig_roles : [gig.gig_roles];
       // Only consider user a player if they have a role that's been invited (not pending)
       const userRole = roles.find(r => r?.musician_id === userId && r?.invitation_status !== 'pending');
 
-      const isManager = projectData?.owner_id === userId;
+      const isManager = gig.owner_id === userId;
       const isPlayer = !!userRole;
 
       // Skip if user has no connection to this gig
@@ -370,16 +352,11 @@ export async function listAllPastGigs(
         paymentStatus = userRole.payment_status === 'paid' ? "paid" : "unpaid";
       }
 
-      // Extract host name from project owner (if gig has a project)
-      const projectOwner = projectData ? (Array.isArray(projectData.owner) 
-        ? projectData.owner[0] 
-        : projectData.owner) : null;
-      const hostName = projectOwner?.name || null;
+      const ownerData = Array.isArray(gig.owner) ? gig.owner[0] : gig.owner;
+      const hostName = ownerData?.name || null;
 
       gigMap.set(gig.id, {
         gigId: gig.id,
-        projectId: gig.project_id,
-        projectName: projectData?.name || null,
         gigTitle: gig.title,
         date: gig.date,
         startTime: gig.start_time,
@@ -392,8 +369,8 @@ export async function listAllPastGigs(
         playerGigRoleId: userRole?.id || null,
         invitationStatus: userRole?.invitation_status || null,
         paymentStatus,
+        hostId: gig.owner_id,
         hostName,
-        isPersonalProject: projectData?.is_personal || false,
       });
     }
   }

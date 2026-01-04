@@ -48,8 +48,8 @@ export async function getMyEarnings(
         title,
         date,
         location_name,
-        projects!inner(
-          id,
+        owner_id,
+        owner:profiles!gigs_owner_profiles_fkey(
           name
         )
       )
@@ -66,7 +66,7 @@ export async function getMyEarnings(
     gigRoleId: r.id,
     gigId: r.gigs.id,
     gigTitle: r.gigs.title,
-    projectName: r.gigs.projects.name,
+    hostName: r.gigs.owner?.name || null,
     date: r.gigs.date,
     roleName: r.role_name,
     locationName: r.gigs.location_name,
@@ -133,7 +133,6 @@ export async function getMyEarnings(
 export async function getPayouts(
   year: number,
   month?: number | null,
-  projectId?: string | null,
   statusFilter?: PaymentStatus | null
 ): Promise<PayoutRow[]> {
   const supabase = createClient();
@@ -170,23 +169,13 @@ export async function getPayouts(
         id,
         title,
         date,
-        project_id,
-        projects!inner(
-          id,
-          name,
-          owner_id
-        )
+        owner_id
       )
     `)
-    .eq('gigs.projects.owner_id', user.id)
+    .eq('gigs.owner_id', user.id)
     .not('agreed_fee', 'is', null)
     .gte('gigs.date', dateFrom)
     .lte('gigs.date', dateTo);
-
-  // Apply project filter
-  if (projectId) {
-    query = query.eq('gigs.project_id', projectId);
-  }
 
   // Apply status filter
   if (statusFilter) {
@@ -201,8 +190,7 @@ export async function getPayouts(
     gigRoleId: r.id,
     gigId: r.gigs.id,
     gigTitle: r.gigs.title,
-    projectId: r.gigs.projects.id,
-    projectName: r.gigs.projects.name,
+    hostName: null,
     date: r.gigs.date,
     musicianId: r.musician_id,
     musicianName: r.musician_name,
@@ -239,8 +227,7 @@ export async function updatePaymentStatus(
       musician_id,
       agreed_fee,
       gigs!inner(
-        project_id,
-        projects!inner(owner_id)
+        owner_id
       )
     `)
     .eq('id', update.gigRoleId)
@@ -249,7 +236,7 @@ export async function updatePaymentStatus(
   if (fetchError || !role) throw new Error('Role not found');
 
   const isMusician = role.musician_id === user.id;
-  const isManager = (role.gigs as any).projects.owner_id === user.id;
+  const isManager = (role.gigs as any).owner_id === user.id;
 
   if (!isMusician && !isManager) {
     throw new Error('Not authorized to update this payment');
@@ -288,7 +275,7 @@ export async function updatePaymentStatus(
 export async function checkIsManager(userId: string): Promise<boolean> {
   const supabase = createClient();
   const { data } = await supabase
-    .from('projects')
+    .from('gigs')
     .select('id')
     .eq('owner_id', userId)
     .limit(1);

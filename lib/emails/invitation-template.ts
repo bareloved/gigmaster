@@ -7,7 +7,7 @@
 export interface InvitationEmailData {
   inviteLink: string;
   gigTitle: string;
-  projectName: string;
+  hostName?: string | null;
   roleName: string;
   gigDate: string;
   gigTime?: string;
@@ -24,7 +24,7 @@ export function buildInvitationEmail(data: InvitationEmailData): {
   const {
     inviteLink,
     gigTitle,
-    projectName,
+    hostName,
     roleName,
     gigDate,
     gigTime,
@@ -50,7 +50,7 @@ You've been invited to play on an upcoming gig!
 
 GIG DETAILS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Project: ${projectName}
+Host: ${hostName || '—'}
 Gig: ${gigTitle}
 Role: ${roleName}
 Date: ${formattedDate}${gigTime ? `\nTime: ${gigTime}` : ''}${locationName ? `\nLocation: ${locationName}` : ''}

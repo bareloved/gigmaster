@@ -1,4 +1,0 @@
----
-alwaysApply: true
----
-Before running npm run dev or any dev server command, ALWAYS check if one is already running and terminate it first

@@ -22,7 +22,15 @@ export async function listRolesForGig(gigId: string): Promise<GigRole[]> {
     .eq("gig_id", gigId)
     .order("created_at", { ascending: true });
 
-  if (error) throw new Error(error.message || "Failed to fetch gig roles");
+  // If error is due to gig not existing (404/403), return empty array
+  // This can happen if the gig was just deleted
+  if (error) {
+    // Check if it's a permission/not found error (gig doesn't exist or user can't access it)
+    if (error.code === 'PGRST116' || error.message?.includes('violates row-level security') || error.message?.includes('No rows')) {
+      return [];
+    }
+    throw new Error(error.message || "Failed to fetch gig roles");
+  }
   return roles || [];
 }
 
@@ -156,7 +164,7 @@ export async function searchMusicianNames(query: string = ""): Promise<MusicianS
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  // Fetch all roles for user's gigs (via projects they own)
+  // Fetch all roles for user's gigs (via gigs they own)
   const { data: roles, error } = await supabase
     .from("gig_roles")
     .select(`
@@ -164,13 +172,10 @@ export async function searchMusicianNames(query: string = ""): Promise<MusicianS
       role_name,
       created_at,
       gigs!inner(
-        project_id,
-        projects!inner(
-          owner_id
-        )
+        owner_id
       )
     `)
-    .eq("gigs.projects.owner_id", user.id)
+    .eq("gigs.owner_id", user.id)
     .not("musician_name", "is", null)
     .order("created_at", { ascending: false });
 
@@ -219,7 +224,7 @@ export async function searchMusicianNames(query: string = ""): Promise<MusicianS
 
 /**
  * Update player's invitation status from their perspective
- * Automatically triggers needs_sub when declining
+ * Keeps declined status as 'declined' for proper tracking
  */
 export async function updateMyInvitationStatus(
   roleId: string,
@@ -247,14 +252,11 @@ export async function updateMyInvitationStatus(
   
   const oldStatus = role.invitation_status;
   
-  // If declining, auto-mark as needs_sub
-  const finalStatus = status === 'declined' ? 'needs_sub' : status;
-  
   // Update role status
   const { error: updateError } = await supabase
     .from('gig_roles')
     .update({
-      invitation_status: finalStatus,
+      invitation_status: status,
       status_changed_at: new Date().toISOString(),
       status_changed_by: user.id,
     })
@@ -266,7 +268,7 @@ export async function updateMyInvitationStatus(
   }
   
   // Record status change history
-  await recordStatusChange(roleId, oldStatus, finalStatus, user.id, notes);
+  await recordStatusChange(roleId, oldStatus, status, user.id, notes);
   
   // Get gig details and notify manager about status change
   const { data: gigData } = await supabase
@@ -277,10 +279,7 @@ export async function updateMyInvitationStatus(
       gigs!inner (
         id,
         title,
-        project_id,
-        projects!inner (
-          owner_id
-        )
+        owner_id
       )
     `)
     .eq('id', roleId)
@@ -288,7 +287,7 @@ export async function updateMyInvitationStatus(
     
   if (gigData) {
     const gig = gigData.gigs as any;
-    const managerId = gig?.projects?.owner_id;
+    const managerId = gig?.owner_id;
     
     // Get current user's name
     const { data: profile } = await supabase
@@ -301,7 +300,7 @@ export async function updateMyInvitationStatus(
     
     // Notify manager based on status change (if we have a manager ID)
     if (managerId) {
-      if (finalStatus === 'accepted') {
+      if (status === 'accepted') {
         await createNotification({
           user_id: managerId,
           type: 'status_changed',
@@ -309,19 +308,26 @@ export async function updateMyInvitationStatus(
           message: `${userName} accepted their role as ${gigData.role_name} in ${gig.title}`,
           link_url: `/gigs/${gig.id}`,
           gig_id: gig.id,
-          project_id: gig.project_id,
           gig_role_id: roleId,
         });
-      } else if (finalStatus === 'needs_sub') {
-        // Note: 'declined' is automatically converted to 'needs_sub' above (line 250)
+      } else if (status === 'declined') {
         await createNotification({
           user_id: managerId,
           type: 'status_changed',
           title: `${userName} declined`,
-          message: `${userName} declined their role as ${gigData.role_name} in ${gig.title}. Need a sub!`,
+          message: `${userName} declined their role as ${gigData.role_name} in ${gig.title}`,
           link_url: `/gigs/${gig.id}`,
           gig_id: gig.id,
-          project_id: gig.project_id,
+          gig_role_id: roleId,
+        });
+      } else if (status === 'needs_sub') {
+        await createNotification({
+          user_id: managerId,
+          type: 'status_changed',
+          title: `${userName} needs a sub`,
+          message: `${userName} needs a sub for their role as ${gigData.role_name} in ${gig.title}`,
+          link_url: `/gigs/${gig.id}`,
+          gig_id: gig.id,
           gig_role_id: roleId,
         });
       }
@@ -370,11 +376,7 @@ export async function getMyPendingInvitations(
         date,
         start_time,
         end_time,
-        location_name,
-        projects (
-          id,
-          name
-        )
+        location_name
       )
     `)
     .eq('musician_id', userId)
@@ -384,6 +386,47 @@ export async function getMyPendingInvitations(
   if (error) {
     console.error('Error fetching pending invitations:', error);
     throw new Error('Failed to fetch pending invitations');
+  }
+  
+  // Sort by date ascending (soonest first) in JavaScript
+  const sorted = (data || []).sort((a: any, b: any) => {
+    const dateA = a.gigs?.date || '';
+    const dateB = b.gigs?.date || '';
+    return dateA.localeCompare(dateB);
+  });
+  
+  return sorted as GigRole[];
+}
+
+/**
+ * Get declined invitations for current user
+ */
+export async function getMyDeclinedInvitations(
+  userId: string
+): Promise<GigRole[]> {
+  const supabase = createClient();
+  
+  const { data, error } = await supabase
+    .from('gig_roles')
+    .select(`
+      *,
+      gigs!inner (
+        id,
+        title,
+        date,
+        start_time,
+        end_time,
+        location_name,
+        location_address
+      )
+    `)
+    .eq('musician_id', userId)
+    .eq('invitation_status', 'declined')
+    .gte('gigs.date', new Date().toISOString().split('T')[0]);
+    
+  if (error) {
+    console.error('Error fetching declined invitations:', error);
+    throw new Error('Failed to fetch declined invitations');
   }
   
   // Sort by date ascending (soonest first) in JavaScript
@@ -431,6 +474,28 @@ export async function acceptMultipleInvitations(
 }
 
 /**
+ * Check if a role has been replaced by another musician
+ * Used to prevent re-acceptance of replaced roles
+ */
+export async function checkIfRoleReplaced(
+  roleId: string
+): Promise<boolean> {
+  const supabase = createClient();
+  
+  const { data: role, error } = await supabase
+    .from('gig_roles')
+    .select('invitation_status')
+    .eq('id', roleId)
+    .single();
+    
+  if (error || !role) {
+    return false;
+  }
+  
+  return role.invitation_status === 'replaced';
+}
+
+/**
  * Check for gig conflicts for a user on a specific date/time
  */
 export async function checkGigConflicts(
@@ -452,8 +517,7 @@ export async function checkGigConflicts(
         date,
         start_time,
         end_time,
-        location_name,
-        projects (name)
+        location_name
       )
     `)
     .eq('musician_id', userId)
@@ -562,7 +626,7 @@ export async function inviteAllMusicians(gigId: string): Promise<{ count: number
   // Get gig details for notifications
   const { data: gig, error: gigFetchError } = await supabase
     .from('gigs')
-    .select('id, title, project_id, date, start_time, location_name')
+    .select('id, title, date, start_time, location_name')
     .eq('id', gigId)
     .single();
 
@@ -584,7 +648,6 @@ export async function inviteAllMusicians(gigId: string): Promise<{ count: number
         message: `You've been invited as ${role.role_name}`,
         link_url: `/gigs/${gig.id}/pack`,
         gig_id: gig.id,
-        project_id: gig.project_id,
         gig_role_id: role.id,
       }).catch(err => {
         // Log but don't fail the whole operation
@@ -595,6 +658,82 @@ export async function inviteAllMusicians(gigId: string): Promise<{ count: number
   await Promise.all(notificationPromises);
 
   return { count: rolesToInvite.length };
+}
+
+/**
+ * Re-invite a musician who previously declined
+ * Only callable by gig owner
+ */
+export async function reinviteMusician(
+  roleId: string
+): Promise<void> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+  
+  // Get role and check if current user is gig owner
+  const { data: role, error: fetchError } = await supabase
+    .from('gig_roles')
+    .select(`
+      id,
+      invitation_status,
+      musician_id,
+      musician_name,
+      role_name,
+      gigs!inner (
+        id,
+        title,
+        owner_id
+      )
+    `)
+    .eq('id', roleId)
+    .single();
+    
+  if (fetchError || !role) {
+    throw new Error('Role not found');
+  }
+  
+  const gig = role.gigs as any;
+  const gigOwnerId = gig?.owner_id;
+  
+  if (gigOwnerId !== user.id) {
+    throw new Error('Not authorized - only gig owner can re-invite musicians');
+  }
+  
+  if (role.invitation_status !== 'declined') {
+    throw new Error('Can only re-invite musicians who have declined');
+  }
+  
+  // Update status to invited
+  const { error: updateError } = await supabase
+    .from('gig_roles')
+    .update({
+      invitation_status: 'invited',
+      status_changed_at: new Date().toISOString(),
+      status_changed_by: user.id,
+    })
+    .eq('id', roleId);
+    
+  if (updateError) {
+    console.error('Error re-inviting musician:', updateError);
+    throw new Error('Failed to re-invite musician');
+  }
+  
+  // Record status change
+  await recordStatusChange(roleId, 'declined', 'invited', user.id, 'Manager re-invited');
+  
+  // Send notification to musician if they have a user account
+  if (role.musician_id) {
+    await createNotification({
+      user_id: role.musician_id,
+      type: 'invitation_received',
+      title: `Re-invitation: ${gig.title}`,
+      message: `You've been re-invited as ${role.role_name}. The host would like you to reconsider!`,
+      link_url: `/gigs/${gig.id}/pack`,
+      gig_id: gig.id,
+      gig_role_id: roleId,
+    });
+  }
 }
 
 /**

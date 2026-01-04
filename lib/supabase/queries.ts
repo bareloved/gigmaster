@@ -33,39 +33,3 @@ export const getCurrentUser = cache(async () => {
   return user;
 });
 
-/**
- * Get projects for a user
- * TODO: Add pagination support
- * PERFORMANCE: Indexed on owner_id
- */
-export const getUserProjects = cache(async (userId: string) => {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*")
-    .eq("owner_id", userId)
-    .order("created_at", { ascending: false });
-
-  if (error) return [];
-  return data;
-});
-
-/**
- * Get gigs for a project
- * TODO: Add date range filtering and pagination
- * PERFORMANCE: Indexed on project_id and date
- */
-export const getProjectGigs = cache(
-  async (projectId: string, limit = 20) => {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("gigs")
-      .select("*")
-      .eq("project_id", projectId)
-      .order("date", { ascending: true })
-      .limit(limit);
-
-    if (error) return [];
-    return data;
-  }
-);

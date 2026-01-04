@@ -8,13 +8,20 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Music, Briefcase, Calendar, Grid3x3, List, CalendarDays, Search, X, History as HistoryIcon } from "lucide-react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listAllPastGigs, type DashboardGig } from "@/lib/api/dashboard-gigs";
-import { DashboardGigItem } from "@/components/dashboard-gig-item";
-import { DashboardGigItemGrid } from "@/components/dashboard-gig-item-grid";
+import { DashboardGigItem } from "@/components/dashboard/gig-item";
+import { DashboardGigItemGrid } from "@/components/dashboard/gig-item-grid";
 import { useUser } from "@/lib/providers/user-provider";
 import { useState, useMemo, useRef, useEffect } from "react";
-import { 
+import dynamic from "next/dynamic";
+import { getGig } from "../gigs/actions";
+
+const GigEditorPanel = dynamic(
+  () => import("@/components/gigpack/editor/gig-editor-panel").then((mod) => mod.GigEditorPanel),
+  { ssr: false }
+);
+import {
   format as formatDate,
   subDays,
   subMonths,
@@ -29,7 +36,7 @@ type DateRangePreset = "30days" | "90days" | "1year" | "all" | "custom";
 const getPastDateRangePreset = (preset: DateRangePreset) => {
   const today = new Date();
   today.setHours(23, 59, 59, 999); // End of today
-  
+
   switch (preset) {
     case "30days":
       return { from: subDays(today, 30), to: today };
@@ -47,24 +54,43 @@ const getPastDateRangePreset = (preset: DateRangePreset) => {
 
 export default function HistoryPage() {
   const { user } = useUser();
+  const queryClient = useQueryClient();
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
-  
+
+  // Editor state
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingGigId, setEditingGigId] = useState<string | null>(null);
+
+  // Fetch gig data when editing
+  const { data: editingGig, isLoading: isLoadingEditingGig } = useQuery({
+    queryKey: ["gig-editor", editingGigId],
+    queryFn: () => editingGigId ? getGig(editingGigId) : null,
+    enabled: !!editingGigId && isEditorOpen,
+  });
+
+  const handleEditGig = (gig: DashboardGig) => {
+    if (gig.isManager) {
+      setEditingGigId(gig.gigId);
+      setIsEditorOpen(true);
+    }
+  };
+
   // Date range state (default: all time)
   const [dateRangePreset, setDateRangePreset] = useState<DateRangePreset>("all");
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>(() => getPastDateRangePreset("all"));
   const [customDatePickerOpen, setCustomDatePickerOpen] = useState(false);
-  
+
   // Search state with debouncing
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  
+
   // Debounce search input (300ms)
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
     }, 300);
-    
+
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -77,7 +103,7 @@ export default function HistoryPage() {
     fetchNextPage,
   } = useInfiniteQuery({
     queryKey: [
-      "all-past-gigs", 
+      "all-past-gigs",
       user?.id,
       dateRange.from.toISOString(),
       dateRange.to.toISOString()
@@ -106,7 +132,7 @@ export default function HistoryPage() {
   // Filter gigs by date range (client-side, since API returns all past)
   const dateFilteredGigs = useMemo(() => {
     if (dateRangePreset === "all") return allGigs;
-    
+
     return allGigs.filter(gig => {
       const gigDate = new Date(gig.date);
       return gigDate >= dateRange.from && gigDate <= dateRange.to;
@@ -116,28 +142,28 @@ export default function HistoryPage() {
   // Filter gigs by role perspective
   const roleFilteredGigs = useMemo(() => {
     let filtered = dateFilteredGigs;
-    
+
     if (roleFilter === "manager") {
       filtered = filtered.filter(g => g.isManager);
     } else if (roleFilter === "player") {
       filtered = filtered.filter(g => g.isPlayer);
     }
-    
+
     return filtered;
   }, [dateFilteredGigs, roleFilter]);
 
-  // Filter gigs by search query (gig title, project name, location)
+  // Filter gigs by search query (gig title, host name, location)
   const searchFilteredGigs = useMemo(() => {
     if (!debouncedSearchQuery.trim()) return roleFilteredGigs;
-    
+
     const query = debouncedSearchQuery.toLowerCase().trim();
-    
+
     return roleFilteredGigs.filter(gig => {
       const titleMatch = gig.gigTitle?.toLowerCase().includes(query);
-      const projectMatch = gig.projectName?.toLowerCase().includes(query);
+      const hostMatch = gig.hostName?.toLowerCase().includes(query);
       const locationMatch = gig.locationName?.toLowerCase().includes(query);
-      
-      return titleMatch || projectMatch || locationMatch;
+
+      return titleMatch || hostMatch || locationMatch;
     });
   }, [roleFilteredGigs, debouncedSearchQuery]);
 
@@ -160,7 +186,7 @@ export default function HistoryPage() {
 
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-  
+
   // Handle preset button clicks
   const handlePresetChange = (preset: DateRangePreset) => {
     setDateRangePreset(preset);
@@ -170,7 +196,7 @@ export default function HistoryPage() {
       setCustomDatePickerOpen(true);
     }
   };
-  
+
   // Handle custom date range selection
   const handleCustomDateChange = (from: Date | undefined, to: Date | undefined) => {
     if (from && to) {
@@ -280,12 +306,12 @@ export default function HistoryPage() {
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <CalendarDays className="h-4 w-4" />
           <span>
-            {dateRangePreset === "all" 
-              ? "All time" 
+            {dateRangePreset === "all"
+              ? "All time"
               : `${formatDate(dateRange.from, "MMM d")} - ${formatDate(dateRange.to, "MMM d, yyyy")}`}
           </span>
         </div>
-        
+
         <div className="flex flex-wrap gap-2">
           <Button
             variant={dateRangePreset === "30days" ? "default" : "outline"}
@@ -315,7 +341,7 @@ export default function HistoryPage() {
           >
             All time
           </Button>
-          
+
           <Popover open={customDatePickerOpen} onOpenChange={setCustomDatePickerOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -393,13 +419,25 @@ export default function HistoryPage() {
           {viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {searchFilteredGigs.map((gig) => (
-                <DashboardGigItemGrid key={gig.gigId} gig={gig} isPastGig={true} returnUrl="/history" />
+                <DashboardGigItemGrid
+                  key={gig.gigId}
+                  gig={gig}
+                  isPastGig={true}
+                  returnUrl="/history"
+                  onClick={() => handleEditGig(gig)}
+                />
               ))}
             </div>
           ) : (
             <div className="space-y-3">
               {searchFilteredGigs.map((gig) => (
-                <DashboardGigItem key={gig.gigId} gig={gig} isPastGig={true} returnUrl="/history" />
+                <DashboardGigItem
+                  key={gig.gigId}
+                  gig={gig}
+                  isPastGig={true}
+                  returnUrl="/history"
+                  onClick={() => handleEditGig(gig)}
+                />
               ))}
             </div>
           )}
@@ -424,6 +462,22 @@ export default function HistoryPage() {
           )}
         </>
       )}
+      {/* Gig Editor Sliding Panel */}
+      <GigEditorPanel
+        mode="sheet"
+        open={isEditorOpen}
+        loading={isLoadingEditingGig}
+        isEditing={!!editingGigId}
+        onOpenChange={(open) => {
+          setIsEditorOpen(open);
+          if (!open) setEditingGigId(null);
+        }}
+        gigPack={editingGig || undefined}
+        onUpdateSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["all-past-gigs"] });
+          queryClient.invalidateQueries({ queryKey: ["gig-editor", editingGigId] });
+        }}
+      />
     </div>
   );
 }

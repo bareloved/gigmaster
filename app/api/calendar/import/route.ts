@@ -17,17 +17,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { projectId, event } = body;
+    const { event } = body;
 
-    if (!projectId || !event) {
+    if (!event) {
       return NextResponse.json(
-        { error: "Missing projectId or event" },
+        { error: "Missing event" },
         { status: 400 }
       );
     }
 
     // Import event
-    const gigId = await importCalendarEventAsGig(user.id, projectId, event);
+    const gigId = await importCalendarEventAsGig(user.id, event);
 
     return NextResponse.json({ gigId });
   } catch (error) {

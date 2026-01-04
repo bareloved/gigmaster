@@ -1,4 +1,15 @@
-<!-- 49f5c84f-bd45-4dfc-bac1-badea8ccc03e 4f2e393e-71da-4c75-b30c-a6fdf4fdaf42 -->
+---
+name: Step 7 – Files & Materials (URL-Based)
+overview: ""
+todos:
+  - id: b5fb4e1e-ddae-4a76-a03d-e2bb1e44e984
+    content: Create gig_files table migration with RLS policies
+    status: completed
+  - id: a77afe52-bdc0-485e-9d76-73e89a5029ec
+    content: Add gig_files types to database.ts
+    status: completed
+---
+
 # Step 7 – Files & Materials (URL-Based)
 
 ## Overview
@@ -63,9 +74,7 @@ CREATE POLICY "Users can add gig files to their projects"
 
 ## API Layer
 
-**File:** `lib/api/gig-files.ts`
-
-Functions to implement:
+**File:** `lib/api/gig-files.ts`Functions to implement:
 
 - `listFilesForGig(gigId: string): Promise<GigFile[]>`
 - `addFileToGig(data: GigFileInsert): Promise<GigFile>`
@@ -75,9 +84,7 @@ Functions to implement:
 
 ### 1. AddFileDialog Component
 
-**File:** `components/add-file-dialog.tsx`
-
-**Fields:**
+**File:** `components/add-file-dialog.tsx`**Fields:**
 
 - Label (required): Text input - "e.g., Lead Sheet - Superstition"
 - URL (required): Text input - "Paste Google Drive / Dropbox link"
@@ -91,21 +98,19 @@ Functions to implement:
 
 ### 2. Gig Detail Page Integration
 
-**File:** `app/(app)/gigs/[id]/page.tsx`
-
-**Replace Files placeholder card with:**
+**File:** `app/(app)/gigs/[id]/page.tsx`**Replace Files placeholder card with:**
 
 - Header with "Add File" button
 - List of files with:
-  - Icon based on type (FileText, Music, Video, File, Folder)
-  - Label (truncated if long)
-  - External link icon to open in new tab
-  - Delete button (trash icon)
+- Icon based on type (FileText, Music, Video, File, Folder)
+- Label (truncated if long)
+- External link icon to open in new tab
+- Delete button (trash icon)
 - Empty state: "No files yet. Add charts, audio references, or other materials."
 
 **Layout:**
 
-```
+```javascript
 ┌──────────────────────────────────────┐
 │ 📁 Files                    [+ Add]  │
 ├──────────────────────────────────────┤
@@ -114,6 +119,8 @@ Functions to implement:
 │ 📁 Charts Folder                 🗑   │
 └──────────────────────────────────────┘
 ```
+
+
 
 ## Implementation Steps
 
@@ -127,14 +134,3 @@ Functions to implement:
 ## Future Enhancements (Not in this step)
 
 Document in future enhancements file:
-
-- Supabase Storage integration for actual file uploads
-- Link preview/metadata fetching
-- Automatic file type detection from URL
-- Drag-and-drop link pasting
-- Bulk import from folder link
-
-### To-dos
-
-- [x] Create gig_files table migration with RLS policies
-- [ ] Add gig_files types to database.ts

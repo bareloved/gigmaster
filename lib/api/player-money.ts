@@ -100,7 +100,8 @@ export async function getPlayerMoneyGigs(
         id,
         title,
         date,
-        projects(name)
+        owner_id,
+        owner:profiles!gigs_owner_profiles_fkey(name)
       )
     `
     )
@@ -132,7 +133,7 @@ export async function getPlayerMoneyGigs(
       id: item.gigs.id,
       date: item.gigs.date,
       gigTitle: item.gigs.title,
-      projectName: item.gigs.projects.name,
+      hostName: item.gigs.owner?.name || null,
       roleName: item.role_name,
       agreedFee: item.agreed_fee,
       isPaid: item.payment_status === 'paid',

@@ -1,8 +1,8 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ThemeSelector } from "@/components/theme-selector";
-import { ProfileForm } from "@/components/profile-form";
+import { ThemeSelector } from "@/components/layout/theme-selector";
+import { ProfileForm } from "@/components/profile/profile-form";
 import { useUser } from "@/lib/providers/user-provider";
 
 export default function ProfilePage() {

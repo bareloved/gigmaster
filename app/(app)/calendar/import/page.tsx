@@ -12,13 +12,6 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { 
   Calendar, 
   CheckCircle2, 
   AlertCircle, 
@@ -64,11 +57,6 @@ interface DateRange {
   to: Date;
 }
 
-interface Project {
-  id: string;
-  name: string;
-}
-
 export default function CalendarImportPage() {
   const router = useRouter();
   const { user, isLoading: userLoading } = useUser();
@@ -77,8 +65,6 @@ export default function CalendarImportPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isFetching, setIsFetching] = useState(false);
   const [events, setEvents] = useState<GoogleCalendarEvent[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [selectedProject, setSelectedProject] = useState<string>("");
   const [importingEvents, setImportingEvents] = useState<Set<string>>(new Set());
   const [importedEvents, setImportedEvents] = useState<Set<string>>(new Set());
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
@@ -105,13 +91,6 @@ export default function CalendarImportPage() {
 
         if (connection) {
           setIsConnected(true);
-          // Fetch projects
-          const { data: projectsData } = await supabase
-            .from("projects")
-            .select("id, name")
-            .order("name");
-          
-          setProjects(projectsData || []);
         } else {
           setIsConnected(false);
         }
@@ -175,8 +154,8 @@ export default function CalendarImportPage() {
   };
 
   const handleImportEvent = async (event: GoogleCalendarEvent) => {
-    if (!user || !selectedProject) {
-      toast.error("Please select a project first");
+    if (!user) {
+      toast.error("Please sign in first");
       return;
     }
 
@@ -187,7 +166,6 @@ export default function CalendarImportPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          projectId: selectedProject,
           event,
         }),
       });
@@ -321,48 +299,10 @@ export default function CalendarImportPage() {
         </div>
       </div>
 
-      {/* Project Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle>1. Select Project</CardTitle>
-          <CardDescription>
-            Choose which project/band these events belong to
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Project</Label>
-              <Select value={selectedProject} onValueChange={setSelectedProject}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a project..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map((project) => (
-                    <SelectItem key={project.id} value={project.id}>
-                      {project.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {projects.length === 0 && (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  No projects found. Please create a project first.
-                </AlertDescription>
-              </Alert>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Fetch Events */}
       <Card>
         <CardHeader>
-          <CardTitle>2. Select Date Range & Fetch Events</CardTitle>
+          <CardTitle>1. Select Date Range & Fetch Events</CardTitle>
           <CardDescription>
             Choose a date range to load events from your Google Calendar
           </CardDescription>
@@ -437,7 +377,7 @@ export default function CalendarImportPage() {
           <div className="pt-2">
             <Button
               onClick={handleFetchEvents}
-              disabled={isFetching || !selectedProject || !isConnected}
+              disabled={isFetching || !isConnected}
             >
               {isFetching ? (
                 <>
@@ -640,7 +580,7 @@ export default function CalendarImportPage() {
         </Card>
       )}
 
-      {events.length === 0 && !isFetching && selectedProject && (
+      {events.length === 0 && !isFetching && (
         <Alert>
           <Calendar className="h-4 w-4" />
           <AlertDescription>
