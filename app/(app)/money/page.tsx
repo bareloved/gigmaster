@@ -1,19 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MyEarningsSummaryCards } from '@/components/my-earnings-summary';
-import { MyEarningsTable } from '@/components/my-earnings-table';
-import { PayoutsTable } from '@/components/payouts-table';
-import { SummaryCardsSkeleton, MoneyTableSkeleton } from '@/components/money-table-skeleton';
+import { MyEarningsSummaryCards } from '@/components/dashboard/earnings-summary';
+import { MyEarningsTable } from '@/components/money/earnings-table';
+import { PayoutsTable } from '@/components/money/payouts-table';
+import { SummaryCardsSkeleton, MoneyTableSkeleton } from '@/components/money/table-skeleton';
 import { getMyEarnings, getPayouts, checkIsManager } from '@/lib/api/money';
-import { listUserProjects } from '@/lib/api/projects';
 import { useUser } from '@/lib/providers/user-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
@@ -21,14 +19,9 @@ import { PaymentStatus } from '@/lib/types/shared';
 
 export default function MoneyPage() {
   const { user } = useUser();
-  const searchParams = useSearchParams();
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
   const currentMonth = currentDate.getMonth() + 1;
-
-  // Get project filter from URL params (set by ProjectBar)
-  const projectFilterFromUrl = searchParams.get("project");
-  const selectedProject = projectFilterFromUrl && projectFilterFromUrl !== "all" ? projectFilterFromUrl : null;
 
   // Filter state for My Earnings
   const [year, setYear] = useState(currentYear);
@@ -65,14 +58,6 @@ export default function MoneyPage() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Fetch projects for filter (manager only)
-  const { data: projects = [] } = useQuery({
-    queryKey: ['projects', user?.id],
-    queryFn: listUserProjects,
-    enabled: !!user && isManager,
-    staleTime: 5 * 60 * 1000,
-  });
-
   // Fetch My Earnings data
   const {
     data: earningsData,
@@ -91,8 +76,8 @@ export default function MoneyPage() {
     isLoading: payoutsLoading,
     error: payoutsError,
   } = useQuery({
-    queryKey: ['payouts', user?.id, payoutsYear, payoutsMonth, selectedProject, selectedStatus],
-    queryFn: () => getPayouts(payoutsYear, payoutsMonth, selectedProject, selectedStatus),
+    queryKey: ['payouts', user?.id, payoutsYear, payoutsMonth, selectedStatus],
+    queryFn: () => getPayouts(payoutsYear, payoutsMonth, selectedStatus),
     enabled: !!user?.id && isManager,
     staleTime: 2 * 60 * 1000, // 2 minutes
   });

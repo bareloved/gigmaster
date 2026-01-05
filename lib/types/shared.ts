@@ -22,13 +22,6 @@ export type GigInsert = Database['public']['Tables']['gigs']['Insert'];
 export type GigUpdate = Database['public']['Tables']['gigs']['Update'];
 
 /**
- * Projects
- */
-export type Project = Database['public']['Tables']['projects']['Row'];
-export type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
-export type ProjectUpdate = Database['public']['Tables']['projects']['Update'];
-
-/**
  * Gig Roles (Lineup/Musicians)
  */
 export type GigRole = Database['public']['Tables']['gig_roles']['Row'];
@@ -141,6 +134,81 @@ export interface MusicianContactWithStats extends MusicianContact {
 }
 
 /**
+ * Gig Readiness (per musician per gig)
+ * Tracks individual preparation status for a gig
+ */
+export interface GigReadiness {
+  id: string;
+  gigId: string;
+  musicianId: string;
+  songsTotal: number;
+  songsLearned: number;
+  chartsReady: boolean;
+  soundsReady: boolean;
+  travelChecked: boolean;
+  gearPacked: boolean;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type GigReadinessInsert = Omit<GigReadiness, 'id' | 'createdAt' | 'updatedAt'>;
+export type GigReadinessUpdate = Partial<Omit<GigReadiness, 'id' | 'gigId' | 'musicianId' | 'createdAt' | 'updatedAt'>>;
+
+/**
+ * Calculated readiness score breakdown
+ */
+export interface ReadinessScore {
+  overall: number;        // 0-100
+  songs: number;          // 0-100
+  charts: number;         // 0-100
+  sounds: number;         // 0-100
+  travel: number;         // 0-100
+  gear: number;           // 0-100
+}
+
+/**
+ * Setlist Learning Status (per musician per song)
+ * Tracks individual musician's learning progress for setlist items
+ */
+export interface SetlistLearningStatus {
+  id: string;
+  setlistItemId: string;
+  musicianId: string;
+  learned: boolean;
+  lastPracticedAt: string | null;
+  practiceCount: number;
+  difficulty: 'easy' | 'medium' | 'hard' | null;
+  priority: 'low' | 'medium' | 'high';
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type SetlistLearningStatusInsert = Omit<SetlistLearningStatus, 'id' | 'createdAt' | 'updatedAt'>;
+export type SetlistLearningStatusUpdate = Partial<Omit<SetlistLearningStatus, 'id' | 'setlistItemId' | 'musicianId' | 'createdAt' | 'updatedAt'>>;
+
+/**
+ * Practice item for dashboard "Practice Focus" widget
+ * Combines setlist item with learning status
+ */
+export interface PracticeItem {
+  setlistItemId: string;
+  songTitle: string;
+  gigId: string;
+  gigTitle: string;
+  gigDate: string;
+  hostName: string | null;
+  key: string | null;
+  bpm: number | null;
+  learned: boolean;
+  difficulty: 'easy' | 'medium' | 'hard' | null;
+  priority: 'low' | 'medium' | 'high';
+  lastPracticedAt: string | null;
+  daysUntilGig: number;
+}
+
+/**
  * Player money summary statistics
  */
 export interface PlayerMoneySummary {
@@ -157,7 +225,7 @@ export interface PlayerMoneyGig {
   id: string;
   date: string;
   gigTitle: string;
-  projectName: string;
+  hostName: string | null;
   roleName: string;
   agreedFee: number | null;
   isPaid: boolean;
@@ -182,14 +250,10 @@ export interface GigPackData {
   notes: string | null;
   schedule: string | null;
   
-  // Project info (all gigs now have a project)
-  project: {
+  // Host info (gig owner)
+  host: {
     id: string;
     name: string;
-    coverImageUrl: string | null;
-    ownerId: string;
-    ownerName: string;
-    isPersonal?: boolean | null;
   } | null;
   
   // Setlist
@@ -238,8 +302,6 @@ export interface GigPackData {
  */
 export interface DashboardGig {
   gigId: string;
-  projectId: string | null;
-  projectName: string | null;
   gigTitle: string;
   date: string;
   startTime: string | null;
@@ -252,8 +314,10 @@ export interface DashboardGig {
   playerGigRoleId?: string | null;
   invitationStatus?: string | null;
   paymentStatus?: "paid" | "unpaid" | null;
+  hostId: string | null;
   hostName: string | null;
-  isPersonalProject?: boolean | null;
+  heroImageUrl?: string | null;
+  gigType?: string | null;
   // Role statistics (for managers)
   roleStats?: {
     total: number;
@@ -271,8 +335,8 @@ export interface DashboardGig {
 export interface CalendarGig {
   id: string;
   title: string;
-  projectId: string | null;
-  projectName: string | null;
+  hostId: string | null;
+  hostName: string | null;
   date: string;
   startTime: string | null;
   endTime: string | null;
@@ -327,7 +391,7 @@ export interface MyEarningsGig {
   gigRoleId: string;
   gigId: string;
   gigTitle: string;
-  projectName: string;
+  hostName: string | null;
   date: string;
   roleName: string;
   locationName: string | null;
@@ -355,8 +419,7 @@ export interface PayoutRow {
   gigRoleId: string;
   gigId: string;
   gigTitle: string;
-  projectId: string;
-  projectName: string;
+  hostName: string | null;
   date: string;
   musicianId: string | null;
   musicianName: string | null;
@@ -376,4 +439,32 @@ export interface PaymentStatusUpdate {
   paymentStatus: PaymentStatus;
   paidAmount?: number | null;
   paidDate?: string | null;
+}
+
+/**
+ * Dashboard KPIs for artistry-focused dashboard
+ * Aggregated metrics for quick musician-focused overview
+ */
+export interface DashboardKPIs {
+  gigsThisWeek: {
+    total: number;
+    hosted: number;
+    playing: number;
+  };
+  songsToLearn: {
+    total: number;
+    acrossGigs: number;
+  };
+  changesSinceLastVisit: {
+    total: number;
+    breakdown: {
+      setlists: number;
+      notes: number;
+      files: number;
+      roles: number;
+    };
+  };
+  pendingInvitations: {
+    total: number;
+  };
 }

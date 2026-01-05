@@ -37,9 +37,9 @@ All API functions are platform-agnostic and mobile-ready.
 ```typescript
 // Just replace the Supabase client import
 import { createClient } from '../supabase/client'; // Your RN client
-import { listGigs } from '@/lib/api/gigs';
+import { listDashboardGigs } from '@/lib/api/dashboard-gigs';
 
-const gigs = await listGigs(projectId);
+const { gigs } = await listDashboardGigs(userId);
 ```
 
 ### ✅ `/lib/types/*` - Type Definitions

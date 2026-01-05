@@ -18,9 +18,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ContactStatusBadge } from '@/components/contact-status-badge';
-import { AddContactDialog } from '@/components/add-contact-dialog';
-import { EditContactDialog } from '@/components/edit-contact-dialog';
+import { ContactStatusBadge } from '@/components/contacts/status-badge';
+import { AddContactDialog } from '@/components/contacts/add-contact-dialog';
+import { EditContactDialog } from '@/components/contacts/edit-contact-dialog';
 import { 
   Search, 
   UserPlus, 

@@ -17,7 +17,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Changed: Start as false, render immediately
   const hasFetchedRef = useRef(false);
 
   const fetchUserAndProfile = async () => {
@@ -26,21 +26,25 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     
     try {
       const supabase = createClient();
-      const { data: { user: authUser } } = await supabase.auth.getUser();
+      
+      // OPTIMIZATION: Parallelize both API calls instead of sequential
+      const [userResult, profileResult] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from("profiles").select("*").limit(1).maybeSingle(),
+      ]);
+
+      const authUser = userResult.data.user;
       setUser(authUser);
 
-      if (authUser) {
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", authUser.id)
-          .maybeSingle();
-
-        setProfile(profileData);
+      // Only set profile if it matches the current user
+      if (authUser && profileResult.data?.id === authUser.id) {
+        setProfile(profileResult.data);
       } else {
         setProfile(null);
       }
     } catch (error) {
+      console.error("Error fetching user/profile:", error);
+      setUser(null);
       setProfile(null);
     } finally {
       setIsLoading(false);

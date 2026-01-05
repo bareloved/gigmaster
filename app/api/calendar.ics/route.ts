@@ -51,21 +51,21 @@ export async function GET(request: NextRequest) {
     const fromStr = past.toISOString().split('T')[0];
     const toStr = future.toISOString().split('T')[0];
 
-    // Fetch gigs where user is manager (owner of project)
+    // Fetch gigs where user is manager (gig owner)
     const { data: managerGigs, error: managerError } = await supabase
       .from("gigs")
       .select(`
         id,
-        project_id,
+        owner_id,
         title,
         date,
         start_time,
         end_time,
         location_name,
         status,
-        projects!gigs_project_id_fkey(id, name, owner_id)
+        owner:profiles!gigs_owner_profiles_fkey(name)
       `)
-      .eq("projects.owner_id", userId)
+      .eq("owner_id", userId)
       .gte("date", fromStr)
       .lte("date", toStr)
       .order("date", { ascending: true })
@@ -77,6 +77,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch gigs where user is player (has a gig_role)
+    // Exclude pending (not yet invited) and declined (player declined) invitations
     const { data: playerGigs, error: playerError } = await supabase
       .from("gig_roles")
       .select(`
@@ -86,17 +87,19 @@ export async function GET(request: NextRequest) {
         payment_status,
         gigs!gig_roles_gig_id_fkey(
           id,
-          project_id,
+          owner_id,
           title,
           date,
           start_time,
           end_time,
           location_name,
           status,
-          projects!gigs_project_id_fkey(id, name)
+          owner:profiles!gigs_owner_profiles_fkey(name)
         )
       `)
       .eq("musician_id", userId)
+      .neq("invitation_status", "pending")
+      .neq("invitation_status", "declined")
       .gte("gigs.date", fromStr)
       .lte("gigs.date", toStr)
       .limit(500);
@@ -113,8 +116,6 @@ export async function GET(request: NextRequest) {
     (managerGigs || []).forEach((row: any) => {
       gigMap.set(row.id, {
         gigId: row.id,
-        projectId: row.project_id,
-        projectName: row.projects.name,
         gigTitle: row.title,
         date: row.date,
         startTime: row.start_time,
@@ -123,6 +124,7 @@ export async function GET(request: NextRequest) {
         status: row.status,
         isManager: true,
         isPlayer: false,
+        hostName: row.owner?.name || null,
       });
     });
 
@@ -140,8 +142,6 @@ export async function GET(request: NextRequest) {
         // New gig where user is only player
         gigMap.set(gigId, {
           gigId: gig.id,
-          projectId: gig.project_id,
-          projectName: gig.projects.name,
           gigTitle: gig.title,
           date: gig.date,
           startTime: gig.start_time,
@@ -151,6 +151,7 @@ export async function GET(request: NextRequest) {
           isManager: false,
           isPlayer: true,
           playerRoleName: row.role_name,
+          hostName: gig.owner?.name || null,
         });
       }
     });
@@ -192,7 +193,8 @@ export async function GET(request: NextRequest) {
         description = `Your role: ${gig.playerRoleName}\n\n${description}`;
       }
 
-      const title = `[${gig.projectName}] ${gig.gigTitle}`;
+      const titlePrefix = gig.hostName ? `[${gig.hostName}] ` : '';
+      const title = `${titlePrefix}${gig.gigTitle}`;
 
       return {
         start: startArray,

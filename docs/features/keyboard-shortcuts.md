@@ -88,6 +88,32 @@ The hook automatically finds and submits the first visible form in the dialog. T
 **Dialogs without forms:**
 Some dialogs like `bulk-add-setlist-dialog.tsx` and `add-from-circle-dialog.tsx` don't have traditional form structures. The hook is added but won't function automatically. These could be refactored in the future to wrap their content in forms.
 
+## Dashboard Keyboard Shortcuts
+
+**Added:** November 22, 2025
+
+The dashboard page (`/dashboard`) supports additional keyboard shortcuts for quick navigation when a next gig is available:
+
+- **G** - Go to gig details page
+- **P** - Open gig pack
+- **S** - Open setlist (gig details, setlist tab)
+- **F** - Open files/resources (gig details, resources tab)
+
+### Implementation
+
+Located in: `hooks/use-dashboard-keyboard-shortcuts.ts`
+
+**Features:**
+- Smart input detection (doesn't trigger while typing)
+- No modifier key conflicts (doesn't trigger with Cmd/Ctrl/Alt)
+- Visual hints in button tooltips and hover states
+- Only active when a next gig is available
+
+**Usage:**
+```typescript
+useDashboardKeyboardShortcuts(gigId, enabled);
+```
+
 ## Future Enhancements
 
 This keyboard shortcut foundation enables additional shortcuts:

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import { useUser } from "@/lib/providers/user-provider";
 import { generateICSToken, regenerateICSToken, getICSToken } from "@/lib/api/calendar";
 import { createClient } from "@/lib/supabase/client";
 
-export default function CalendarSettingsPage() {
+function CalendarSettingsContent() {
   const searchParams = useSearchParams();
   const { user, isLoading: userLoading } = useUser();
   const [token, setToken] = useState<string | null>(null);
@@ -414,6 +414,22 @@ export default function CalendarSettingsPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function CalendarSettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="container max-w-4xl py-8 space-y-6">
+        <div>
+          <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <Skeleton className="h-96 w-full" />
+      </div>
+    }>
+      <CalendarSettingsContent />
+    </Suspense>
   );
 }
 

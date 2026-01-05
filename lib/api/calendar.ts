@@ -195,7 +195,8 @@ function gigToICSEvent(gig: DashboardGig): EventAttributes {
   }
 
   // Build title
-  const title = `[${gig.projectName}] ${gig.gigTitle}`;
+  const titlePrefix = gig.hostName ? `[${gig.hostName}] ` : '';
+  const title = `${titlePrefix}${gig.gigTitle}`;
 
   return {
     start: startArray,

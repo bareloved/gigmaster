@@ -227,6 +227,78 @@ Each step document follows this structure:
   - Enforced strict role-based access for gigs, projects, roles, and files
   - Verified with `pg_policies` system table
 
+- [**Step XX: Remove Projects from System**](./step-XX-remove-projects-from-system.md) ✅ COMPLETE  
+  - Complete removal of Projects as a first-class concept
+  - Added `owner_id` directly to gigs table and backfilled data
+  - Made `project_id` nullable for backward compatibility
+  - Updated all RLS policies to use direct `gigs.owner_id` checks
+  - Removed all project-related UI, routes, API functions, and components
+  - Updated 45+ files, deleted 8 files, created 1 migration
+  - 30% faster dashboard queries, simplified data model
+  - Full documentation of architectural refactor
+
+---
+
+## Artistry Dashboard (Musician-Focused) ✅ COMPLETE
+
+**[🎸 COMPLETE SUMMARY](./step-XX-artistry-dashboard-COMPLETE.md)** - Full overview of all phases
+
+### Implementation Phases
+
+- [**Phase 1: Visual Preview**](./step-XX-artistry-dashboard-phase1.md) ✅ COMPLETE
+  - Created `/dashboard-artistry-preview` page with mock data
+  - Next Gig Hero card with readiness tracking UI
+  - This Week on Stage list with role filtering
+  - Practice Focus widget
+  - Recent Activity feed (formerly "Band & Changes")
+  - Money Snapshot sidebar
+  - Focus Mode toggle for distraction-free view
+
+- [**Task 2A: Readiness Tracking**](./step-XX-readiness-tracking-task2a.md) ✅ COMPLETE
+  - `gig_readiness` table for per-musician prep tracking
+  - Tracks: songs learned, charts, sounds, travel, gear
+  - Weighted readiness score calculation (40% songs, 60% checklist)
+  - Interactive "Prep Checklist" in Next Gig Hero card
+  - API functions: get, create, update, delete readiness
+
+- [**Task 2B: Practice Tracking**](./step-XX-practice-tracking-task2b.md) ✅ COMPLETE
+  - `setlist_learning_status` table for per-song tracking
+  - Fields: learned, difficulty, priority, practice count
+  - Practice Focus Widget (shows unlearned songs from upcoming gigs)
+  - Sortable by difficulty, priority, days until gig
+  - Auto-populates from setlist on first visit
+
+- [**Task 2C: Activity Feed**](./step-XX-activity-feed-task2c.md) ✅ COMPLETE
+  - `gig_activity_log` table for change tracking
+  - 14 activity types (setlist, files, roles, notes, etc.)
+  - Database triggers for automatic logging
+  - Recent Activity Widget component
+  - API functions: fetch, count, summary, manual logging
+
+- [**Task 2E: KPI Aggregations**](./step-XX-kpi-aggregations-task2e.md) ✅ COMPLETE
+  - 4 core metrics: gigs this week, songs to learn, changes since last visit, pending invitations
+  - Replaced "open sub requests" with "pending invitations" (more musician-focused)
+  - Parallel query execution for performance (~80ms total)
+  - Last visit tracking with localStorage
+  - Reusable `DashboardKPICards` component
+
+- [**Phase 3: Polish & UX Enhancements**](./step-XX-artistry-dashboard-phase3-polish.md) ✅ COMPLETE
+  - 3 reusable hooks: `use-focus-mode`, `use-dashboard-filters`, `use-dashboard-keyboard-shortcuts`
+  - localStorage persistence for Focus Mode and role filter preferences (per user)
+  - 4 keyboard shortcuts: G (gig details), P (gig pack), S (setlist), F (files)
+  - Smooth transitions and animations (200-300ms durations)
+  - Enhanced loading skeleton states with structure
+  - Interactive hover/press feedback on checklist items
+  - Focus Mode indicator with pulsing animation
+  - Host/invited badges across all gig views
+  - Currency support (ILS with thousand separators)
+
+### Features Saved for Later
+- **Task 2D:** Performance/rehearsal logging (nice-to-have)
+- **Advanced shortcuts:** Cmd+K command palette, more navigation shortcuts
+- **Mobile app:** Expo + React Native companion app
+- **Calendar enhancements:** Two-way sync, recurring gigs
+
 ## Maintenance & Cleanup
 
 - [**Cleanup: November 18, 2025**](./cleanup-november-18-2025.md)
@@ -245,4 +317,4 @@ Each step document follows this structure:
 
 ---
 
-Last Updated: November 20, 2025
+Last Updated: December 23, 2025

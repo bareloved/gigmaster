@@ -3,9 +3,12 @@ import type { DashboardGig } from "@/lib/types/shared";
 
 /**
  * Dashboard Gigs API
- * 
+ *
  * Unified view that combines gigs where user is manager and/or player.
  * Returns a single list with perspective flags for UI rendering.
+ *
+ * PERFORMANCE: Uses server-side RPC functions for true pagination.
+ * Fallback to client-side filtering if RPC not available.
  */
 
 // Re-export for convenience
@@ -25,7 +28,7 @@ export interface ListDashboardGigsOptions {
 /**
  * List all gigs for dashboard view
  * Combines manager and player perspectives into unified list
- * Supports pagination via limit and offset
+ * Uses server-side RPC for true pagination (fallback to client-side if RPC unavailable)
  */
 export async function listDashboardGigs(
   userId: string,
@@ -46,28 +49,90 @@ export async function listDashboardGigs(
   const limit = options?.limit ?? 20;
   const offset = options?.offset ?? 0;
 
-  // Fetch all gigs accessible to the user (RLS handles permissions)
-  // The RLS policies allow viewing owned gigs OR gigs with user roles
-  // PERFORMANCE: Limit to reasonable amount, use pagination for more
+  // Try server-side RPC first (true pagination)
+  // Note: RPC function needs to be applied via Supabase Dashboard SQL Editor
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('list_dashboard_gigs', {
+      p_user_id: userId,
+      p_from_date: fromStr,
+      p_to_date: toStr,
+      p_limit: limit,
+      p_offset: offset,
+    });
+
+    if (!rpcError && rpcData && Array.isArray(rpcData) && rpcData.length > 0) {
+      // RPC succeeded - transform response
+      const total = rpcData[0]?.total_count ?? 0;
+      const gigs: DashboardGig[] = rpcData.map((row: any) => ({
+        gigId: row.gig_id,
+        gigTitle: row.gig_title,
+        date: row.date,
+        startTime: row.start_time,
+        endTime: row.end_time,
+        locationName: row.location_name,
+        status: row.status,
+        isManager: row.is_manager,
+        isPlayer: row.is_player,
+        playerRoleName: row.player_role_name,
+        playerGigRoleId: row.player_gig_role_id,
+        invitationStatus: row.invitation_status,
+        paymentStatus: row.payment_status,
+        hostId: row.host_id,
+        hostName: row.host_name,
+        roleStats: row.role_stats,
+      }));
+
+      return {
+        gigs,
+        hasMore: offset + limit < total,
+        total,
+      };
+    }
+  } catch {
+    // RPC not available, fall back to client-side filtering
+    console.warn('list_dashboard_gigs RPC not available, using fallback');
+  }
+
+  // Fallback: client-side filtering (for backwards compatibility)
+  return listDashboardGigsFallback(userId, options);
+}
+
+/**
+ * Fallback function using client-side filtering
+ * Used when RPC function is not available
+ */
+async function listDashboardGigsFallback(
+  userId: string,
+  options?: ListDashboardGigsOptions
+): Promise<{ gigs: DashboardGig[]; hasMore: boolean; total: number }> {
+  const supabase = createClient();
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const from = options?.from || today;
+  const to = options?.to || new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
+
+  const fromStr = from.toISOString().split('T')[0];
+  const toStr = to.toISOString().split('T')[0];
+
+  const limit = options?.limit ?? 20;
+  const offset = options?.offset ?? 0;
+
   const { data: allGigs, error: allGigsError } = await supabase
     .from("gigs")
     .select(`
       id,
-      project_id,
+      owner_id,
       title,
       date,
       start_time,
       end_time,
       location_name,
       status,
-      projects (
+      owner:profiles!gigs_owner_profiles_fkey(
         id,
-        name,
-        owner_id,
-        is_personal,
-        owner:profiles!projects_owner_id_fkey (
-          name
-        )
+        name
       ),
       gig_roles (
         id,
@@ -87,34 +152,30 @@ export async function listDashboardGigs(
     throw new Error(allGigsError.message || "Failed to fetch gigs");
   }
 
-  // Transform and determine user perspective
   const gigMap = new Map<string, DashboardGig>();
 
   if (allGigs) {
     for (const gig of allGigs) {
-      const projectData = Array.isArray(gig.projects) ? gig.projects[0] : gig.projects;
       const roles = Array.isArray(gig.gig_roles) ? gig.gig_roles : [gig.gig_roles];
-      // Only consider user a player if they have a role that's been invited (not pending)
-      const userRole = roles.find(r => r?.musician_id === userId && r?.invitation_status !== 'pending');
+      const userRole = roles.find(r =>
+        r?.musician_id === userId &&
+        r?.invitation_status !== 'pending' &&
+        r?.invitation_status !== 'declined'
+      );
 
-      // Determine if user is manager (owns the project)
-      const isManager = projectData?.owner_id === userId;
-
-      // Determine if user is player (has a role that's been invited)
+      const isManager = gig.owner_id === userId;
       const isPlayer = !!userRole;
+
+      if (!isManager && !isPlayer) continue;
 
       let paymentStatus: "paid" | "unpaid" | null = null;
       if (isPlayer && userRole) {
         paymentStatus = userRole.payment_status === 'paid' ? "paid" : "unpaid";
       }
 
-      // Extract host name from project owner (if gig has a project)
-      const projectOwner = projectData ? (Array.isArray(projectData.owner) 
-        ? projectData.owner[0] 
-        : projectData.owner) : null;
-      const hostName = projectOwner?.name || null;
+      const ownerData = Array.isArray(gig.owner) ? gig.owner[0] : gig.owner;
+      const hostName = ownerData?.name || null;
 
-      // Calculate role statistics for managers
       let roleStats = null;
       if (isManager) {
         const total = roles.length;
@@ -122,14 +183,11 @@ export async function listDashboardGigs(
         const accepted = roles.filter(r => r?.invitation_status === 'accepted').length;
         const declined = roles.filter(r => r?.invitation_status === 'declined').length;
         const pending = roles.filter(r => r?.invitation_status === 'pending').length;
-        
         roleStats = { total, invited, accepted, declined, pending };
       }
 
       gigMap.set(gig.id, {
         gigId: gig.id,
-        projectId: gig.project_id,
-        projectName: projectData?.name || null,
         gigTitle: gig.title,
         date: gig.date,
         startTime: gig.start_time,
@@ -142,29 +200,24 @@ export async function listDashboardGigs(
         playerGigRoleId: userRole?.id || null,
         invitationStatus: userRole?.invitation_status || null,
         paymentStatus,
+        hostId: gig.owner_id,
         hostName,
-        isPersonalProject: projectData?.is_personal || false,
         roleStats,
       });
     }
   }
 
-  // 2. Convert map to array and sort by date/time
   const allResults = Array.from(gigMap.values());
-  
+
   allResults.sort((a, b) => {
-    // First sort by date
     const dateCompare = a.date.localeCompare(b.date);
     if (dateCompare !== 0) return dateCompare;
-    
-    // Then by start time (nulls last)
     if (!a.startTime && !b.startTime) return 0;
     if (!a.startTime) return 1;
     if (!b.startTime) return -1;
     return a.startTime.localeCompare(b.startTime);
   });
 
-  // 5. Apply pagination
   const total = allResults.length;
   const paginatedResults = allResults.slice(offset, offset + limit);
   const hasMore = offset + limit < total;
@@ -202,21 +255,16 @@ export async function listRecentPastGigs(
     .from("gigs")
     .select(`
       id,
-      project_id,
+      owner_id,
       title,
       date,
       start_time,
       end_time,
       location_name,
       status,
-      projects (
+      owner:profiles!gigs_owner_profiles_fkey(
         id,
-        name,
-        owner_id,
-        is_personal,
-        owner:profiles!projects_owner_id_fkey (
-          name
-        )
+        name
       ),
       gig_roles (
         id,
@@ -241,12 +289,11 @@ export async function listRecentPastGigs(
 
   if (allGigs) {
     for (const gig of allGigs) {
-      const projectData = Array.isArray(gig.projects) ? gig.projects[0] : gig.projects;
       const roles = Array.isArray(gig.gig_roles) ? gig.gig_roles : [gig.gig_roles];
       // Only consider user a player if they have a role that's been invited (not pending)
       const userRole = roles.find(r => r?.musician_id === userId && r?.invitation_status !== 'pending');
 
-      const isManager = projectData?.owner_id === userId;
+      const isManager = gig.owner_id === userId;
       const isPlayer = !!userRole;
 
       // Skip if user has no connection to this gig
@@ -257,16 +304,11 @@ export async function listRecentPastGigs(
         paymentStatus = userRole.payment_status === 'paid' ? "paid" : "unpaid";
       }
 
-      // Extract host name from project owner (if gig has a project)
-      const projectOwner = projectData ? (Array.isArray(projectData.owner) 
-        ? projectData.owner[0] 
-        : projectData.owner) : null;
-      const hostName = projectOwner?.name || null;
+      const ownerData = Array.isArray(gig.owner) ? gig.owner[0] : gig.owner;
+      const hostName = ownerData?.name || null;
 
       gigMap.set(gig.id, {
         gigId: gig.id,
-        projectId: gig.project_id,
-        projectName: projectData?.name || null,
         gigTitle: gig.title,
         date: gig.date,
         startTime: gig.start_time,
@@ -279,8 +321,8 @@ export async function listRecentPastGigs(
         playerGigRoleId: userRole?.id || null,
         invitationStatus: userRole?.invitation_status || null,
         paymentStatus,
+        hostId: gig.owner_id,
         hostName,
-        isPersonalProject: projectData?.is_personal || false,
       });
     }
   }
@@ -292,7 +334,7 @@ export async function listRecentPastGigs(
 
 /**
  * List all past gigs for history page
- * Fetches all gigs where date < today, with pagination support
+ * Uses server-side RPC for true pagination (fallback to client-side if RPC unavailable)
  * Returns paginated results sorted by date descending (most recent first)
  */
 export async function listAllPastGigs(
@@ -301,36 +343,83 @@ export async function listAllPastGigs(
 ): Promise<{ gigs: DashboardGig[]; hasMore: boolean; total: number }> {
   const supabase = createClient();
 
-  // Calculate date: all gigs before today
+  const limit = options?.limit ?? 20;
+  const offset = options?.offset ?? 0;
+
+  // Try server-side RPC first (true pagination)
+  // Note: RPC function needs to be applied via Supabase Dashboard SQL Editor
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: rpcData, error: rpcError } = await (supabase.rpc as any)('list_past_gigs', {
+      p_user_id: userId,
+      p_limit: limit,
+      p_offset: offset,
+    });
+
+    if (!rpcError && rpcData && Array.isArray(rpcData) && rpcData.length > 0) {
+      const total = rpcData[0]?.total_count ?? 0;
+      const gigs: DashboardGig[] = rpcData.map((row: any) => ({
+        gigId: row.gig_id,
+        gigTitle: row.gig_title,
+        date: row.date,
+        startTime: row.start_time,
+        endTime: row.end_time,
+        locationName: row.location_name,
+        status: row.status,
+        isManager: row.is_manager,
+        isPlayer: row.is_player,
+        playerRoleName: row.player_role_name,
+        playerGigRoleId: row.player_gig_role_id,
+        invitationStatus: row.invitation_status,
+        paymentStatus: row.payment_status,
+        hostId: row.host_id,
+        hostName: row.host_name,
+      }));
+
+      return {
+        gigs,
+        hasMore: offset + limit < total,
+        total,
+      };
+    }
+  } catch {
+    console.warn('list_past_gigs RPC not available, using fallback');
+  }
+
+  // Fallback: client-side filtering
+  return listAllPastGigsFallback(userId, options);
+}
+
+/**
+ * Fallback function for past gigs using client-side filtering
+ */
+async function listAllPastGigsFallback(
+  userId: string,
+  options?: { limit?: number; offset?: number }
+): Promise<{ gigs: DashboardGig[]; hasMore: boolean; total: number }> {
+  const supabase = createClient();
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = today.toISOString().split('T')[0];
 
-  // Pagination defaults
   const limit = options?.limit ?? 20;
   const offset = options?.offset ?? 0;
 
-  // Fetch all past gigs
-  // PERFORMANCE: Start with 50, paginate for more (UI controls page size)
-  const { data: allGigs, error: gigsError} = await supabase
+  const { data: allGigs, error: gigsError } = await supabase
     .from("gigs")
     .select(`
       id,
-      project_id,
+      owner_id,
       title,
       date,
       start_time,
       end_time,
       location_name,
       status,
-      projects (
+      owner:profiles!gigs_owner_profiles_fkey(
         id,
-        name,
-        owner_id,
-        is_personal,
-        owner:profiles!projects_owner_id_fkey (
-          name
-        )
+        name
       ),
       gig_roles (
         id,
@@ -349,20 +438,16 @@ export async function listAllPastGigs(
     throw new Error(gigsError.message || "Failed to fetch past gigs");
   }
 
-  // Transform and filter
   const gigMap = new Map<string, DashboardGig>();
 
   if (allGigs) {
     for (const gig of allGigs) {
-      const projectData = Array.isArray(gig.projects) ? gig.projects[0] : gig.projects;
       const roles = Array.isArray(gig.gig_roles) ? gig.gig_roles : [gig.gig_roles];
-      // Only consider user a player if they have a role that's been invited (not pending)
       const userRole = roles.find(r => r?.musician_id === userId && r?.invitation_status !== 'pending');
 
-      const isManager = projectData?.owner_id === userId;
+      const isManager = gig.owner_id === userId;
       const isPlayer = !!userRole;
 
-      // Skip if user has no connection to this gig
       if (!isManager && !isPlayer) continue;
 
       let paymentStatus: "paid" | "unpaid" | null = null;
@@ -370,16 +455,11 @@ export async function listAllPastGigs(
         paymentStatus = userRole.payment_status === 'paid' ? "paid" : "unpaid";
       }
 
-      // Extract host name from project owner (if gig has a project)
-      const projectOwner = projectData ? (Array.isArray(projectData.owner) 
-        ? projectData.owner[0] 
-        : projectData.owner) : null;
-      const hostName = projectOwner?.name || null;
+      const ownerData = Array.isArray(gig.owner) ? gig.owner[0] : gig.owner;
+      const hostName = ownerData?.name || null;
 
       gigMap.set(gig.id, {
         gigId: gig.id,
-        projectId: gig.project_id,
-        projectName: projectData?.name || null,
         gigTitle: gig.title,
         date: gig.date,
         startTime: gig.start_time,
@@ -392,16 +472,13 @@ export async function listAllPastGigs(
         playerGigRoleId: userRole?.id || null,
         invitationStatus: userRole?.invitation_status || null,
         paymentStatus,
+        hostId: gig.owner_id,
         hostName,
-        isPersonalProject: projectData?.is_personal || false,
       });
     }
   }
 
-  // Convert to array (already sorted by query)
   const allResults = Array.from(gigMap.values());
-
-  // Apply pagination
   const total = allResults.length;
   const paginatedResults = allResults.slice(offset, offset + limit);
   const hasMore = offset + limit < total;
