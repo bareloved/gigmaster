@@ -50,55 +50,50 @@ export async function addRoleToGig(data: Omit<GigRoleInsert, "id" | "created_at"
 
   if (error) throw new Error(error.message || "Failed to add role");
 
-  // Smart Learning System: Auto-create/update contacts
-  if (role.musician_name && role.musician_name.trim()) {
-    try {
-      let contactId = role.contact_id;
-      
-      // If no contact_id provided, try to find or create contact
-      if (!contactId) {
-        // Try to find existing contact by name
-        const existingContact = await findContactByName(user.id, role.musician_name);
-        
-        if (existingContact) {
-          contactId = existingContact.id;
-          
-          // Update the role with the contact_id
-          await supabase
-            .from("gig_roles")
-            .update({ contact_id: contactId })
-            .eq("id", role.id);
-        } else {
-          // Create new contact
-          const newContact = await getOrCreateContact(
-            user.id, 
-            role.musician_name
-          );
-          contactId = newContact.id;
-          
-          // Update the role with the new contact_id
-          await supabase
-            .from("gig_roles")
-            .update({ contact_id: contactId })
-            .eq("id", role.id);
-        }
-      }
-      
-      // Increment usage stats for the contact
-      if (contactId) {
-        await incrementContactUsage(
-          contactId, 
-          role.role_name, 
-          role.agreed_fee
-        );
-      }
-    } catch (contactError) {
-      // Log error but don't fail the role creation
-      console.error("Error managing contact:", contactError);
-    }
+  // PERFORMANCE: Return immediately for fast UX
+  // Handle contact linking in background (fire-and-forget)
+  if (role.musician_name?.trim()) {
+    linkContactToRole(user.id, role).catch(err => {
+      console.error("Background contact linking failed:", err);
+    });
   }
 
   return role;
+}
+
+/**
+ * Background function to link/create contacts after role creation
+ * Runs async to not block the UI
+ */
+async function linkContactToRole(userId: string, role: GigRole): Promise<void> {
+  const supabase = createClient();
+
+  let contactId = role.contact_id;
+
+  // If no contact_id provided, try to find or create contact
+  if (!contactId && role.musician_name) {
+    // Try to find existing contact by name
+    const existingContact = await findContactByName(userId, role.musician_name);
+
+    if (existingContact) {
+      contactId = existingContact.id;
+    } else {
+      // Create new contact
+      const newContact = await getOrCreateContact(userId, role.musician_name);
+      contactId = newContact.id;
+    }
+
+    // Update the role with the contact_id
+    await supabase
+      .from("gig_roles")
+      .update({ contact_id: contactId })
+      .eq("id", role.id);
+  }
+
+  // Increment usage stats for the contact
+  if (contactId) {
+    await incrementContactUsage(contactId, role.role_name, role.agreed_fee);
+  }
 }
 
 export async function updateRole(roleId: string, data: GigRoleUpdate): Promise<GigRole> {

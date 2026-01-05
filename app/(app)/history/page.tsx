@@ -418,13 +418,14 @@ export default function HistoryPage() {
         <>
           {viewMode === "grid" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {searchFilteredGigs.map((gig) => (
+              {searchFilteredGigs.map((gig, index) => (
                 <DashboardGigItemGrid
                   key={gig.gigId}
                   gig={gig}
                   isPastGig={true}
                   returnUrl="/history"
                   onClick={() => handleEditGig(gig)}
+                  index={index}
                 />
               ))}
             </div>

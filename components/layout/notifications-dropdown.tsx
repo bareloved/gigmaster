@@ -40,7 +40,7 @@ export function NotificationsDropdown() {
     queryKey: ["notifications-unread-count", user?.id],
     queryFn: () => getUnreadCount(user!.id),
     enabled: !!user,
-    refetchInterval: 30000, // Poll every 30 seconds
+    staleTime: 1000 * 60, // 1 minute - Realtime subscription handles instant updates
   });
 
   // Mark all as read mutation

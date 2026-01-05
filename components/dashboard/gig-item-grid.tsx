@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,19 +30,29 @@ import {
   useUpdateGigStatus,
 } from "@/hooks/use-gig-mutations";
 import { checkGigConflicts } from "@/lib/api/calendar";
-import { ConflictWarningDialog } from "@/components/dashboard/conflict-warning";
-import { GigPackShareDialog } from "@/components/gigpack/gigpack-share-dialog";
 import { createClient } from "@/lib/supabase/client";
 import { getGigFallbackImage } from "@/lib/gigpack/gig-visual-theme";
+
+// PERFORMANCE: Lazy load dialogs - only loaded when user opens them
+const ConflictWarningDialog = dynamic(
+  () => import("@/components/dashboard/conflict-warning").then(m => m.ConflictWarningDialog),
+  { ssr: false }
+);
+const GigPackShareDialog = dynamic(
+  () => import("@/components/gigpack/gigpack-share-dialog").then(m => m.GigPackShareDialog),
+  { ssr: false }
+);
 
 interface GigGridInnerContentProps {
   gig: DashboardGig;
   gigDate: Date;
   formattedDate: string;
   heroImage: string;
+  index?: number;
 }
 
-function GigGridInnerContent({ gig, gigDate, formattedDate, heroImage }: GigGridInnerContentProps) {
+// PERFORMANCE: Memoize inner content to prevent re-renders when parent state changes
+const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, formattedDate, heroImage, index }: GigGridInnerContentProps) {
   return (
     <>
       {/* Hero Image - always show with fallback */}
@@ -51,9 +62,11 @@ function GigGridInnerContent({ gig, gigDate, formattedDate, heroImage }: GigGrid
           alt={gig.gigTitle}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          quality={75}
+          quality={60}
           className="object-cover transition-transform group-hover:scale-105"
-          priority={false}
+          priority={index !== undefined && index < 4}
+          placeholder="blur"
+          blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAYH/8QAIhAAAgEDBAMBAAAAAAAAAAAAAQIDAAQRBRIhMQYTQWH/xAAVAQEBAAAAAAAAAAAAAAAAAAADBf/EABkRAQADAQEAAAAAAAAAAAAAAAEAAgMREv/aAAwDAQACEQMRAD8AsfLNX1G4tLRY7cW8CTp7Y0ZBiRchsgDnAOOB91T0pTF2TiSz/9k="
         />
         {/* Date overlay on image */}
         <div className="absolute top-2 left-2 flex flex-col items-center bg-background/90 backdrop-blur-sm rounded-lg p-2 min-w-[50px] shadow-sm">
@@ -173,20 +186,22 @@ function GigGridInnerContent({ gig, gigDate, formattedDate, heroImage }: GigGrid
       </div>
     </>
   );
-}
+});
 
 interface DashboardGigItemGridProps {
   gig: DashboardGig;
   isPastGig?: boolean;
   returnUrl?: string;
   onClick?: (gig: DashboardGig) => void;
+  index?: number;
 }
 
 export function DashboardGigItemGrid({
   gig,
   isPastGig = false,
   returnUrl = "/dashboard",
-  onClick
+  onClick,
+  index
 }: DashboardGigItemGridProps) {
   const { user } = useUser();
   const gigDate = new Date(gig.date);
@@ -319,6 +334,7 @@ export function DashboardGigItemGrid({
               gigDate={gigDate}
               formattedDate={formattedDate}
               heroImage={heroImage}
+              index={index}
             />
           </div>
         ) : (
@@ -328,6 +344,7 @@ export function DashboardGigItemGrid({
               gigDate={gigDate}
               formattedDate={formattedDate}
               heroImage={heroImage}
+              index={index}
             />
           </Link>
         )}

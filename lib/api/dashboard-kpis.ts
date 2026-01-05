@@ -298,7 +298,7 @@ async function fetchChangesSinceLastVisit(
 /**
  * Fallback query for changes since last visit
  * Used if RPC function doesn't exist yet
- * Uses existing listDashboardGigs API to avoid complex query issues
+ * PERFORMANCE: Single JOIN query instead of N+1 pattern
  */
 async function fetchChangesSinceLastVisitFallback(
   supabase: any,
@@ -313,30 +313,19 @@ async function fetchChangesSinceLastVisitFallback(
     roles: number;
   };
 }> {
-  // Get IDs of all gigs user is involved in
-  // Efficient query using RLS (which now allows viewing gigs user is in)
-  const { data: userGigs, error: gigsError } = await supabase
-    .from("gigs")
-    .select("id")
-    .limit(100); // Limit to reasonable number of recent/active gigs to check
-
-  if (gigsError || !userGigs || userGigs.length === 0) {
-    return {
-      total: 0,
-      breakdown: { setlists: 0, notes: 0, files: 0, roles: 0 },
-    };
-  }
-
-  const gigIds = userGigs.map((g: any) => g.id);
-
-  // Query activity log for these gigs
+  // OPTIMIZED: Single query with JOIN to gigs (RLS filters by user's gigs)
+  // This replaces the previous N+1 pattern (fetch gig IDs, then activities)
   const { data: activities, error: activityError } = await supabase
     .from("gig_activity_log")
-    .select("activity_type")
-    .in("gig_id", gigIds)
-    .gte("created_at", lastVisit.toISOString());
+    .select(`
+      activity_type,
+      gigs!inner (id)
+    `)
+    .gte("created_at", lastVisit.toISOString())
+    .limit(100); // Limit to reasonable number
 
   if (activityError || !activities || activities.length === 0) {
+    // Don't log - this is expected if table doesn't exist or no activities
     return {
       total: 0,
       breakdown: { setlists: 0, notes: 0, files: 0, roles: 0 },

@@ -14,50 +14,115 @@ import type { GigPack } from "@/lib/gigpack/types";
 
 /**
  * Shared mutation hooks for gig actions
- * Provides optimistic updates and consistent cache invalidation
+ * Provides optimistic updates and SURGICAL cache invalidation
+ *
+ * PERFORMANCE: Each mutation only invalidates the queries it actually affects.
+ * Optimistic updates handle immediate UI feedback, so we only need to refresh
+ * the data that the server might have changed.
  */
 
+// ============================================
+// SURGICAL INVALIDATION FUNCTIONS
+// ============================================
+
 /**
- * Invalidate all dashboard-related queries
- * Centralized cache invalidation for consistency
+ * For payment mutations (markAsPaid/markAsUnpaid)
+ * Only refreshes earnings data - optimistic update handles dashboard UI
  */
-function invalidateDashboardQueries(queryClient: ReturnType<typeof useQueryClient>, userId?: string) {
-  // Invalidate dashboard queries
+function invalidatePaymentQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  userId?: string
+) {
+  // Only earnings data needs server refresh
+  queryClient.invalidateQueries({
+    queryKey: ["my-earnings", userId],
+    refetchType: 'active'
+  });
+
+  // Also refresh player money summary for Money page
+  queryClient.invalidateQueries({
+    queryKey: ["player-money-summary", userId],
+    refetchType: 'active'
+  });
+}
+
+/**
+ * For invitation mutations (acceptInvitation/declineInvitation)
+ * Only refreshes KPIs (pending invitation count) - optimistic update handles gig list UI
+ */
+function invalidateInvitationQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  userId?: string
+) {
+  // Refresh KPIs to update pending invitation count
+  queryClient.invalidateQueries({
+    queryKey: ["dashboard-kpis", userId],
+    refetchType: 'active'
+  });
+}
+
+/**
+ * For gig status mutations (updateGigStatus)
+ * Minimal invalidation - optimistic update handles everything
+ */
+function invalidateGigStatusQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  gigId: string
+) {
+  // Only refresh the specific gig detail if it's being viewed
+  queryClient.invalidateQueries({
+    queryKey: ["gig", gigId],
+    refetchType: 'active'
+  });
+}
+
+/**
+ * Full invalidation - ONLY for saveGigPack which changes many things
+ * This is the only mutation that legitimately needs to refresh everything
+ */
+function invalidateAllGigQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  userId?: string
+) {
   queryClient.invalidateQueries({
     queryKey: ["dashboard-gigs", userId],
     refetchType: 'active'
   });
 
-  // Invalidate all gigs page queries
   queryClient.invalidateQueries({
     queryKey: ["all-gigs", userId],
     refetchType: 'active'
   });
 
-  // Invalidate recent past gigs
   queryClient.invalidateQueries({
     queryKey: ["recent-past-gigs", userId],
     refetchType: 'active'
   });
 
-  // Invalidate all past gigs (history page)
   queryClient.invalidateQueries({
     queryKey: ["all-past-gigs", userId],
     refetchType: 'active'
   });
 
-  // Invalidate individual gig queries
   queryClient.invalidateQueries({
     queryKey: ["gig"],
     refetchType: 'active'
   });
 
-  // Invalidate money queries
   queryClient.invalidateQueries({
     queryKey: ["my-earnings", userId],
     refetchType: 'active'
   });
+
+  queryClient.invalidateQueries({
+    queryKey: ["dashboard-kpis", userId],
+    refetchType: 'active'
+  });
 }
+
+// ============================================
+// MUTATION HOOKS
+// ============================================
 
 /**
  * Hook for marking a gig role as paid
@@ -72,12 +137,12 @@ export function useMarkAsPaid() {
     onMutate: async (gigRoleId) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["dashboard-gigs", user?.id] });
-      
+
       // Snapshot previous value
       const previousGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
         ["dashboard-gigs", user?.id]
       );
-      
+
       // Optimistically update to paid
       if (previousGigs) {
         queryClient.setQueryData(
@@ -95,11 +160,12 @@ export function useMarkAsPaid() {
           }
         );
       }
-      
+
       return { previousGigs };
     },
     onSuccess: () => {
-      invalidateDashboardQueries(queryClient, user?.id);
+      // SURGICAL: Only refresh earnings data
+      invalidatePaymentQueries(queryClient, user?.id);
       toast.success("Marked as paid");
     },
     onError: (error: Error, variables, context) => {
@@ -127,11 +193,11 @@ export function useMarkAsUnpaid() {
     mutationFn: markAsUnpaid,
     onMutate: async (gigRoleId) => {
       await queryClient.cancelQueries({ queryKey: ["dashboard-gigs", user?.id] });
-      
+
       const previousGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
         ["dashboard-gigs", user?.id]
       );
-      
+
       if (previousGigs) {
         queryClient.setQueryData(
           ["dashboard-gigs", user?.id],
@@ -148,11 +214,12 @@ export function useMarkAsUnpaid() {
           }
         );
       }
-      
+
       return { previousGigs };
     },
     onSuccess: () => {
-      invalidateDashboardQueries(queryClient, user?.id);
+      // SURGICAL: Only refresh earnings data
+      invalidatePaymentQueries(queryClient, user?.id);
       toast.success("Marked as unpaid");
     },
     onError: (error: Error, variables, context) => {
@@ -179,11 +246,11 @@ export function useAcceptInvitation() {
     mutationFn: acceptInvitation,
     onMutate: async (gigRoleId) => {
       await queryClient.cancelQueries({ queryKey: ["dashboard-gigs", user?.id] });
-      
+
       const previousGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
         ["dashboard-gigs", user?.id]
       );
-      
+
       if (previousGigs) {
         queryClient.setQueryData(
           ["dashboard-gigs", user?.id],
@@ -200,11 +267,12 @@ export function useAcceptInvitation() {
           }
         );
       }
-      
+
       return { previousGigs };
     },
     onSuccess: () => {
-      invalidateDashboardQueries(queryClient, user?.id);
+      // SURGICAL: Only refresh KPIs (pending invitation count)
+      invalidateInvitationQueries(queryClient, user?.id);
       toast.success("Invitation accepted");
     },
     onError: (error: Error, variables, context) => {
@@ -231,11 +299,11 @@ export function useDeclineInvitation() {
     mutationFn: declineInvitation,
     onMutate: async (gigRoleId) => {
       await queryClient.cancelQueries({ queryKey: ["dashboard-gigs", user?.id] });
-      
+
       const previousGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
         ["dashboard-gigs", user?.id]
       );
-      
+
       if (previousGigs) {
         queryClient.setQueryData(
           ["dashboard-gigs", user?.id],
@@ -252,11 +320,12 @@ export function useDeclineInvitation() {
           }
         );
       }
-      
+
       return { previousGigs };
     },
     onSuccess: () => {
-      invalidateDashboardQueries(queryClient, user?.id);
+      // SURGICAL: Only refresh KPIs (pending invitation count)
+      invalidateInvitationQueries(queryClient, user?.id);
       toast.success("Invitation declined");
     },
     onError: (error: Error, variables, context) => {
@@ -284,11 +353,11 @@ export function useUpdateGigStatus() {
       updateGigStatus(gigId, status),
     onMutate: async ({ gigId, status }) => {
       await queryClient.cancelQueries({ queryKey: ["dashboard-gigs", user?.id] });
-      
+
       const previousGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
         ["dashboard-gigs", user?.id]
       );
-      
+
       if (previousGigs) {
         queryClient.setQueryData(
           ["dashboard-gigs", user?.id],
@@ -305,11 +374,12 @@ export function useUpdateGigStatus() {
           }
         );
       }
-      
-      return { previousGigs };
+
+      return { previousGigs, gigId };
     },
-    onSuccess: () => {
-      invalidateDashboardQueries(queryClient, user?.id);
+    onSuccess: (_, { gigId }) => {
+      // SURGICAL: Only refresh the specific gig detail view
+      invalidateGigStatusQueries(queryClient, gigId);
       toast.success("Gig status updated");
     },
     onError: (error: Error, variables, context) => {
@@ -326,7 +396,8 @@ export function useUpdateGigStatus() {
 
 /**
  * Hook for creating or updating a gig pack
- * Includes cache invalidation for immediate UI updates
+ * This is the ONLY mutation that needs full cache invalidation
+ * because it can change title, date, location, roles, setlist, etc.
  */
 export function useSaveGigPack() {
   const queryClient = useQueryClient();
@@ -343,8 +414,8 @@ export function useSaveGigPack() {
       gigId?: string;
     }) => saveGigPack(data, isEditing, gigId),
     onSuccess: (result, variables) => {
-      // Invalidate all gig-related queries to ensure fresh data
-      invalidateDashboardQueries(queryClient, user?.id);
+      // FULL invalidation - this mutation can change many things
+      invalidateAllGigQueries(queryClient, user?.id);
       toast.success(variables.isEditing ? "Gig updated successfully" : "Gig created successfully");
     },
     onError: (error: Error) => {
@@ -352,4 +423,3 @@ export function useSaveGigPack() {
     },
   });
 }
-

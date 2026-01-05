@@ -1,12 +1,36 @@
-# 🎯 Performance Action Plan - Authenticated Pages
+# Performance Overhaul Plan - Ensemble/GigMaster
 
-**Created:** December 27, 2025  
-**Status:** 🔴 URGENT - Critical performance issues identified  
-**Goal:** Bring all pages to 85+ performance score
+**Updated:** January 5, 2026
+**Status:** 🟢 Phase 1-3 TypeScript changes complete, SQL pending deployment
+**Goal:** Improve all pages to 85+ score, fix perceived slowness across all interactions
+
+## Completed Work Summary
+
+### Phase 1 ✅ (Quick Wins)
+- [x] 1.1 Remove redundant notification polling
+- [x] 1.2 Increase global staleTime (1min → 3min)
+- [x] 1.3 Fix image priority on Gigs page (priority for first 4, blur placeholder)
+- [x] 1.4 Fix CLS on Dashboard (min-heights on KPI cards)
+
+### Phase 2 ✅ (Medium Effort)
+- [x] 2.1 Surgical query invalidation (6 refetches → 1-2)
+- [x] 2.2 Server-side pagination (RPC functions ready, **SQL needs deployment**)
+- [x] 2.3 Add React.memo to list items
+- [x] 2.4 Batch role operations (fire-and-forget contact linking)
+- [x] 2.5 Fix N+1 in Dashboard KPIs (single JOIN query)
+
+### Phase 3 ✅ (Partial - TypeScript changes)
+- [x] 3.1 Lazy load heavy dialogs (ConflictWarningDialog, GigPackShareDialog)
+- [x] 3.3 Convert server-safe UI components (Separator simplified)
+
+### Pending
+- [ ] **Deploy SQL RPC functions** (list_dashboard_gigs, list_past_gigs) via Supabase Dashboard
+- [ ] 3.2 Image optimization infrastructure (optional)
+- [ ] Re-run Lighthouse after SQL deployment
 
 ---
 
-## 📊 Current State
+## Current State
 
 | Page | Score | Critical Issues |
 |------|-------|-----------------|
@@ -15,403 +39,431 @@
 | **Individual Gig** | 87 🟢 | Minor TBT issues |
 | **Sign-in** | 100 ✅ | Perfect baseline |
 
+**Pain Points Identified:**
+- Initial page load (slow)
+- Navigation between pages (sluggish)
+- Specific pages (Gigs, Dashboard)
+- Actions/mutations (delayed response)
+
+## Target Metrics
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Dashboard Score | 73 | 85+ |
+| Gigs List Score | 70 | 85+ |
+| LCP | 5.1s | <2.5s |
+| CLS | 0.24 | <0.1 |
+| Page Weight | 4.6MB | <1.5MB |
+| Mutation Response | 6 query refetches | 1-2 query refetches |
+
 ---
 
-## 🚨 Phase 1: Emergency Fixes (TODAY)
+## Phase 1: Quick Wins (Today - 1-2 hours)
 
-### 1. Fix Gigs Page Images (HIGHEST PRIORITY)
-**Impact:** Score 70 → 85+ | **Time:** 1-2 hours
+### 1.1 Remove Redundant Notification Polling ⚡
+**File:** `components/layout/notifications-dropdown.tsx`
+**Line 43:** Remove `refetchInterval: 30000`
 
-**Problem:** LCP is 5.1s due to unoptimized hero images (2,735 KiB wasted)
+**Why:** Already has Supabase Realtime subscription (lines 77-94). Polling is redundant and wasteful.
 
-**Solution:**
+**Impact:** Eliminate 120 requests/hour per user, reduce server load
 
 ```typescript
-// In: components/dashboard/gig-item-grid.tsx
-// BEFORE:
-<img src={gig.heroImageUrl} alt={gig.title} />
+// BEFORE (line 43):
+refetchInterval: 30000, // Poll every 30 seconds
 
 // AFTER:
-import Image from 'next/image';
+// Remove this line entirely - Realtime handles updates
+```
 
+---
+
+### 1.2 Increase Global staleTime ⚡
+**File:** `lib/providers/query-provider.tsx`
+**Line 12:** Change `staleTime: 60 * 1000` to `staleTime: 3 * 60 * 1000`
+
+**Why:** Most queries already override to 2-5 min. Global default (1 min) is too aggressive.
+
+**Impact:** Fewer background refetches, faster perceived navigation
+
+```typescript
+// BEFORE:
+staleTime: 60 * 1000, // 1 minute
+
+// AFTER:
+staleTime: 3 * 60 * 1000, // 3 minutes
+```
+
+---
+
+### 1.3 Fix Image Priority on Gigs Page
+**File:** `components/dashboard/gig-item-grid.tsx`
+
+**Changes:**
+- Add `priority={true}` to first 4 images (above fold)
+- Add `placeholder="blur"` with placeholder data
+- Reduce `quality` from 75 to 60 for list views
+
+```typescript
+// For first 4 items (above fold):
 <Image
-  src={gig.heroImageUrl || '/gig-fallbacks/default.jpeg'}
-  alt={gig.title}
-  width={400}
-  height={300}
-  loading="lazy"
-  quality={75}
-  className="object-cover"
+  src={heroImage}
+  fill
+  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+  quality={60}
+  priority={index < 4}  // Only first 4 images
   placeholder="blur"
-  blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRg..." // Generate blur hash
+  blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRg..."
 />
 ```
 
-**Files to Update:**
-- `components/dashboard/gig-item-grid.tsx`
-- `components/dashboard/gig-item.tsx`
-- `app/(app)/gigs/page.tsx`
-
-**Expected Result:**
-- LCP: 5.1s → 1.5-2s
-- Page weight: 4.6 MB → 1-1.5 MB
-- Score: 70 → 85-90
+**Impact:** LCP 5.1s → ~2.5s, page weight reduction
 
 ---
 
-### 2. Fix Dashboard Layout Shifts
-**Impact:** Score 73 → 82+ | **Time:** 1 hour
+### 1.4 Fix CLS on Dashboard
+**Files:**
+- `components/dashboard/kpi-cards.tsx`
+- `app/(app)/dashboard/page.tsx`
 
-**Problem:** CLS 0.24 (content jumping after load)
-
-**Solution:**
-
-```css
-/* In: app/globals.css or component styles */
-
-/* Reserve space for cards to prevent shifts */
-.dashboard-card {
-  min-height: 200px;
-  contain: layout; /* Prevent layout shifts */
-}
-
-.gig-item-skeleton {
-  height: 120px; /* Match actual content height */
-}
-
-.kpi-card {
-  min-height: 140px;
-}
-```
+**Changes:** Ensure skeleton heights exactly match loaded content
 
 ```typescript
-// In: app/(app)/dashboard/page.tsx
-// Add explicit dimensions to containers
-
-<Card className="min-h-[200px]">
+// Add explicit min-heights to prevent layout shifts
+<Card className="min-h-[112px]">  {/* Match KPI card actual height */}
   {isLoading ? (
-    <Skeleton className="h-[200px]" /> // Match actual height
+    <Skeleton className="h-[112px]" />
   ) : (
     <CardContent>...</CardContent>
   )}
 </Card>
 ```
 
-**Files to Update:**
-- `app/(app)/dashboard/page.tsx`
-- `components/dashboard/kpi-cards.tsx`
-- `components/dashboard/gig-item.tsx`
-- `app/globals.css`
-
-**Expected Result:**
-- CLS: 0.24 → 0
-- Score: 73 → 82-85
+**Impact:** CLS 0.24 → <0.1
 
 ---
 
-## 🔧 Phase 2: Code Splitting (THIS WEEK)
+## Phase 2: Medium Effort (This Week - 4-6 hours)
 
-### 3. Split GigEditorPanel Component
-**Impact:** All pages +5-10 points | **Time:** 2-3 hours
+### 2.1 Surgical Query Invalidation 🔴 HIGH PRIORITY
+**File:** `hooks/use-gig-mutations.ts`
 
-**Problem:** 1 MB unused JavaScript on every page
+**Problem (lines 24-60):** `invalidateDashboardQueries` invalidates 6 query families on EVERY mutation:
+- `dashboard-gigs`
+- `all-gigs`
+- `recent-past-gigs`
+- `all-past-gigs`
+- `gig`
+- `my-earnings`
 
-**Current State:**
+**Solution:** Create action-specific invalidation functions:
+
 ```typescript
-// Heavy import on every page load
-const GigEditorPanel = dynamic(
-  () => import("@/components/gigpack/editor/gig-editor-panel").then((mod) => mod.GigEditorPanel),
+// For markAsPaid/markAsUnpaid: only earnings + specific gig
+function invalidatePaymentQueries(queryClient, userId, gigId) {
+  queryClient.invalidateQueries({ queryKey: ["my-earnings", userId] });
+  queryClient.invalidateQueries({ queryKey: ["gig", gigId] });
+}
+
+// For acceptInvitation/declineInvitation: only dashboard-gigs
+function invalidateInvitationQueries(queryClient, userId) {
+  queryClient.invalidateQueries({ queryKey: ["dashboard-gigs", userId] });
+}
+
+// For updateGigStatus: dashboard + specific gig
+function invalidateGigStatusQueries(queryClient, userId, gigId) {
+  queryClient.invalidateQueries({ queryKey: ["dashboard-gigs", userId] });
+  queryClient.invalidateQueries({ queryKey: ["gig", gigId] });
+}
+```
+
+**Impact:** 50-70% reduction in post-mutation refetches
+
+---
+
+### 2.2 Server-Side Pagination
+**File:** `lib/api/dashboard-gigs.ts`
+
+**Problem (lines 52-79):** Fetches 100 gigs, then filters/paginates client-side
+
+```typescript
+// CURRENT (bad):
+const { data: allGigs } = await supabase
+  .from("gigs")
+  .select(...)
+  .limit(100);  // Fetches 100, filters client-side
+```
+
+**Solution:** Use `.range()` for server-side pagination:
+
+```typescript
+// BETTER:
+const { data: gigs, count } = await supabase
+  .from("gigs")
+  .select("*", { count: "exact" })
+  .gte("date", fromStr)
+  .lte("date", toStr)
+  .order("date", { ascending: true })
+  .range(offset, offset + limit - 1);
+```
+
+**Impact:** 80% less data transferred, faster client-side processing
+
+---
+
+### 2.3 Add React.memo to List Items
+**Files:**
+- `components/dashboard/gig-item-grid.tsx`
+- `components/dashboard/gig-item.tsx`
+
+**Change:** Wrap components with `React.memo()`:
+
+```typescript
+export const DashboardGigItemGrid = React.memo(function DashboardGigItemGrid({
+  gig,
+  onViewGig,
+  // ... props
+}: DashboardGigItemGridProps) {
+  // component body unchanged
+});
+```
+
+**Impact:** Prevent unnecessary re-renders when parent state changes
+
+---
+
+### 2.4 Batch Role Operations
+**File:** `lib/api/gig-roles.ts`
+
+**Problem (lines 54-99):** 4 sequential DB calls per role add:
+1. Insert role
+2. Find contact by name
+3. Update role with contact_id
+4. Increment contact usage stats
+
+**Solution:** Return role immediately, handle contact linking async:
+
+```typescript
+export async function addRoleToGig(...) {
+  // Insert role first
+  const { data: role } = await supabase.from("gig_roles").insert(data)...
+
+  // Return immediately for fast UX
+  // Handle contact linking in background (fire-and-forget)
+  if (role.musician_name?.trim()) {
+    linkContactToRole(user.id, role).catch(console.error);
+  }
+
+  return role;
+}
+```
+
+**Impact:** 60% faster role creation (1 blocking call vs 4)
+
+---
+
+### 2.5 Fix N+1 in Dashboard KPIs
+**File:** `lib/api/dashboard-kpis.ts`
+
+**Problem (lines 318-337):** Sequential gig fetch + activity query (N+1 pattern)
+
+```typescript
+// CURRENT (N+1):
+const { data: userGigs } = await supabase.from("gigs").select("id").limit(100);
+const { data: activities } = await supabase.from("gig_activity_log")
+  .in("gig_id", gigIds);  // Second query
+```
+
+**Solution:** Use existing RPC `get_user_activity_since` or single JOIN:
+
+```typescript
+// BETTER - use RPC (already exists in migrations)
+const { data } = await supabase.rpc('get_user_activity_since', {
+  user_id: userId,
+  since_date: lastVisit.toISOString()
+});
+
+// OR use JOIN:
+const { data: activities } = await supabase
+  .from("gig_activity_log")
+  .select(`activity_type, gigs!inner(id)`)
+  .gte("created_at", lastVisit.toISOString());
+```
+
+**Impact:** 50% faster KPI load
+
+---
+
+## Phase 3: Larger Refactors (Next Week - 6-8 hours)
+
+### 3.1 Lazy Load Heavy Dialogs
+**Files to update:**
+- `components/dashboard/gig-item-grid.tsx` - lazy load `GigPackShareDialog`, `ConflictWarningDialog`
+
+```typescript
+// BEFORE:
+import { GigPackShareDialog } from "@/components/gigpack/gigpack-share-dialog";
+
+// AFTER:
+const GigPackShareDialog = dynamic(
+  () => import("@/components/gigpack/gigpack-share-dialog").then(m => m.GigPackShareDialog),
   { ssr: false }
 );
 ```
 
-**Solution: Split into Tab Components**
+**Impact:** 20-50KB reduction per page initial bundle
+
+---
+
+### 3.2 Image Optimization Infrastructure
+**New file:** `lib/utils/image-utils.ts`
+
+**Changes:**
+- Create blur placeholder generation utility
+- Create Supabase image loader with auto-resizing
 
 ```typescript
-// Create: components/gigpack/editor/tabs/details-tab.tsx
-export function DetailsTab({ gigPack, onChange }: TabProps) {
-  // Details form only
+// lib/utils/image-utils.ts
+export function getBlurDataURL(imageUrl: string): string {
+  // For Supabase storage images, use transformation API
+  // Or use static blur placeholders for fallback images
 }
 
-// Create: components/gigpack/editor/tabs/setlist-tab.tsx
-export function SetlistTab({ gigPack, onChange }: TabProps) {
-  // Setlist editor only
-}
-
-// Create: components/gigpack/editor/tabs/roles-tab.tsx
-export function RolesTab({ gigPack, onChange }: TabProps) {
-  // Roles management only
-}
-
-// Update: gig-editor-panel.tsx
-const DetailsTab = dynamic(() => import('./tabs/details-tab'));
-const SetlistTab = dynamic(() => import('./tabs/setlist-tab'));
-const RolesTab = dynamic(() => import('./tabs/roles-tab'));
-
-// Load only active tab
-{activeTab === 'details' && <DetailsTab />}
-{activeTab === 'setlist' && <SetlistTab />}
-{activeTab === 'roles' && <RolesTab />}
+export const supabaseImageLoader = ({ src, width, quality }) => {
+  return `${src}?width=${width}&quality=${quality || 75}`;
+};
 ```
 
-**Expected Result:**
-- Initial bundle: -60% JavaScript
-- Only load ~300 KB per tab (vs 1.8 MB all at once)
-- All pages: +5-10 points
+**Impact:** Page weight 4.6MB → <1.5MB
 
 ---
 
-### 4. Lazy Load Dashboard Widgets
-**Impact:** Dashboard +5 points | **Time:** 1 hour
+### 3.3 Convert Server-Safe UI Components
+**Files to audit in `components/ui/`:**
 
-```typescript
-// In: app/(app)/dashboard/page.tsx
+| File | Has "use client" | Actually Needs It? |
+|------|------------------|-------------------|
+| `separator.tsx` | Yes | No - pure presentational |
+| `badge.tsx` | Check | Likely no |
+| `card.tsx` | Check | Likely no |
+| `avatar.tsx` | No | Good |
 
-const PracticeFocusWidget = dynamic(
-  () => import('@/components/dashboard/practice-widget').then(m => m.PracticeFocusWidget),
-  { loading: () => <Skeleton className="h-[300px]" /> }
-);
+Remove "use client" from components that don't use:
+- `useState` / `useEffect`
+- Event handlers
+- Browser APIs
 
-const GigActivityWidget = dynamic(
-  () => import('@/components/dashboard/activity-widget').then(m => m.GigActivityWidget),
-  { loading: () => <Skeleton className="h-[300px]" /> }
-);
-
-// Only render in viewport
-{!focusMode && <PracticeFocusWidget />}
-```
+**Impact:** Smaller client bundle, faster hydration
 
 ---
 
-## 🎨 Phase 3: Image Optimization (NEXT WEEK)
+### 3.4 Database View for Dashboard
+**New migration file**
 
-### 5. Set Up Image Optimization Pipeline
-**Impact:** All pages +3-5 points | **Time:** 4-6 hours
+Create Postgres view `dashboard_gigs_view` with pre-computed fields:
 
-**Steps:**
+```sql
+CREATE VIEW dashboard_gigs_view AS
+SELECT
+  g.id as gig_id,
+  g.title,
+  g.date,
+  g.start_time,
+  g.end_time,
+  g.location_name,
+  g.status,
+  g.owner_id,
+  g.owner_id = auth.uid() as is_manager,
+  EXISTS(
+    SELECT 1 FROM gig_roles gr
+    WHERE gr.gig_id = g.id
+    AND gr.musician_id = auth.uid()
+    AND gr.invitation_status NOT IN ('pending', 'declined')
+  ) as is_player,
+  (SELECT json_build_object(
+    'total', COUNT(*),
+    'invited', COUNT(*) FILTER (WHERE invitation_status = 'invited'),
+    'accepted', COUNT(*) FILTER (WHERE invitation_status = 'accepted')
+  ) FROM gig_roles WHERE gig_id = g.id) as role_stats
+FROM gigs g;
+```
 
-1. **Install Sharp (Next.js image optimization)**
+**Impact:** 70% less client-side processing
+
+---
+
+## Implementation Priority
+
+| # | Task | Impact | Time | Files |
+|---|------|--------|------|-------|
+| 1 | Remove polling | High | 5 min | `notifications-dropdown.tsx` |
+| 2 | Increase staleTime | Med | 5 min | `query-provider.tsx` |
+| 3 | Image priority/blur | High | 30 min | `gig-item-grid.tsx` |
+| 4 | Fix CLS | High | 20 min | `kpi-cards.tsx`, `dashboard/page.tsx` |
+| 5 | Surgical invalidation | High | 2 hr | `use-gig-mutations.ts` |
+| 6 | React.memo | Med | 30 min | `gig-item*.tsx` |
+| 7 | Server pagination | High | 3 hr | `dashboard-gigs.ts` |
+| 8 | Batch role ops | Med | 1 hr | `gig-roles.ts` |
+| 9 | Fix N+1 KPIs | Med | 1 hr | `dashboard-kpis.ts` |
+| 10 | Lazy dialogs | Med | 1 hr | various |
+| 11 | Image infrastructure | High | 4 hr | new files |
+
+---
+
+## Testing Commands
+
 ```bash
-npm install sharp
-```
+# Lighthouse audit (public pages)
+./scripts/run-lighthouse.sh
 
-2. **Update next.config.ts:**
-```typescript
-images: {
-  formats: ['image/avif', 'image/webp'],
-  deviceSizes: [640, 750, 828, 1080, 1200],
-  imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-  remotePatterns: [
-    {
-      protocol: 'https',
-      hostname: '**.supabase.co',
-    },
-  ],
-},
-```
+# Lighthouse audit (authenticated)
+TEST_EMAIL=xxx TEST_PASSWORD=xxx node scripts/lighthouse-auth.js
 
-3. **Generate blur placeholders:**
-```typescript
-// Use plaiceholder or similar
-import { getPlaiceholder } from 'plaiceholder';
-
-const { base64 } = await getPlaiceholder(imageUrl);
-```
-
-4. **Implement responsive images:**
-```typescript
-<Image
-  src={imageUrl}
-  alt={alt}
-  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-  fill
-  className="object-cover"
-/>
+# Bundle analysis
+ANALYZE=true npm run build
 ```
 
 ---
 
-## 🚀 Phase 4: Performance Monitoring (ONGOING)
+## Critical Files Summary
 
-### 6. Add Performance Monitoring
-**Impact:** Catch regressions early | **Time:** 2 hours
-
-```typescript
-// lib/analytics/web-vitals.ts
-import { getCLS, getFID, getFCP, getLCP, getTTFB } from 'web-vitals';
-
-export function reportWebVitals() {
-  getCLS(console.log);
-  getFID(console.log);
-  getFCP(console.log);
-  getLCP(console.log);
-  getTTFB(console.log);
-}
-
-// app/layout.tsx
-useEffect(() => {
-  if (process.env.NODE_ENV === 'production') {
-    reportWebVitals();
-  }
-}, []);
-```
+1. `components/layout/notifications-dropdown.tsx` - Remove redundant polling
+2. `lib/providers/query-provider.tsx` - Increase global staleTime
+3. `hooks/use-gig-mutations.ts` - Surgical query invalidation (biggest perceived improvement)
+4. `components/dashboard/gig-item-grid.tsx` - Images + React.memo
+5. `lib/api/dashboard-gigs.ts` - Server-side pagination
+6. `lib/api/dashboard-kpis.ts` - Fix N+1 query pattern
+7. `lib/api/gig-roles.ts` - Batch database operations
 
 ---
 
-## 📋 Testing Checklist
+## Success Criteria
 
-After each fix:
-
-- [ ] Run Lighthouse on affected page
-- [ ] Check performance score improved
-- [ ] Verify Core Web Vitals in green
-- [ ] Test on real device (not just desktop)
-- [ ] Check Network tab for bundle sizes
-- [ ] Verify images are optimized
-
----
-
-## 🎯 Success Metrics
-
-### Target Scores (Achievable)
-
-| Page | Current | Phase 1 | Phase 2 | Phase 3 | Final Target |
-|------|---------|---------|---------|---------|--------------|
-| Gigs | 70 | 85 | 88 | 90 | 90+ |
-| Dashboard | 73 | 82 | 85 | 87 | 87-90 |
-| Individual Gig | 87 | 90 | 92 | 93 | 93-95 |
-
-### Core Web Vitals Targets
-
-| Metric | Current Worst | Target | Priority |
-|--------|---------------|--------|----------|
-| LCP | 5.1s | < 2.5s | 🔴 CRITICAL |
-| CLS | 0.24 | < 0.1 | 🟡 HIGH |
-| TBT | 240ms | < 200ms | 🟢 MEDIUM |
-| FCP | 0.3s ✅ | < 1.8s | ✅ GOOD |
+After completing Phase 1-2:
+- [ ] Dashboard Lighthouse score: 85+
+- [ ] Gigs List Lighthouse score: 85+
+- [ ] LCP under 2.5 seconds
+- [ ] CLS under 0.1
+- [ ] Mutations feel instant (no visible loading)
+- [ ] Navigation feels snappy (no delays between pages)
 
 ---
 
-## 💰 Time Investment vs Impact
+## Notes
 
-| Fix | Time | Impact | ROI |
-|-----|------|--------|-----|
-| **Gigs images** | 1-2h | +15 points | ⭐⭐⭐⭐⭐ |
-| **Dashboard CLS** | 1h | +10 points | ⭐⭐⭐⭐⭐ |
-| **Code splitting** | 2-3h | +10 points | ⭐⭐⭐⭐ |
-| **Lazy loading** | 1h | +5 points | ⭐⭐⭐⭐ |
-| **Image pipeline** | 4-6h | +5 points | ⭐⭐⭐ |
+### What's Already Optimized (Don't Touch)
+- Edge-side auth via middleware ✅
+- Server-first app layout ✅
+- Dynamic imports for GigEditorPanel ✅
+- Optimistic updates infrastructure ✅
+- Route-based code splitting ✅
+- RLS performance optimization ✅
 
-**Best ROI: Start with Phase 1 (3-4 hours, +25 points total)**
+### Root Causes of Current Slowness
+1. **Cache invalidation overkill** - Every mutation triggers 6 query refetches
+2. **Client-side data processing** - Fetching 100 gigs then filtering in browser
+3. **Image optimization missing** - Raw images without lazy loading or blur
+4. **Layout shifts** - Skeletons don't match actual content heights
+5. **Redundant polling** - Polling when Realtime already handles updates
 
----
-
-## 🔄 Development Workflow
-
-### For Each Fix:
-
-1. **Create branch:**
-```bash
-git checkout -b perf/fix-gigs-images
-```
-
-2. **Make changes**
-
-3. **Test locally:**
-```bash
-npm run build
-npm run start
-# Run Lighthouse on localhost:3000
-```
-
-4. **Compare scores:**
-```bash
-# Save reports to lighthouse-reports/
-# Compare before/after
-```
-
-5. **Commit and deploy:**
-```bash
-git commit -m "perf: optimize gigs page images - improves LCP from 5.1s to 1.8s"
-```
-
----
-
-## 📝 Notes
-
-### Why Architecture Optimizations Worked but Scores Aren't 100
-
-**Architecture fixes (✅ Working):**
-- Edge-side auth → No client blocking
-- Server-first layout → Fast FCP (0.3s)
-- Font optimization → No font loading delays
-- Parallel fetching → Fast data loads
-
-**These show in:**
-- ✅ Consistent 0.3s FCP across ALL pages
-- ✅ No auth blocking delays
-- ✅ Individual Gig performing well (87)
-
-**Data layer issues (❌ Not addressed yet):**
-- Images not using next/image
-- No lazy loading strategy
-- All JS loaded upfront
-- Layout shifts from dynamic content
-
-**Conclusion:**
-Architecture is solid. Need to fix data/component layer.
-
----
-
-## 🎓 Learning: Two Types of Performance
-
-### 1. Architectural Performance ✅ (Fixed)
-- Server rendering
-- Edge functions
-- Code organization
-- Auth strategy
-
-**Result:** Fast FCP (0.3s), no blocking
-
-### 2. Data/Component Performance ❌ (Needs Work)
-- Image optimization
-- Code splitting
-- Lazy loading
-- Layout stability
-
-**Result:** Slow LCP (5.1s), layout shifts, heavy bundles
-
-**Both are needed for top performance!**
-
----
-
-## 🚀 Getting Started
-
-### Quick Start (Next 2 Hours):
-
-1. **Fix Gigs images** (Highest impact)
-   - Update `components/dashboard/gig-item-grid.tsx`
-   - Add next/image imports
-   - Set loading="lazy"
-
-2. **Fix Dashboard CLS** (Quick win)
-   - Add min-heights to cards
-   - Update skeletons to match content
-
-3. **Test with Lighthouse**
-   - See immediate improvement
-   - Gigs: 70 → 85+
-   - Dashboard: 73 → 82+
-
-**Then celebrate and move to Phase 2!** 🎉
-
----
-
-## 📞 Questions?
-
-- Check: `lighthouse-reports/AUTHENTICATED-ANALYSIS.md` for detailed analysis
-- Review: Individual fixes in this document
-- Test: Run Lighthouse after each change
-
-Ready to start? **Begin with Phase 1, Fix #1: Gigs Page Images!** 🚀
-
+**Start with Phase 1 today - these quick wins alone should provide noticeable improvement!**

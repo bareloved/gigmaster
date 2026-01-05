@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,11 +29,20 @@ import {
   useUpdateGigStatus,
 } from "@/hooks/use-gig-mutations";
 import { checkGigConflicts } from "@/lib/api/calendar";
-import { ConflictWarningDialog } from "@/components/dashboard/conflict-warning";
-import { GigPackShareDialog } from "@/components/gigpack/gigpack-share-dialog";
 import { createClient } from "@/lib/supabase/client";
 
-function GigInnerContent({ gig, formattedDate }: { gig: DashboardGig; formattedDate: string }) {
+// PERFORMANCE: Lazy load dialogs - only loaded when user opens them
+const ConflictWarningDialog = dynamic(
+  () => import("@/components/dashboard/conflict-warning").then(m => m.ConflictWarningDialog),
+  { ssr: false }
+);
+const GigPackShareDialog = dynamic(
+  () => import("@/components/gigpack/gigpack-share-dialog").then(m => m.GigPackShareDialog),
+  { ssr: false }
+);
+
+// PERFORMANCE: Memoize inner content to prevent re-renders when parent state changes
+const GigInnerContent = memo(function GigInnerContent({ gig, formattedDate }: { gig: DashboardGig; formattedDate: string }) {
   return (
     <>
       <div className="flex items-start justify-between gap-2">
@@ -144,7 +154,7 @@ function GigInnerContent({ gig, formattedDate }: { gig: DashboardGig; formattedD
       </div>
     </>
   );
-}
+});
 
 interface DashboardGigItemProps {
   gig: DashboardGig;
