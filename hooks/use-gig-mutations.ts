@@ -8,6 +8,7 @@ import {
   declineInvitation,
   updateGigStatus,
 } from "@/lib/api/gig-actions";
+import { deleteGig } from "@/lib/api/gigs";
 import { saveGigPack } from "@/app/(app)/gigs/actions";
 import type { DashboardGig } from "@/lib/types/shared";
 import type { GigPack } from "@/lib/gigpack/types";
@@ -538,6 +539,109 @@ export function useSaveGigPack() {
         );
       }
       toast.error(`Failed to save gig: ${error.message}`);
+    },
+  });
+}
+
+/**
+ * For gig deletion
+ * Invalidates all gig lists and KPIs
+ */
+function invalidateDeleteQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+  userId?: string
+) {
+  // Refresh all gig lists
+  queryClient.invalidateQueries({
+    queryKey: ["dashboard-gigs", userId],
+    refetchType: 'active'
+  });
+  queryClient.invalidateQueries({
+    queryKey: ["all-gigs", userId],
+    refetchType: 'active'
+  });
+  // Refresh KPIs (gig count changed)
+  queryClient.invalidateQueries({
+    queryKey: ["dashboard-kpis", userId],
+    refetchType: 'active'
+  });
+  // Refresh earnings if user was also a player
+  queryClient.invalidateQueries({
+    queryKey: ["my-earnings", userId],
+    refetchType: 'active'
+  });
+  queryClient.invalidateQueries({
+    queryKey: ["player-money-summary", userId],
+    refetchType: 'active'
+  });
+}
+
+/**
+ * Hook for deleting a gig
+ * Includes optimistic update for instant UI feedback
+ */
+export function useDeleteGig() {
+  const queryClient = useQueryClient();
+  const { user } = useUser();
+
+  return useMutation({
+    mutationFn: deleteGig,
+    onMutate: async (gigId) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["dashboard-gigs", user?.id] });
+      await queryClient.cancelQueries({ queryKey: ["all-gigs", user?.id] });
+
+      // Snapshot previous values
+      const previousDashboardGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
+        ["dashboard-gigs", user?.id]
+      );
+      const previousAllGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
+        ["all-gigs", user?.id]
+      );
+
+      // Optimistically remove the gig from lists
+      const removeGigFromPages = (pages: Array<{ gigs: DashboardGig[] }> | undefined) => {
+        if (!pages) return pages;
+        return pages.map(page => ({
+          ...page,
+          gigs: page.gigs.filter(gig => gig.gigId !== gigId),
+        }));
+      };
+
+      if (previousDashboardGigs) {
+        queryClient.setQueryData(
+          ["dashboard-gigs", user?.id],
+          { ...previousDashboardGigs, pages: removeGigFromPages(previousDashboardGigs.pages) }
+        );
+      }
+      if (previousAllGigs) {
+        queryClient.setQueryData(
+          ["all-gigs", user?.id],
+          { ...previousAllGigs, pages: removeGigFromPages(previousAllGigs.pages) }
+        );
+      }
+
+      return { previousDashboardGigs, previousAllGigs };
+    },
+    onSuccess: () => {
+      invalidateDeleteQueries(queryClient, user?.id);
+      toast.success("Gig deleted successfully");
+    },
+    onError: (error: Error, variables, context) => {
+      // Rollback on error
+      if (context?.previousDashboardGigs) {
+        queryClient.setQueryData(
+          ["dashboard-gigs", user?.id],
+          context.previousDashboardGigs
+        );
+      }
+      if (context?.previousAllGigs) {
+        queryClient.setQueryData(
+          ["all-gigs", user?.id],
+          context.previousAllGigs
+        );
+      }
+      toast.error(`Failed to delete gig: ${error.message}`);
     },
   });
 }

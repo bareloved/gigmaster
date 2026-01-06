@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Calendar, MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2 } from "lucide-react";
+import { Calendar, MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUser } from "@/lib/providers/user-provider";
@@ -27,6 +27,7 @@ import {
   useAcceptInvitation,
   useDeclineInvitation,
   useUpdateGigStatus,
+  useDeleteGig,
 } from "@/hooks/use-gig-mutations";
 import { checkGigConflicts } from "@/lib/api/calendar";
 import { createClient } from "@/lib/supabase/client";
@@ -38,6 +39,10 @@ const ConflictWarningDialog = dynamic(
 );
 const GigPackShareDialog = dynamic(
   () => import("@/components/gigpack/gigpack-share-dialog").then(m => m.GigPackShareDialog),
+  { ssr: false }
+);
+const DeleteGigDialog = dynamic(
+  () => import("@/components/gigs/dialogs/delete-gig-dialog").then(m => m.DeleteGigDialog),
   { ssr: false }
 );
 
@@ -171,12 +176,16 @@ export function DashboardGigItem({
   const [shareSlug, setShareSlug] = useState<string | null>(null);
   const [isLoadingShare, setIsLoadingShare] = useState(false);
 
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
   // PERFORMANCE: Use optimistic update hooks for instant UI feedback
   const markPaidMutation = useMarkAsPaid();
   const markUnpaidMutation = useMarkAsUnpaid();
   const acceptInvitationMutation = useAcceptInvitation();
   const declineInvitationMutation = useDeclineInvitation();
   const updateStatusMutation = useUpdateGigStatus();
+  const deleteGigMutation = useDeleteGig();
 
   // Handle accept invitation with conflict check
   const handleAcceptInvitation = async () => {
@@ -384,6 +393,14 @@ export function DashboardGigItem({
                             Mark as Completed
                           </DropdownMenuItem>
                         )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => setDeleteDialogOpen(true)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Gig
+                        </DropdownMenuItem>
                       </>
                     )}
                   </DropdownMenuContent>
@@ -421,6 +438,18 @@ export function DashboardGigItem({
             public_slug: shareSlug || gig.gigId,
           }}
           locale="en"
+        />
+      )}
+
+      {/* Delete Dialog */}
+      {gig.isManager && (
+        <DeleteGigDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          gigTitle={gig.gigTitle}
+          onConfirm={async () => {
+            await deleteGigMutation.mutateAsync(gig.gigId);
+          }}
         />
       )}
     </>
