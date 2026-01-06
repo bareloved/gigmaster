@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { GigPack, GigPackTheme, PosterSkin } from "@/lib/gigpack/types";
+import { isArchivedStatus } from "@/lib/types/shared";
 
 // Helper type for public DTO (subset of GigPack)
 export type PublicGigPackDTO = Omit<GigPack, "internal_notes" | "owner_id">;
@@ -61,7 +62,8 @@ export async function getPublicGigPackDTO(token: string): Promise<PublicGigPackD
     updated_at: gig.updated_at,
     created_at: gig.created_at,
     accent_color: gig.accent_color,
-    is_archived: gig.status === 'archived',
+    status: gig.status,
+    is_archived: isArchivedStatus(gig.status),
     public_slug: token,
 
     theme: (gig.theme || "minimal") as GigPackTheme,

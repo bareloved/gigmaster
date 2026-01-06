@@ -1,4 +1,4 @@
-import { SetlistSection, GigPackTheme, PosterSkin, GigPackTemplateDefaultValues, UserTemplate } from "./types";
+import { SetlistSection, GigPackTheme, PosterSkin, GigPackTemplateDefaultValues } from "./types";
 
 /**
  * GigPack Template Type
@@ -238,32 +238,6 @@ export function applyTemplateToFormDefaults(template: GigPackTemplate) {
     gigMood: defaultValues.gigMood || "",
     packingChecklist: defaultValues.packingChecklist || [],
   };
-}
-
-/**
- * Convert a UserTemplate (from DB) to a GigPackTemplate (for UI)
- * This allows user templates to be used alongside built-in templates.
- */
-export function userTemplateToGigPackTemplate(userTemplate: UserTemplate): GigPackTemplate {
-  return {
-    id: `user-${userTemplate.id}`, // Prefix to avoid ID collision with built-in templates
-    label: userTemplate.name,
-    description: userTemplate.description || "",
-    icon: userTemplate.icon || "📋",
-    defaultValues: userTemplate.default_values,
-    isUserTemplate: true,
-  };
-}
-
-/**
- * Extract the original user template ID from a GigPackTemplate ID
- * Returns null if not a user template
- */
-export function getUserTemplateId(templateId: string): string | null {
-  if (templateId.startsWith("user-")) {
-    return templateId.slice(5);
-  }
-  return null;
 }
 
 

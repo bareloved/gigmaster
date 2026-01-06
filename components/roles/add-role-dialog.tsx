@@ -172,6 +172,7 @@ export function AddRoleDialog({
       setAgreedFee("");
       setNotes("");
       onSuccess();
+      onOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add role");
     } finally {

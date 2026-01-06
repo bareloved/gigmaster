@@ -66,7 +66,7 @@ export function AddGigFileDialog({
         gig_id: gigId,
         label: label.trim(),
         url: url.trim(),
-        type: type,
+        kind: type,
       });
 
       // Reset form

@@ -53,12 +53,13 @@ export function AddSetlistItemDialog({
     setError(null);
 
     try {
+      // TODO: This component needs updating - setlist items now belong to sections, not gigs
+      // For now, this will fail - needs section_id instead of gig_id
       await addSetlistItem({
-        gig_id: gigId,
-        position: 0, // Will be auto-assigned to next position in API
+        section_id: gigId, // FIXME: Should be section_id, not gig_id
         title: toSmartTitleCase(title.trim()),
         key: key.trim() || null,
-        bpm: bpm ? parseInt(bpm, 10) : null,
+        tempo: bpm.trim() || null, // Changed from bpm (number) to tempo (string)
         notes: notes.trim() || null,
       });
 

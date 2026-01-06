@@ -8,6 +8,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Current Status:** 22 steps complete, production-ready with invitations, calendar integration, notifications, and payment tracking.
 
+## Working With Me
+
+**I'm not a developer.** I'm a musician building this app with AI assistance. I don't have a coding background, so please:
+
+- **Guide me through decisions** - Don't assume I understand the implications. Explain trade-offs in plain language.
+- **Question my choices** - If I suggest something that seems off, push back and offer better alternatives.
+- **Explain as you go** - Brief explanations help me learn. What does this code do? Why this approach?
+- **Keep it simple** - Prefer straightforward solutions over clever ones. I need to understand and maintain this.
+- **Warn about risks** - If something could break the app or cause data loss, make it very clear.
+
+I'm here to learn, so treat me as a collaborator who needs context, not a developer who just needs code.
+
 ## Essential Commands
 
 ### Development

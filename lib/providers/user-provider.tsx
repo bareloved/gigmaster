@@ -17,7 +17,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(false); // Changed: Start as false, render immediately
+  const [isLoading, setIsLoading] = useState(true); // Start as true, show loading screen until auth resolves
   const hasFetchedRef = useRef(false);
 
   const fetchUserAndProfile = async () => {

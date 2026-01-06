@@ -13,7 +13,6 @@ import { MinimalLayout } from '@/components/gigpack/layouts/minimal-layout';
 import { GigPackShareDialog } from '@/components/gigpack/gigpack-share-dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { GigPack } from '@/lib/gigpack/types';
-import { GigResourcesSection } from '@/components/gigs/detail/resources-section';
 
 export default function GigPackPage() {
   const params = useParams();
@@ -200,11 +199,6 @@ export default function GigPackPage() {
         slug={gigPack.public_slug || gigId}
         locale="en"
       />
-      
-      {/* Resources Section */}
-      <div className="container max-w-6xl mx-auto px-4 py-8">
-        <GigResourcesSection gigId={gigId} />
-      </div>
       
       {/* Live status indicator */}
       <div className="fixed bottom-4 right-4 z-50">

@@ -221,12 +221,17 @@ export async function importCalendarEventAsGig(
     .single();
 
   if (connection) {
-    // Log import
+    // Log import - map to existing schema fields
     await supabase.from("calendar_sync_log").insert({
-      connection_id: connection.id,
-      external_event_id: event.id,
-      gig_id: gig.id,
-      sync_direction: "import",
+      user_id: userId,
+      provider: "google",
+      status: "import",
+      details: JSON.stringify({
+        connection_id: connection.id,
+        external_event_id: event.id,
+        gig_id: gig.id,
+        sync_direction: "import",
+      }),
     });
   }
 

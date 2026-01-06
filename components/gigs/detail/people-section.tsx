@@ -307,7 +307,7 @@ export function GigPeopleSection({ gigId, gigTitle }: GigPeopleSectionProps) {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <RoleStatusBadge status={role.invitation_status} gigStatus={gig?.status} />
+                        <RoleStatusBadge status={role.invitation_status || "pending"} gigStatus={gig?.status || undefined} />
                       </TableCell>
                       <TableCell className="text-right">
                         {role.agreed_fee ? (
@@ -429,7 +429,14 @@ export function GigPeopleSection({ gigId, gigTitle }: GigPeopleSectionProps) {
         onOpenChange={setIsAddRoleDialogOpen}
         prefilledMusicianName={prefilledMusicianName}
         onSuccess={() => {
-          // Roles will be refetched automatically via TanStack Query
+          queryClient.invalidateQueries({
+            queryKey: ['gig-roles', gigId],
+            refetchType: 'active'
+          });
+          queryClient.invalidateQueries({
+            queryKey: ['dashboard-gigs', user?.id],
+            refetchType: 'active'
+          });
         }}
       />
       

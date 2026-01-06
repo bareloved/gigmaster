@@ -96,7 +96,7 @@ export function GigResourcesSection({ gigId }: GigResourcesSectionProps) {
                     <HostingServiceIcon url={file.url} className="h-5 w-5" />
                   </div>
                   
-                  <FileTypeIcon type={file.type} className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                  <FileTypeIcon type={file.kind} className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                   <div className="flex-1 min-w-0 pr-8">
                     <h4 className="font-medium line-clamp-2">{file.label}</h4>
                   </div>

@@ -1,6 +1,14 @@
 import * as React from "react";
 
-import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
+// Define toast types inline since toast component is not installed
+export type ToastActionElement = React.ReactElement<any>;
+
+export interface ToastProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  variant?: "default" | "destructive";
+  duration?: number;
+}
 
 const TOAST_LIMIT = 1;
 const TOAST_REMOVE_DELAY = 1000000;

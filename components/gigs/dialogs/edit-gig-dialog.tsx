@@ -45,7 +45,7 @@ export function EditGigDialog({
   const [date, setDate] = useState(gig.date);
   const [startTime, setStartTime] = useState(gig.start_time || "");
   const [locationName, setLocationName] = useState(gig.location_name || "");
-  const [notes, setNotes] = useState(gig.notes || "");
+  const [notes, setNotes] = useState(gig.internal_notes || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -59,7 +59,7 @@ export function EditGigDialog({
     setDate(gig.date);
     setStartTime(gig.start_time || "");
     setLocationName(gig.location_name || "");
-    setNotes(gig.notes || "");
+    setNotes(gig.internal_notes || "");
   }, [gig]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,8 +81,7 @@ export function EditGigDialog({
         end_time: null,
         location_name: locationName.trim() || null,
         location_address: null,
-        schedule: null,
-        notes: notes.trim() || null,
+        internal_notes: notes.trim() || null,
       });
 
       onSuccess();

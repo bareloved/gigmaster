@@ -417,18 +417,8 @@ export async function updateLastVisit(): Promise<void> {
 /**
  * Get user's last visit timestamp from localStorage
  */
-export function getLastVisit(): Date | undefined {
-  const supabase = createClient();
-
+export function getLastVisit(userId?: string): Date | undefined {
   if (typeof window === "undefined") return undefined;
-
-  const {
-    data: { user },
-  } = supabase.auth.getUser();
-
-  // This is synchronous, so we can't await
-  // In practice, we'll pass this from the component after auth loads
-  const userId = (user as any)?.id;
   if (!userId) return undefined;
 
   const lastVisitStr = localStorage.getItem(`dashboard_last_visit_${userId}`);

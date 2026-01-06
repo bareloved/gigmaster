@@ -77,13 +77,21 @@ function invalidateGigStatusQueries(
 }
 
 /**
- * Full invalidation - ONLY for saveGigPack which changes many things
- * This is the only mutation that legitimately needs to refresh everything
+ * For gig save mutations (create/update)
+ * SURGICAL: Only invalidates gig lists and specific gig detail
+ *
+ * NOT invalidated (optimistic update handles these, or not affected):
+ * - my-earnings: gig creation doesn't change payment status
+ * - player-money-summary: not affected by gig save
+ * - recent-past-gigs/all-past-gigs: new gigs are future, edits rarely move to past
  */
-function invalidateAllGigQueries(
+function invalidateGigSaveQueries(
   queryClient: ReturnType<typeof useQueryClient>,
-  userId?: string
+  userId?: string,
+  gigId?: string,
+  isEditing?: boolean
 ) {
+  // Refresh gig lists - optimistic update showed preview, now get real data
   queryClient.invalidateQueries({
     queryKey: ["dashboard-gigs", userId],
     refetchType: 'active'
@@ -94,30 +102,25 @@ function invalidateAllGigQueries(
     refetchType: 'active'
   });
 
-  queryClient.invalidateQueries({
-    queryKey: ["recent-past-gigs", userId],
-    refetchType: 'active'
-  });
+  // For edits: refresh the specific gig detail view and pack view
+  if (isEditing && gigId) {
+    queryClient.invalidateQueries({
+      queryKey: ["gig", gigId],
+      refetchType: 'active'
+    });
+    queryClient.invalidateQueries({
+      queryKey: ["gig-pack-full", gigId],
+      refetchType: 'active'
+    });
+  }
 
-  queryClient.invalidateQueries({
-    queryKey: ["all-past-gigs", userId],
-    refetchType: 'active'
-  });
-
-  queryClient.invalidateQueries({
-    queryKey: ["gig"],
-    refetchType: 'active'
-  });
-
-  queryClient.invalidateQueries({
-    queryKey: ["my-earnings", userId],
-    refetchType: 'active'
-  });
-
-  queryClient.invalidateQueries({
-    queryKey: ["dashboard-kpis", userId],
-    refetchType: 'active'
-  });
+  // For new gigs: refresh KPIs (gig count may have changed)
+  if (!isEditing) {
+    queryClient.invalidateQueries({
+      queryKey: ["dashboard-kpis", userId],
+      refetchType: 'active'
+    });
+  }
 }
 
 // ============================================
@@ -396,8 +399,7 @@ export function useUpdateGigStatus() {
 
 /**
  * Hook for creating or updating a gig pack
- * This is the ONLY mutation that needs full cache invalidation
- * because it can change title, date, location, roles, setlist, etc.
+ * Includes optimistic updates for instant UI feedback
  */
 export function useSaveGigPack() {
   const queryClient = useQueryClient();
@@ -413,12 +415,128 @@ export function useSaveGigPack() {
       isEditing: boolean;
       gigId?: string;
     }) => saveGigPack(data, isEditing, gigId),
+
+    onMutate: async ({ data, isEditing, gigId }) => {
+      // Cancel outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ["dashboard-gigs", user?.id] });
+      await queryClient.cancelQueries({ queryKey: ["all-gigs", user?.id] });
+
+      // Snapshot previous values for rollback
+      const previousDashboardGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
+        ["dashboard-gigs", user?.id]
+      );
+      const previousAllGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
+        ["all-gigs", user?.id]
+      );
+
+      // Create optimistic DashboardGig entry
+      const optimisticGig: DashboardGig = {
+        gigId: gigId || `temp-${Date.now()}`, // Temp ID for new gigs
+        gigTitle: data.title || "New Gig",
+        date: data.date || new Date().toISOString().split("T")[0],
+        startTime: data.on_stage_time || data.call_time || null,
+        endTime: null,
+        locationName: data.venue_name || null,
+        status: data.status || "draft",
+        isManager: true,
+        isPlayer: false,
+        hostId: user?.id || null,
+        hostName: user?.user_metadata?.full_name || user?.email || null,
+        heroImageUrl: data.hero_image_url || null,
+        gigType: data.gig_type || null,
+        roleStats: null,
+      };
+
+      if (isEditing && gigId) {
+        // For edits: update existing gig in cache
+        const updateGigInPages = (pages: Array<{ gigs: DashboardGig[] }> | undefined) => {
+          if (!pages) return pages;
+          return pages.map(page => ({
+            ...page,
+            gigs: page.gigs.map(gig =>
+              gig.gigId === gigId
+                ? { ...gig, ...optimisticGig, gigId } // Keep real ID
+                : gig
+            ),
+          }));
+        };
+
+        if (previousDashboardGigs) {
+          queryClient.setQueryData(
+            ["dashboard-gigs", user?.id],
+            { ...previousDashboardGigs, pages: updateGigInPages(previousDashboardGigs.pages) }
+          );
+        }
+        if (previousAllGigs) {
+          queryClient.setQueryData(
+            ["all-gigs", user?.id],
+            { ...previousAllGigs, pages: updateGigInPages(previousAllGigs.pages) }
+          );
+        }
+      } else {
+        // For new gigs: add to the beginning of the list
+        if (previousAllGigs?.pages?.[0]) {
+          queryClient.setQueryData(
+            ["all-gigs", user?.id],
+            {
+              ...previousAllGigs,
+              pages: [
+                {
+                  ...previousAllGigs.pages[0],
+                  gigs: [optimisticGig, ...previousAllGigs.pages[0].gigs],
+                },
+                ...previousAllGigs.pages.slice(1),
+              ],
+            }
+          );
+        }
+
+        // Also add to dashboard if date is within dashboard range
+        if (previousDashboardGigs?.pages?.[0]) {
+          queryClient.setQueryData(
+            ["dashboard-gigs", user?.id],
+            {
+              ...previousDashboardGigs,
+              pages: [
+                {
+                  ...previousDashboardGigs.pages[0],
+                  gigs: [optimisticGig, ...previousDashboardGigs.pages[0].gigs],
+                },
+                ...previousDashboardGigs.pages.slice(1),
+              ],
+            }
+          );
+        }
+      }
+
+      return { previousDashboardGigs, previousAllGigs };
+    },
+
     onSuccess: (result, variables) => {
-      // FULL invalidation - this mutation can change many things
-      invalidateAllGigQueries(queryClient, user?.id);
+      // SURGICAL invalidation - only refresh what's needed
+      invalidateGigSaveQueries(
+        queryClient,
+        user?.id,
+        result?.id || variables.gigId,
+        variables.isEditing
+      );
       toast.success(variables.isEditing ? "Gig updated successfully" : "Gig created successfully");
     },
-    onError: (error: Error) => {
+
+    onError: (error: Error, variables, context) => {
+      // Rollback to previous state on error
+      if (context?.previousDashboardGigs) {
+        queryClient.setQueryData(
+          ["dashboard-gigs", user?.id],
+          context.previousDashboardGigs
+        );
+      }
+      if (context?.previousAllGigs) {
+        queryClient.setQueryData(
+          ["all-gigs", user?.id],
+          context.previousAllGigs
+        );
+      }
       toast.error(`Failed to save gig: ${error.message}`);
     },
   });

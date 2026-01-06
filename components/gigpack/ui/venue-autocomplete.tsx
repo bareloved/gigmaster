@@ -94,7 +94,7 @@ function VenueAutocompleteInner({
     if (!places || !sessionToken || !suggestion.placePrediction) return
 
     const placePrediction = suggestion.placePrediction
-    const mainText = placePrediction.mainText.text
+    const mainText = placePrediction.mainText?.text || ""
 
     setInputValue(mainText)
     onChange?.(mainText)
@@ -174,10 +174,10 @@ function VenueAutocompleteInner({
                 <MapPin className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                 <div className="flex flex-col">
                   <span className="font-medium">
-                    {prediction.mainText.text}
+                    {prediction.mainText?.text || ""}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {prediction.secondaryText.text}
+                    {prediction.secondaryText?.text || ""}
                   </span>
                 </div>
               </div>

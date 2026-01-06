@@ -99,15 +99,16 @@ export function BulkAddSetlistDialog({
     setError(null);
 
     try {
+      // TODO: This component needs updating - setlist items now belong to sections, not gigs
       // Batch insert all songs in parallel for better performance
       await Promise.all(
         parsedSongs.map((song) =>
           addSetlistItem({
-            gig_id: gigId,
-            position: song.position,
+            section_id: gigId, // FIXME: Should be section_id, not gig_id
+            sort_order: song.position,
             title: song.title,
             key: song.key,
-            bpm: song.bpm,
+            tempo: song.bpm ? String(song.bpm) : null, // Changed from bpm (number) to tempo (string)
             notes: null,
           })
         )

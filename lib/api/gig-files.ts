@@ -5,22 +5,22 @@ export async function listFilesForGig(gigId: string): Promise<GigFile[]> {
   const supabase = createClient();
 
   const { data: files, error } = await supabase
-    .from("gig_files")
+    .from("gig_materials")
     .select("*")
     .eq("gig_id", gigId)
-    .order("created_at", { ascending: false });
+    .order("sort_order", { ascending: true });
 
   if (error) throw new Error(error.message || "Failed to fetch gig files");
   return files || [];
 }
 
 export async function addFileToGig(
-  data: Omit<GigFileInsert, "id" | "created_at" | "updated_at">
+  data: Omit<GigFileInsert, "id">
 ): Promise<GigFile> {
   const supabase = createClient();
 
   const { data: file, error } = await supabase
-    .from("gig_files")
+    .from("gig_materials")
     .insert(data)
     .select()
     .single();
@@ -36,7 +36,7 @@ export async function updateGigFile(
   const supabase = createClient();
 
   const { data: file, error } = await supabase
-    .from("gig_files")
+    .from("gig_materials")
     .update(data)
     .eq("id", fileId)
     .select()
@@ -50,7 +50,7 @@ export async function deleteGigFile(fileId: string): Promise<void> {
   const supabase = createClient();
 
   const { error } = await supabase
-    .from("gig_files")
+    .from("gig_materials")
     .delete()
     .eq("id", fileId);
 

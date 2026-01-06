@@ -164,6 +164,7 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
     id: gig.id,
     owner_id: gig.owner_id,
     title: gig.title,
+    status: gig.status || null,
     band_id: gig.project_id || null,
     band_name: gig.band_name || null,
     date: gig.date || new Date().toISOString(),

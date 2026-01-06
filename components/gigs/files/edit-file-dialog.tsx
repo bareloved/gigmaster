@@ -51,7 +51,7 @@ export function EditGigFileDialog({
     if (file) {
       setLabel(file.label);
       setUrl(file.url);
-      setType(file.type);
+      setType(file.kind);
     }
   }, [file]);
 
@@ -77,7 +77,7 @@ export function EditGigFileDialog({
       await updateGigFile(file.id, {
         label: label.trim(),
         url: url.trim(),
-        type: type,
+        kind: type,
       });
 
       onSuccess();

@@ -146,18 +146,3 @@ export interface GigPackTemplateDefaultValues {
   packingChecklist?: PackingChecklistItem[];
 }
 
-// User-created template stored in database
-export interface UserTemplate {
-  id: string;
-  owner_id: string;
-  name: string;
-  description: string | null;
-  icon: string;
-  default_values: GigPackTemplateDefaultValues;
-  created_at: string;
-  updated_at: string;
-}
-
-export type UserTemplateInsert = Omit<UserTemplate, "id" | "created_at" | "updated_at">;
-export type UserTemplateUpdate = Partial<Omit<UserTemplate, "id" | "owner_id" | "created_at">>;
-

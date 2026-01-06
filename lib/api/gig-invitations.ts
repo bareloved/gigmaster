@@ -116,7 +116,7 @@ export async function inviteMusicianByEmail(
       type: 'invitation_received',
       title: `Invitation: ${gig.title}`,
       message: `You've been invited to play ${role.role_name}${hostName ? ` for ${hostName}` : ''}`,
-      link_url: `/gigs/${gig.id}/pack`,
+      link: `/gigs/${gig.id}/pack`,
       gig_id: gig.id,
       gig_role_id: gigRoleId,
     });
@@ -221,7 +221,7 @@ export async function inviteViaWhatsApp(
       type: 'invitation_received',
       title: `Invitation: ${gig?.title}`,
       message: `You've been invited to play ${role.role_name}${hostName ? ` by ${hostName}` : ''}`,
-      link_url: `/gigs/${gig?.id}/pack`,
+      link: `/gigs/${gig?.id}/pack`,
       gig_id: gig?.id,
       gig_role_id: gigRoleId,
     });

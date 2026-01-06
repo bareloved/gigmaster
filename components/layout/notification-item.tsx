@@ -54,8 +54,8 @@ export function NotificationItem({ notification, onClose }: NotificationItemProp
     if (!notification.read_at) {
       markReadMutation.mutate();
     }
-    if (notification.link_url) {
-      router.push(notification.link_url);
+    if (notification.link) {
+      router.push(notification.link);
       onClose();
     }
   };

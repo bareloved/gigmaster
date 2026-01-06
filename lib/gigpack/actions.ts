@@ -75,13 +75,17 @@ export async function saveGigPack(data: Partial<GigPack>, isEditing: boolean) {
   if (data.schedule) {
     await supabase.from("gig_schedule_items").delete().eq("gig_id", gigId);
     if (data.schedule.length > 0) {
-      const items = data.schedule.map((item, i) => ({
-        gig_id: gigId,
-        time: item.time,
-        label: item.label,
-        sort_order: i,
-      }));
-      await supabase.from("gig_schedule_items").insert(items);
+      const items = data.schedule
+        .filter((item) => item.time !== null) // Filter out items without time
+        .map((item, i) => ({
+          gig_id: gigId,
+          time: item.time as string, // Safe after filter
+          label: item.label,
+          sort_order: i,
+        }));
+      if (items.length > 0) {
+        await supabase.from("gig_schedule_items").insert(items);
+      }
     }
   }
 

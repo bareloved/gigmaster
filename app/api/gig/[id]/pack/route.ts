@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { GigPack, GigPackTheme, PosterSkin, GigMaterialKind } from "@/lib/gigpack/types";
+import { isArchivedStatus } from "@/lib/types/shared";
 
 export async function GET(
   request: NextRequest,
@@ -41,6 +42,7 @@ export async function GET(
     id: gig.id,
     owner_id: gig.owner_id || "",
     title: gig.title,
+    status: gig.status,
     band_id: gig.project_id,
     band_name: gig.band_name,
     date: gig.date ? gig.date.split('T')[0] : null,
@@ -74,7 +76,7 @@ export async function GET(
     internal_notes: gig.internal_notes,
     public_slug: gig.gig_shares?.[0]?.token || "",
     theme: (gig.theme as GigPackTheme) || null,
-    is_archived: gig.status === 'archived',
+    is_archived: isArchivedStatus(gig.status),
     created_at: gig.created_at || new Date().toISOString(),
     updated_at: gig.updated_at || new Date().toISOString(),
     band_logo_url: gig.band_logo_url,

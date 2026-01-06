@@ -132,7 +132,7 @@ export async function updateRole(roleId: string, data: GigRoleUpdate): Promise<G
       type: 'payment_received',
       title: 'Payment received',
       message: `You've been paid for ${gig.title}`,
-      link_url: `/money`,
+      link: `/money`,
       gig_id: gig.id,
       gig_role_id: roleId,
     });
@@ -301,7 +301,7 @@ export async function updateMyInvitationStatus(
           type: 'status_changed',
           title: `${userName} accepted`,
           message: `${userName} accepted their role as ${gigData.role_name} in ${gig.title}`,
-          link_url: `/gigs/${gig.id}`,
+          link: `/gigs/${gig.id}`,
           gig_id: gig.id,
           gig_role_id: roleId,
         });
@@ -311,7 +311,7 @@ export async function updateMyInvitationStatus(
           type: 'status_changed',
           title: `${userName} declined`,
           message: `${userName} declined their role as ${gigData.role_name} in ${gig.title}`,
-          link_url: `/gigs/${gig.id}`,
+          link: `/gigs/${gig.id}`,
           gig_id: gig.id,
           gig_role_id: roleId,
         });
@@ -321,7 +321,7 @@ export async function updateMyInvitationStatus(
           type: 'status_changed',
           title: `${userName} needs a sub`,
           message: `${userName} needs a sub for their role as ${gigData.role_name} in ${gig.title}`,
-          link_url: `/gigs/${gig.id}`,
+          link: `/gigs/${gig.id}`,
           gig_id: gig.id,
           gig_role_id: roleId,
         });
@@ -641,7 +641,7 @@ export async function inviteAllMusicians(gigId: string): Promise<{ count: number
         type: 'invitation_received',
         title: `Invitation: ${gig.title}`,
         message: `You've been invited as ${role.role_name}`,
-        link_url: `/gigs/${gig.id}/pack`,
+        link: `/gigs/${gig.id}/pack`,
         gig_id: gig.id,
         gig_role_id: role.id,
       }).catch(err => {
@@ -724,7 +724,7 @@ export async function reinviteMusician(
       type: 'invitation_received',
       title: `Re-invitation: ${gig.title}`,
       message: `You've been re-invited as ${role.role_name}. The host would like you to reconsider!`,
-      link_url: `/gigs/${gig.id}/pack`,
+      link: `/gigs/${gig.id}/pack`,
       gig_id: gig.id,
       gig_role_id: roleId,
     });

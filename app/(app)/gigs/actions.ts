@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { generateSlug } from "@/lib/gigpack/utils";
 import { GigPack, LineupMember, GigScheduleItem, GigMaterial, PackingChecklistItem, SetlistSection, GigPackTheme, PosterSkin } from "@/lib/gigpack/types";
 import { createNotification } from "@/lib/api/notifications";
+import { isArchivedStatus } from "@/lib/types/shared";
 
 export async function getGig(id: string): Promise<GigPack | null> {
   const supabase = await createClient();
@@ -35,7 +36,7 @@ export async function getGig(id: string): Promise<GigPack | null> {
     owner_id: gig.owner_id || "",
     owner_name: (gig.owner as any)?.name || null,
     title: gig.title,
-    status: gig.status || "active",
+    status: gig.status || "draft",
     band_id: gig.project_id,
     band_name: gig.band_name,
     date: gig.date ? gig.date.split('T')[0] : null, // Extract date portion from ISO timestamp
@@ -70,7 +71,7 @@ export async function getGig(id: string): Promise<GigPack | null> {
     internal_notes: gig.internal_notes,
     public_slug: gig.gig_shares?.[0]?.token || "",
     theme: gig.theme as GigPackTheme,
-    is_archived: gig.status === 'archived',
+    is_archived: isArchivedStatus(gig.status),
     created_at: gig.created_at || new Date().toISOString(),
     updated_at: gig.updated_at || new Date().toISOString(),
     band_logo_url: gig.band_logo_url,
@@ -250,19 +251,51 @@ export async function saveGigPack(
     // 2. Handle Related Items (Delete all and insert new)
     // This is not efficient but safe for full sync logic of the editor.
 
-    // Roles / Lineup
-    await supabase.from("gig_roles").delete().eq("gig_id", finalGigId);
+    // Roles / Lineup - Smart merge to preserve rich metadata while allowing new additions
     if (data.lineup && data.lineup.length > 0) {
-      const rolesToInsert = data.lineup.map((member, index) => ({
-        gig_id: finalGigId!,
-        role_name: member.role,
-        musician_name: member.name || null,
-        notes: member.notes || null,
-        sort_order: index,
-        invitation_status: 'pending',
-      }));
-      const { error } = await supabase.from("gig_roles").insert(rolesToInsert);
-      if (error) console.error("Error inserting roles:", error);
+      if (isEditing) {
+        // When editing: don't delete existing roles (preserves musician_id, contact_id, fees, etc.)
+        // Only add NEW roles that don't already exist
+        const { data: existingRoles } = await supabase
+          .from("gig_roles")
+          .select("role_name, musician_name")
+          .eq("gig_id", finalGigId);
+
+        // Create set of existing role+name combinations for quick lookup
+        const existingSet = new Set(
+          (existingRoles || []).map(r => `${r.role_name}::${r.musician_name || ''}`)
+        );
+
+        // Filter to only new roles that don't exist yet
+        const newRoles = data.lineup.filter(member =>
+          member.role && !existingSet.has(`${member.role}::${member.name || ''}`)
+        );
+
+        if (newRoles.length > 0) {
+          const rolesToInsert = newRoles.map((member, index) => ({
+            gig_id: finalGigId!,
+            role_name: member.role,
+            musician_name: member.name || null,
+            notes: member.notes || null,
+            sort_order: (existingRoles?.length || 0) + index,
+            invitation_status: 'pending',
+          }));
+          const { error: rolesError } = await supabase.from("gig_roles").insert(rolesToInsert);
+          if (rolesError) throw new Error(`Failed to insert roles: ${rolesError.message}`);
+        }
+      } else {
+        // When creating new gig: insert all roles
+        const rolesToInsert = data.lineup.map((member, index) => ({
+          gig_id: finalGigId!,
+          role_name: member.role,
+          musician_name: member.name || null,
+          notes: member.notes || null,
+          sort_order: index,
+          invitation_status: 'pending',
+        }));
+        const { error: rolesError } = await supabase.from("gig_roles").insert(rolesToInsert);
+        if (rolesError) throw new Error(`Failed to insert roles: ${rolesError.message}`);
+      }
     }
 
     // Schedule
@@ -274,8 +307,8 @@ export async function saveGigPack(
         label: item.label,
         sort_order: index,
       }));
-      const { error } = await supabase.from("gig_schedule_items").insert(scheduleToInsert);
-      if (error) console.error("Error inserting schedule:", error);
+      const { error: scheduleError } = await supabase.from("gig_schedule_items").insert(scheduleToInsert);
+      if (scheduleError) throw new Error(`Failed to insert schedule: ${scheduleError.message}`);
     }
 
     // Materials
@@ -288,8 +321,8 @@ export async function saveGigPack(
         kind: item.kind,
         sort_order: index,
       }));
-      const { error } = await supabase.from("gig_materials").insert(materialsToInsert);
-      if (error) console.error("Error inserting materials:", error);
+      const { error: materialsError } = await supabase.from("gig_materials").insert(materialsToInsert);
+      if (materialsError) throw new Error(`Failed to insert materials: ${materialsError.message}`);
     }
 
     // Packing Checklist
@@ -300,8 +333,8 @@ export async function saveGigPack(
         label: item.label,
         sort_order: index,
       }));
-      const { error } = await supabase.from("gig_packing_items").insert(packingToInsert);
-      if (error) console.error("Error inserting packing items:", error);
+      const { error: packingError } = await supabase.from("gig_packing_items").insert(packingToInsert);
+      if (packingError) throw new Error(`Failed to insert packing items: ${packingError.message}`);
     }
 
     // Setlist Structured (Optional - if we want to use sections)

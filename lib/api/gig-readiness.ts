@@ -32,20 +32,20 @@ export async function getGigReadiness(
     return null;
   }
 
-  // Transform snake_case to camelCase
+  // Transform snake_case to camelCase with defaults for null values
   return {
     id: data.id,
     gigId: data.gig_id,
     musicianId: data.musician_id,
-    songsTotal: data.songs_total,
-    songsLearned: data.songs_learned,
-    chartsReady: data.charts_ready,
-    soundsReady: data.sounds_ready,
-    travelChecked: data.travel_checked,
-    gearPacked: data.gear_packed,
+    songsTotal: data.songs_total ?? 0,
+    songsLearned: data.songs_learned ?? 0,
+    chartsReady: data.charts_ready ?? false,
+    soundsReady: data.sounds_ready ?? false,
+    travelChecked: data.travel_checked ?? false,
+    gearPacked: data.gear_packed ?? false,
     notes: data.notes,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
+    createdAt: data.created_at as string,
+    updatedAt: data.updated_at as string,
   };
 }
 
@@ -81,20 +81,20 @@ export async function createGigReadiness(
     throw error;
   }
 
-  // Transform snake_case to camelCase
+  // Transform snake_case to camelCase with defaults for null values
   return {
     id: result.id,
     gigId: result.gig_id,
     musicianId: result.musician_id,
-    songsTotal: result.songs_total,
-    songsLearned: result.songs_learned,
-    chartsReady: result.charts_ready,
-    soundsReady: result.sounds_ready,
-    travelChecked: result.travel_checked,
-    gearPacked: result.gear_packed,
+    songsTotal: result.songs_total ?? 0,
+    songsLearned: result.songs_learned ?? 0,
+    chartsReady: result.charts_ready ?? false,
+    soundsReady: result.sounds_ready ?? false,
+    travelChecked: result.travel_checked ?? false,
+    gearPacked: result.gear_packed ?? false,
     notes: result.notes,
-    createdAt: result.created_at,
-    updatedAt: result.updated_at,
+    createdAt: result.created_at as string,
+    updatedAt: result.updated_at as string,
   };
 }
 
@@ -131,20 +131,20 @@ export async function updateGigReadiness(
     throw error;
   }
 
-  // Transform snake_case to camelCase
+  // Transform snake_case to camelCase with defaults for null values
   return {
     id: data.id,
     gigId: data.gig_id,
     musicianId: data.musician_id,
-    songsTotal: data.songs_total,
-    songsLearned: data.songs_learned,
-    chartsReady: data.charts_ready,
-    soundsReady: data.sounds_ready,
-    travelChecked: data.travel_checked,
-    gearPacked: data.gear_packed,
+    songsTotal: data.songs_total ?? 0,
+    songsLearned: data.songs_learned ?? 0,
+    chartsReady: data.charts_ready ?? false,
+    soundsReady: data.sounds_ready ?? false,
+    travelChecked: data.travel_checked ?? false,
+    gearPacked: data.gear_packed ?? false,
     notes: data.notes,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
+    createdAt: data.created_at as string,
+    updatedAt: data.updated_at as string,
   };
 }
 

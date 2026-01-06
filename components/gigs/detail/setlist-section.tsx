@@ -79,20 +79,20 @@ export function GigSetlistSection({ gigId }: GigSetlistSectionProps) {
     // Update the position for each item
     const updates = reordered.map((item, index) => ({
       id: item.id,
-      position: index + 1,
+      sort_order: index + 1,
     }));
 
     // Optimistic update
     queryClient.setQueryData(['setlist', gigId], reordered.map((item, index) => ({
       ...item,
-      position: index + 1,
+      sort_order: index + 1,
     })));
 
     try {
-      // Batch update positions in database
+      // Batch update sort_order in database
       await Promise.all(
         updates.map((update) =>
-          updateSetlistItem(update.id, { position: update.position })
+          updateSetlistItem(update.id, { sort_order: update.sort_order })
         )
       );
     } catch (err) {

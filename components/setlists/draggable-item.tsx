@@ -55,9 +55,9 @@ export function DraggableSetlistItem({
         <span className="text-sm text-muted-foreground font-mono">{item.key}</span>
       )}
 
-      {/* BPM */}
-      {item.bpm && (
-        <span className="text-sm text-muted-foreground">{item.bpm}</span>
+      {/* Tempo */}
+      {item.tempo && (
+        <span className="text-sm text-muted-foreground">{item.tempo}</span>
       )}
 
       {/* Edit Button */}

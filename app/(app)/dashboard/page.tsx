@@ -68,6 +68,7 @@ import { fetchDashboardKPIs, updateLastVisit, getLastVisit } from "@/lib/api/das
 import { useFocusMode } from "@/hooks/use-focus-mode";
 import { useDashboardKeyboardShortcuts } from "@/hooks/use-dashboard-keyboard-shortcuts";
 import { getGig } from "../gigs/actions";
+import { AppLoadingScreen } from "@/components/layout/app-loading-screen";
 
 const GigEditorPanel = dynamic(
   () => import("@/components/gigpack/editor/gig-editor-panel").then((mod) => mod.GigEditorPanel),
@@ -275,6 +276,13 @@ export default function DashboardPage() {
 
   // Keyboard shortcuts (G, P, S, F)
   useDashboardKeyboardShortcuts(nextGig?.gigId, !!nextGig);
+
+  // Show loading screen until all critical data is ready
+  const isInitialLoading = isLoadingGigs || isLoadingKPIs || isLoadingMoney;
+
+  if (isInitialLoading) {
+    return <AppLoadingScreen />;
+  }
 
   return (
     <div className="space-y-6">

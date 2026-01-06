@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Calendar, MapPin, Package, Briefcase, MoreVertical, Check, X, Crown, Mail, Share2 } from "lucide-react";
+import { Calendar, MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUser } from "@/lib/providers/user-provider";
@@ -110,19 +110,8 @@ const GigInnerContent = memo(function GigInnerContent({ gig, formattedDate }: { 
           </div>
         )}
 
-        {/* Role Perspective Chips */}
-        {gig.isManager && gig.isPlayer && (
-          <div className="flex items-center gap-1.5">
-            <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
-            <Badge variant="outline" className="capitalize">
-              {gig.playerRoleName}
-            </Badge>
-          </div>
-        )}
-        {gig.isManager && !gig.isPlayer && (
-          <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
-        )}
-        {!gig.isManager && gig.isPlayer && gig.playerRoleName && (
+        {/* Player Role Badge */}
+        {gig.isPlayer && gig.playerRoleName && (
           <Badge variant="outline" className="capitalize">
             {gig.playerRoleName}
           </Badge>

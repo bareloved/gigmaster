@@ -8,7 +8,7 @@ export async function listSetlistItemsForGig(gigId: string): Promise<SetlistItem
     .from("setlist_items")
     .select("*")
     .eq("gig_id", gigId)
-    .order("position", { ascending: true });
+    .order("sort_order", { ascending: true });
 
   if (error) throw new Error(error.message || "Failed to fetch setlist items");
   return items || [];
@@ -19,19 +19,19 @@ export async function addSetlistItem(
 ): Promise<SetlistItem> {
   const supabase = createClient();
 
-  // If position is not provided, assign the next position
+  // If sort_order is not provided, assign the next sort_order
   let insertData = { ...data };
-  if (!insertData.position) {
-    // Get the max position for this gig
+  if (!insertData.sort_order) {
+    // Get the max sort_order for this section
     const { data: existingItems } = await supabase
       .from("setlist_items")
-      .select("position")
-      .eq("gig_id", data.gig_id)
-      .order("position", { ascending: false })
+      .select("sort_order")
+      .eq("section_id", data.section_id)
+      .order("sort_order", { ascending: false })
       .limit(1);
 
-    const maxPosition = existingItems?.[0]?.position || 0;
-    insertData.position = maxPosition + 1;
+    const maxSortOrder = existingItems?.[0]?.sort_order || 0;
+    insertData.sort_order = maxSortOrder + 1;
   }
 
   const { data: item, error } = await supabase

@@ -47,7 +47,7 @@ export function EditSetlistItemDialog({
     if (item) {
       setTitle(item.title);
       setKey(item.key || "");
-      setBpm(item.bpm ? item.bpm.toString() : "");
+      setBpm(item.tempo || "");
       setNotes(item.notes || "");
     }
   }, [item]);
@@ -69,7 +69,7 @@ export function EditSetlistItemDialog({
       await updateSetlistItem(item.id, {
         title: toSmartTitleCase(title.trim()),
         key: key.trim() || null,
-        bpm: bpm ? parseInt(bpm, 10) : null,
+        tempo: bpm.trim() || null, // Changed from bpm (number) to tempo (string)
         notes: notes.trim() || null,
       });
 

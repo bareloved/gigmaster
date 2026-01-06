@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      bands: {
+        Row: {
+          accent_color: string | null
+          band_logo_url: string | null
+          created_at: string | null
+          default_lineup: Json | null
+          description: string | null
+          hero_image_url: string | null
+          id: string
+          name: string
+          owner_id: string
+          poster_skin: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          band_logo_url?: string | null
+          created_at?: string | null
+          default_lineup?: Json | null
+          description?: string | null
+          hero_image_url?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          poster_skin?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          band_logo_url?: string | null
+          created_at?: string | null
+          default_lineup?: Json | null
+          description?: string | null
+          hero_image_url?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          poster_skin?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       calendar_connections: {
         Row: {
           access_token: string
@@ -124,44 +166,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      gig_files: {
-        Row: {
-          created_at: string | null
-          gig_id: string
-          id: string
-          label: string
-          type: string
-          updated_at: string | null
-          url: string
-        }
-        Insert: {
-          created_at?: string | null
-          gig_id: string
-          id?: string
-          label: string
-          type: string
-          updated_at?: string | null
-          url: string
-        }
-        Update: {
-          created_at?: string | null
-          gig_id?: string
-          id?: string
-          label?: string
-          type?: string
-          updated_at?: string | null
-          url?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "gig_files_gig_id_fkey"
-            columns: ["gig_id"]
-            isOneToOne: false
-            referencedRelation: "gigs"
             referencedColumns: ["id"]
           },
         ]
@@ -368,7 +372,6 @@ export type Database = {
         Row: {
           agreed_fee: number | null
           contact_id: string | null
-          created_at: string | null
           currency: string | null
           gig_id: string
           id: string
@@ -386,12 +389,11 @@ export type Database = {
           status: string | null
           status_changed_at: string | null
           status_changed_by: string | null
-          updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           agreed_fee?: number | null
           contact_id?: string | null
-          created_at?: string | null
           currency?: string | null
           gig_id: string
           id?: string
@@ -409,12 +411,11 @@ export type Database = {
           status?: string | null
           status_changed_at?: string | null
           status_changed_by?: string | null
-          updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           agreed_fee?: number | null
           contact_id?: string | null
-          created_at?: string | null
           currency?: string | null
           gig_id?: string
           id?: string
@@ -432,9 +433,16 @@ export type Database = {
           status?: string | null
           status_changed_at?: string | null
           status_changed_by?: string | null
-          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "gig_roles_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "musician_contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "gig_roles_gig_id_fkey"
             columns: ["gig_id"]
@@ -512,6 +520,7 @@ export type Database = {
         Row: {
           accent_color: string | null
           backline_notes: string | null
+          band_id: string | null
           band_logo_url: string | null
           band_name: string | null
           call_time: string | null
@@ -547,6 +556,7 @@ export type Database = {
         Insert: {
           accent_color?: string | null
           backline_notes?: string | null
+          band_id?: string | null
           band_logo_url?: string | null
           band_name?: string | null
           call_time?: string | null
@@ -582,6 +592,7 @@ export type Database = {
         Update: {
           accent_color?: string | null
           backline_notes?: string | null
+          band_id?: string | null
           band_logo_url?: string | null
           band_name?: string | null
           call_time?: string | null
@@ -616,17 +627,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "gigs_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: "gigs_band_id_fkey"
+            columns: ["band_id"]
             isOneToOne: false
             referencedRelation: "bands"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "gigs_project_id_fkey"
-            columns: ["project_id"]
+            foreignKeyName: "gigs_owner_profiles_fkey"
+            columns: ["owner_id"]
             isOneToOne: false
-            referencedRelation: "projects"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -703,6 +714,8 @@ export type Database = {
       notifications: {
         Row: {
           created_at: string | null
+          gig_id: string | null
+          gig_role_id: string | null
           id: string
           link: string | null
           message: string | null
@@ -714,6 +727,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          gig_id?: string | null
+          gig_role_id?: string | null
           id?: string
           link?: string | null
           message?: string | null
@@ -725,6 +740,8 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          gig_id?: string | null
+          gig_role_id?: string | null
           id?: string
           link?: string | null
           message?: string | null
@@ -734,7 +751,22 @@ export type Database = {
           type?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_gig_role_id_fkey"
+            columns: ["gig_role_id"]
+            isOneToOne: false
+            referencedRelation: "gig_roles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -777,33 +809,45 @@ export type Database = {
       }
       projects: {
         Row: {
+          accent_color: string | null
           band_logo_url: string | null
           cover_image_url: string | null
           created_at: string
+          default_lineup: Json | null
           description: string | null
+          hero_image_url: string | null
           id: string
           name: string
           owner_id: string
+          poster_skin: string | null
           updated_at: string
         }
         Insert: {
+          accent_color?: string | null
           band_logo_url?: string | null
           cover_image_url?: string | null
           created_at?: string
+          default_lineup?: Json | null
           description?: string | null
+          hero_image_url?: string | null
           id?: string
           name: string
           owner_id: string
+          poster_skin?: string | null
           updated_at?: string
         }
         Update: {
+          accent_color?: string | null
           band_logo_url?: string | null
           cover_image_url?: string | null
           created_at?: string
+          default_lineup?: Json | null
           description?: string | null
+          hero_image_url?: string | null
           id?: string
           name?: string
           owner_id?: string
+          poster_skin?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -943,39 +987,7 @@ export type Database = {
       }
     }
     Views: {
-      bands: {
-        Row: {
-          band_logo_url: string | null
-          cover_image_url: string | null
-          created_at: string | null
-          description: string | null
-          id: string | null
-          name: string | null
-          owner_id: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          band_logo_url?: string | null
-          cover_image_url?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string | null
-          name?: string | null
-          owner_id?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          band_logo_url?: string | null
-          cover_image_url?: string | null
-          created_at?: string | null
-          description?: string | null
-          id?: string | null
-          name?: string | null
-          owner_id?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       expire_old_invitations: { Args: never; Returns: undefined }
@@ -989,6 +1001,7 @@ export type Database = {
       }
       fn_is_gig_musician: { Args: { check_gig_id: string }; Returns: boolean }
       fn_is_gig_owner: { Args: { check_gig_id: string }; Returns: boolean }
+      fn_user_is_in_gig: { Args: { gig_id_param: string }; Returns: boolean }
       get_user_activity_since: {
         Args: { p_since: string; p_user_id: string }
         Returns: {

@@ -37,10 +37,11 @@ export type SetlistItemUpdate = Database['public']['Tables']['setlist_items']['U
 
 /**
  * Gig Files (Resources)
+ * Note: The database table is called gig_materials but we alias it as GigFile for legacy code compatibility
  */
-export type GigFile = Database['public']['Tables']['gig_files']['Row'];
-export type GigFileInsert = Database['public']['Tables']['gig_files']['Insert'];
-export type GigFileUpdate = Database['public']['Tables']['gig_files']['Update'];
+export type GigFile = Database['public']['Tables']['gig_materials']['Row'];
+export type GigFileInsert = Database['public']['Tables']['gig_materials']['Insert'];
+export type GigFileUpdate = Database['public']['Tables']['gig_materials']['Update'];
 
 /**
  * Profiles
@@ -99,11 +100,19 @@ export type InvitationStatus =
  * Represents the lifecycle of the gig itself, not invitation state.
  * For invitation tracking, see invitation_status on gig_roles.
  */
-export type GigStatus = 
+export type GigStatus =
   | 'draft'             // Gig created, roles being added
   | 'confirmed'         // Gig confirmed, ready to go
   | 'completed'         // Gig completed
   | 'cancelled';        // Gig cancelled
+
+/**
+ * Check if a gig status represents an archived/inactive state.
+ * Centralizes the logic to prevent inconsistencies across the codebase.
+ */
+export function isArchivedStatus(status: GigStatus | string | null | undefined): boolean {
+  return status === 'cancelled' || status === 'completed';
+}
 
 /**
  * Invitation email status

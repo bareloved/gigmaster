@@ -31,7 +31,6 @@ import {
   Check,
   ExternalLink,
   Link as LinkIcon,
-  Bookmark,
   FileText,
   Sparkles,
   Loader2,
@@ -45,12 +44,15 @@ import { GigPack, LineupMember, SetlistSection, PackingChecklistItem, GigPackThe
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { generateSlug } from "@/lib/gigpack/utils";
-import { uploadImage, deleteImage, getPathFromUrl } from "@/lib/gigpack/image-upload";
+import { uploadImage, deleteImage, getPathFromUrl, validateImageFile } from "@/lib/gigpack/image-upload";
+import { updateGig } from "@/lib/api/gigs";
 import { useSaveGigPack } from "@/hooks/use-gig-mutations";
 import { Calendar } from "@/components/ui/calendar";
 import { TimePicker } from "@/components/gigpack/ui/time-picker";
 import { VenueAutocomplete } from "@/components/gigpack/ui/venue-autocomplete";
 import { RoleSelect } from "@/components/gigpack/ui/role-select";
+import { LineupMemberSearch } from "@/components/gigpack/ui/lineup-member-search";
+import { LineupMemberPill } from "@/components/gigpack/ui/lineup-member-pill";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -76,10 +78,8 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { SaveAsTemplateDialog } from "@/components/gigpack/dialogs/save-as-template-dialog";
 import { PasteScheduleDialog } from "@/components/gigpack/dialogs/paste-schedule-dialog";
-import { GIGPACK_TEMPLATES, GigPackTemplate, applyTemplateToFormDefaults, userTemplateToGigPackTemplate } from "@/lib/gigpack/templates";
-import type { UserTemplate } from "@/lib/gigpack/types";
+import { GIGPACK_TEMPLATES, GigPackTemplate, applyTemplateToFormDefaults } from "@/lib/gigpack/templates";
 
 // ============================================================================
 // Types
@@ -117,13 +117,6 @@ export interface GigEditorPanelProps {
   onUpdateSuccess?: (gigPack: GigPack) => void;
   /** Callback on delete */
   onDelete?: (gigPackId: string) => void;
-  /** Callback when template saved */
-  onTemplateSaved?: () => void;
-  /** User templates for the menu */
-  userTemplates?: UserTemplate[];
-  /** Callback to reload user templates */
-  /** Callback to reload user templates */
-  onUserTemplatesChange?: () => void;
   /** Display mode: sheet (modal) or page (full screen) */
   mode?: "sheet" | "page";
   /** Loading state for data fetching */
@@ -273,8 +266,6 @@ export function GigEditorPanel({
   onCreateSuccess,
   onUpdateSuccess,
   onDelete,
-  onTemplateSaved,
-  onUserTemplatesChange,
   mode = "sheet",
   loading = false,
   isEditing: isEditingProp,
@@ -343,9 +334,6 @@ export function GigEditorPanel({
   // Date picker popover state
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
-  // Save as Template dialog state
-  const [saveAsTemplateOpen, setSaveAsTemplateOpen] = useState(false);
-
   // Paste Schedule dialog state
   const [pasteScheduleOpen, setPasteScheduleOpen] = useState(false);
 
@@ -381,6 +369,12 @@ export function GigEditorPanel({
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingHero, setIsUploadingHero] = useState(false);
 
+  // Pending files for background upload (stored locally until save)
+  const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
+  const [pendingHeroFile, setPendingHeroFile] = useState<File | null>(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+  const [heroPreviewUrl, setHeroPreviewUrl] = useState<string | null>(null);
+
   // Packing checklist state
   const [packingChecklist, setPackingChecklist] = useState<PackingChecklistItem[]>(
     gigPack?.packing_checklist || []
@@ -401,6 +395,41 @@ export function GigEditorPanel({
   const [showBackline, setShowBackline] = useState(!!gigPack?.backline_notes);
   const [showParking, setShowParking] = useState(!!gigPack?.parking_notes);
   const [showInternalNotes, setShowInternalNotes] = useState(!!gigPack?.internal_notes);
+
+  // Sync form state when gigPack prop changes (e.g., after refetch)
+  useEffect(() => {
+    if (gigPack) {
+      setTitle(gigPack.title || "");
+      setBandId(gigPack.band_id || null);
+      setBandName(gigPack.band_name || "");
+      setDate(gigPack.date || "");
+      setCallTime(gigPack.call_time || "");
+      setOnStageTime(gigPack.on_stage_time || "");
+      setVenueName(gigPack.venue_name || "");
+      setVenueAddress(gigPack.venue_address || "");
+      setVenueMapsUrl(gigPack.venue_maps_url || "");
+      setLineup(gigPack.lineup || [{ role: "", name: "", notes: "" }]);
+      setSetlistText(gigPack.setlist || "");
+      setDressCode(gigPack.dress_code || "");
+      setBacklineNotes(gigPack.backline_notes || "");
+      setParkingNotes(gigPack.parking_notes || "");
+      setPaymentNotes(gigPack.payment_notes || "");
+      setInternalNotes(gigPack.internal_notes || "");
+      setGigType(gigPack.gig_type ?? null);
+      setBandLogoUrl(gigPack.band_logo_url || "");
+      setHeroImageUrl(gigPack.hero_image_url || "");
+      setAccentColor(gigPack.accent_color || "");
+      setPackingChecklist(gigPack.packing_checklist || []);
+      setMaterials(gigPack.materials || []);
+      setSchedule(gigPack.schedule || []);
+
+      // Sync visibility flags
+      setShowDressCode(!!gigPack.dress_code);
+      setShowBackline(!!gigPack.backline_notes);
+      setShowParking(!!gigPack.parking_notes);
+      setShowInternalNotes(!!gigPack.internal_notes);
+    }
+  }, [gigPack]);
 
   // Apply a template to the form (resets fields with template values)
   const applyTemplate = (template: GigPackTemplate) => {
@@ -428,11 +457,6 @@ export function GigEditorPanel({
       description: template.label,
       duration: 2000,
     });
-  };
-
-  const handleApplyUserTemplate = (template: UserTemplate) => {
-    const gigPackTemplate = userTemplateToGigPackTemplate(template);
-    applyTemplate(gigPackTemplate);
   };
 
   const resetFormToBlank = () => {
@@ -560,6 +584,20 @@ export function GigEditorPanel({
     setLineup(newLineup);
   };
 
+  // Add member from search (My Circle or System Users)
+  const addLineupMemberFromSearch = (member: { name: string; role: string }) => {
+    // Check if we have an empty row to fill first
+    const emptyRowIndex = lineup.findIndex(m => !m.name && !m.role);
+    if (emptyRowIndex !== -1) {
+      const newLineup = [...lineup];
+      newLineup[emptyRowIndex] = { ...member, notes: "" };
+      setLineup(newLineup);
+    } else {
+      // Add new row
+      setLineup([...lineup, { ...member, notes: "" }]);
+    }
+  };
+
   // Band selection handler - populate branding and lineup from band defaults
   const handleBandSelect = (selectedBandId: string) => {
     setBandId(selectedBandId);
@@ -581,58 +619,7 @@ export function GigEditorPanel({
     }
   };
 
-  // Image upload/remove helpers
-  const uploadImageToState = async (
-    file: File,
-    currentUrl: string,
-    setUrl: (url: string) => void,
-    setUploading: (uploading: boolean) => void,
-    successMessage: string,
-    errorLogPrefix: string
-  ) => {
-    setUploading(true);
-    try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        toast({
-          title: tCommon("error"),
-          description: tAuth("mustBeLoggedIn"),
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const oldPath = currentUrl ? getPathFromUrl(currentUrl) : undefined;
-      const result = await uploadImage(file, user.id, oldPath || undefined);
-
-      if ("error" in result) {
-        toast({
-          title: tCommon("error"),
-          description: result.error,
-          variant: "destructive",
-        });
-      } else {
-        setUrl(result.url);
-        toast({
-          title: t("uploadImage"),
-          description: successMessage,
-          duration: 2000,
-        });
-      }
-    } catch (error) {
-      console.error(`${errorLogPrefix}:`, error);
-      toast({
-        title: tCommon("error"),
-        description: t("imageUploadError"),
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
-  };
-
+  // Image remove helper
   const removeImageFromState = async (currentUrl: string, setUrl: (url: string) => void) => {
     if (currentUrl) {
       const path = getPathFromUrl(currentUrl);
@@ -643,35 +630,72 @@ export function GigEditorPanel({
     }
   };
 
-  // Image upload handlers
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Image upload handlers - store locally for background upload on save
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await uploadImageToState(
-      file,
-      bandLogoUrl,
-      setBandLogoUrl,
-      setIsUploadingLogo,
-      "Logo uploaded successfully",
-      "Error uploading logo"
-    );
+
+    // Validate file before storing
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      toast({
+        title: tCommon("error"),
+        description: validationError,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Store file for background upload and create local preview
+    setPendingLogoFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setLogoPreviewUrl(previewUrl);
+    // Clear the actual URL so we know to upload
+    setBandLogoUrl("");
   };
 
-  const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleHeroUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await uploadImageToState(
-      file,
-      heroImageUrl,
-      setHeroImageUrl,
-      setIsUploadingHero,
-      "Hero image uploaded successfully",
-      "Error uploading hero image"
-    );
+
+    // Validate file before storing
+    const validationError = validateImageFile(file);
+    if (validationError) {
+      toast({
+        title: tCommon("error"),
+        description: validationError,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Store file for background upload and create local preview
+    setPendingHeroFile(file);
+    const previewUrl = URL.createObjectURL(file);
+    setHeroPreviewUrl(previewUrl);
+    // Clear the actual URL so we know to upload
+    setHeroImageUrl("");
   };
 
-  const handleRemoveLogo = () => removeImageFromState(bandLogoUrl, setBandLogoUrl);
-  const handleRemoveHero = () => removeImageFromState(heroImageUrl, setHeroImageUrl);
+  const handleRemoveLogo = () => {
+    // Clear pending file and preview if any
+    if (logoPreviewUrl) {
+      URL.revokeObjectURL(logoPreviewUrl);
+      setLogoPreviewUrl(null);
+      setPendingLogoFile(null);
+    }
+    removeImageFromState(bandLogoUrl, setBandLogoUrl);
+  };
+
+  const handleRemoveHero = () => {
+    // Clear pending file and preview if any
+    if (heroPreviewUrl) {
+      URL.revokeObjectURL(heroPreviewUrl);
+      setHeroPreviewUrl(null);
+      setPendingHeroFile(null);
+    }
+    removeImageFromState(heroImageUrl, setHeroImageUrl);
+  };
 
   // Submit handler
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -713,6 +737,7 @@ export function GigEditorPanel({
         internal_notes: internalNotes || null,
         theme: "minimal" as const,
         gig_type: gigType || null,
+        // Use existing URLs (pending images will be uploaded in background)
         band_logo_url: bandLogoUrl || null,
         hero_image_url: heroImageUrl || null,
         accent_color: accentColor || null,
@@ -726,11 +751,90 @@ export function GigEditorPanel({
         public_slug: isEditing && gigPack?.public_slug ? gigPack.public_slug : undefined,
       };
 
+      // Save gig first (fast) - optimistic update shows it immediately
       const result = await saveGigPackMutation.mutateAsync({
         data: gigPackData,
         isEditing,
         gigId: gigPack?.id
       });
+
+      // Background image uploads - don't block the UI
+      const gigId = result?.id || gigPack?.id;
+      if (gigId && (pendingLogoFile || pendingHeroFile)) {
+        // Start uploads in background (don't await)
+        (async () => {
+          try {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const uploadPromises: Promise<void>[] = [];
+            let newLogoUrl: string | null = null;
+            let newHeroUrl: string | null = null;
+
+            // Upload logo in background
+            if (pendingLogoFile) {
+              uploadPromises.push(
+                (async () => {
+                  setIsUploadingLogo(true);
+                  const logoResult = await uploadImage(pendingLogoFile, user.id);
+                  if (!("error" in logoResult)) {
+                    newLogoUrl = logoResult.url;
+                  }
+                  setIsUploadingLogo(false);
+                })()
+              );
+            }
+
+            // Upload hero in background
+            if (pendingHeroFile) {
+              uploadPromises.push(
+                (async () => {
+                  setIsUploadingHero(true);
+                  const heroResult = await uploadImage(pendingHeroFile, user.id);
+                  if (!("error" in heroResult)) {
+                    newHeroUrl = heroResult.url;
+                  }
+                  setIsUploadingHero(false);
+                })()
+              );
+            }
+
+            // Wait for all uploads to complete
+            await Promise.all(uploadPromises);
+
+            // Update gig with image URLs if any were uploaded
+            if (newLogoUrl || newHeroUrl) {
+              const imageUpdate: Record<string, string | null> = {};
+              if (newLogoUrl) imageUpdate.band_logo_url = newLogoUrl;
+              if (newHeroUrl) imageUpdate.hero_image_url = newHeroUrl;
+
+              await updateGig(gigId, imageUpdate);
+
+              // Update local state
+              if (newLogoUrl) setBandLogoUrl(newLogoUrl);
+              if (newHeroUrl) setHeroImageUrl(newHeroUrl);
+
+              // Clear pending files and previews
+              if (logoPreviewUrl) URL.revokeObjectURL(logoPreviewUrl);
+              if (heroPreviewUrl) URL.revokeObjectURL(heroPreviewUrl);
+              setPendingLogoFile(null);
+              setPendingHeroFile(null);
+              setLogoPreviewUrl(null);
+              setHeroPreviewUrl(null);
+
+              toast({
+                title: t("uploadImage"),
+                description: "Images uploaded successfully",
+                duration: 2000,
+              });
+            }
+          } catch (error) {
+            console.error("Background image upload failed:", error);
+            // Don't show error toast - gig was saved successfully
+          }
+        })();
+      }
 
       if (isEditing) {
         if (onUpdateSuccess && result) {
@@ -960,25 +1064,16 @@ export function GigEditorPanel({
                 )}
 
                 {/* Edit mode actions */}
-                {isEditing && gigPack && (
+                {isEditing && gigPack && onDelete && (
                   <>
-                    <DropdownMenuItem
-                      onClick={() => setSaveAsTemplateOpen(true)}
-                      className="cursor-pointer"
-                    >
-                      <Bookmark className="mr-2 h-4 w-4" />
-                      {tTemplates("saveAsTemplate")}
-                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    {onDelete && (
-                      <DropdownMenuItem
-                        onClick={handleDelete}
-                        className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        {tCommon("delete")}
-                      </DropdownMenuItem>
-                    )}
+                    <DropdownMenuItem
+                      onClick={handleDelete}
+                      className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {tCommon("delete")}
+                    </DropdownMenuItem>
                   </>
                 )}
               </div>
@@ -1181,71 +1276,37 @@ export function GigEditorPanel({
           {activeTab === "lineup" && (
             <div className="space-y-3">
               {lineup.map((member, index) => (
-                <div key={index} className="flex gap-2 items-start group">
-                  {/* Changed layout: Name first (wider), then Role (dropdown), then Notes */}
-                  <div className="flex-1 flex flex-col md:flex-row gap-2">
-                    {/* Name - primary field, takes more space on desktop */}
-                    <div className="md:flex-[2]">
-                      <Input
-                        name={`lineup[${index}].name`}
-                        placeholder={t("namePlaceholder")}
-                        value={member.name || ""}
-                        onChange={(e) => updateLineupMember(index, "name", e.target.value)}
-                        disabled={isLoading}
-                        className="h-8 text-sm"
-                        autoFocus={index === lineup.length - 1 && !member.name}
-                      />
-                    </div>
-
-                    {/* Role */}
-                    <div className="md:flex-[1.5]">
-                      <RoleSelect
-                        name={`lineup[${index}].role`}
-                        value={member.role}
-                        onChange={(value) => updateLineupMember(index, "role", value)}
-                        disabled={isLoading}
-                      />
-                    </div>
-
-                    {/* Notes - optional, same as before */}
-                    <div className="md:flex-[1.5]">
-                      <Input
-                        name={`lineup[${index}].notes`}
-                        placeholder={t("notesPlaceholder")}
-                        value={member.notes || ""}
-                        onChange={(e) => updateLineupMember(index, "notes", e.target.value)}
-                        disabled={isLoading}
-                        className="h-8 text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Remove button - only show if more than 1 member */}
-                  {lineup.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeLineupMember(index)}
-                      disabled={isLoading}
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
+                <LineupMemberPill
+                  key={index}
+                  name={member.name || ""}
+                  role={member.role}
+                  notes={member.notes || ""}
+                  onNameChange={(name) => updateLineupMember(index, "name", name)}
+                  onRoleChange={(role) => updateLineupMember(index, "role", role)}
+                  onNotesChange={(notes) => updateLineupMember(index, "notes", notes)}
+                  onRemove={() => removeLineupMember(index)}
+                  disabled={isLoading}
+                  showRemove={lineup.length > 1}
+                />
               ))}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={addLineupMember}
-                disabled={isLoading}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Plus className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
-                {t("addMember")}
-              </Button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <LineupMemberSearch
+                  onSelectMember={addLineupMemberFromSearch}
+                  placeholder={t("searchMusicians")}
+                  disabled={isLoading}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={addLineupMember}
+                  disabled={isLoading}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Plus className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
+                  {t("addMember")}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -1745,24 +1806,6 @@ export function GigEditorPanel({
           {content}
         </div>
 
-        <SaveAsTemplateDialog
-          open={saveAsTemplateOpen}
-          onOpenChange={setSaveAsTemplateOpen}
-          formValues={{
-            title,
-            bandName,
-            theme: "minimal",
-            accentColor,
-            posterSkin: "clean",
-            dressCode,
-            backlineNotes,
-            parkingNotes,
-            paymentNotes,
-            packingChecklist,
-          }}
-          onSuccess={onTemplateSaved}
-        />
-
         <PasteScheduleDialog
           open={pasteScheduleOpen}
           onOpenChange={setPasteScheduleOpen}
@@ -1794,24 +1837,6 @@ export function GigEditorPanel({
           {loading && isEditing ? <EditorSkeleton /> : content}
         </SheetContent>
       </Sheet>
-
-      <SaveAsTemplateDialog
-        open={saveAsTemplateOpen}
-        onOpenChange={setSaveAsTemplateOpen}
-        formValues={{
-          title,
-          bandName,
-          theme: "minimal",
-          accentColor,
-          posterSkin: "clean",
-          dressCode,
-          backlineNotes,
-          parkingNotes,
-          paymentNotes,
-          packingChecklist,
-        }}
-        onSuccess={onTemplateSaved}
-      />
 
       <PasteScheduleDialog
         open={pasteScheduleOpen}

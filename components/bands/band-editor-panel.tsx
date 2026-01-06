@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
+import type { Json } from "@/lib/types/database";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
@@ -263,7 +264,7 @@ export function BandEditorPanel({
         hero_image_url: heroImageUrl || null,
         accent_color: accentColor || null,
         poster_skin: posterSkin,
-        default_lineup: defaultLineup,
+        default_lineup: defaultLineup as unknown as Json,
       };
 
       let rawData: any;

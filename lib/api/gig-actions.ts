@@ -143,7 +143,7 @@ export async function updateGigStatus(gigId: string, status: GigStatus): Promise
               type: 'gig_updated',
               title: `Gig confirmed: ${gig.title}`,
               message: 'This gig has been confirmed!',
-              link_url: `/gigs/${gigId}/pack`,
+              link: `/gigs/${gigId}/pack`,
               gig_id: gigId,
             });
           }
@@ -155,7 +155,7 @@ export async function updateGigStatus(gigId: string, status: GigStatus): Promise
               type: 'gig_cancelled',
               title: `Gig cancelled: ${gig.title}`,
               message: 'This gig has been cancelled',
-              link_url: `/dashboard`,
+              link: `/dashboard`,
               gig_id: gigId,
             });
           }
