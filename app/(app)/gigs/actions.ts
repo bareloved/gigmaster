@@ -6,6 +6,325 @@ import { generateSlug } from "@/lib/gigpack/utils";
 import { GigPack, LineupMember, GigScheduleItem, GigMaterial, PackingChecklistItem, SetlistSection, GigPackTheme, PosterSkin } from "@/lib/gigpack/types";
 import { createNotification } from "@/lib/api/notifications";
 import { isArchivedStatus } from "@/lib/types/shared";
+import { SupabaseClient } from "@supabase/supabase-js";
+
+// ============================================
+// HELPER FUNCTIONS FOR PARALLEL OPERATIONS
+// ============================================
+
+/**
+ * Smart merge for schedule items - only deletes removed items, upserts rest
+ */
+async function smartMergeScheduleItems(
+  supabase: SupabaseClient,
+  gigId: string,
+  newItems: GigScheduleItem[] | null | undefined
+) {
+  // Fetch existing items
+  const { data: existing } = await supabase
+    .from("gig_schedule_items")
+    .select("id")
+    .eq("gig_id", gigId);
+
+  const existingIds = new Set(existing?.map(e => e.id) || []);
+  const newIds = new Set(newItems?.filter(n => n.id).map(n => n.id) || []);
+
+  // Delete items that are no longer in the list
+  const toDelete = [...existingIds].filter(id => !newIds.has(id));
+  if (toDelete.length > 0) {
+    await supabase.from("gig_schedule_items").delete().in("id", toDelete);
+  }
+
+  // Upsert remaining items
+  if (newItems && newItems.length > 0) {
+    const toUpsert = newItems.map((item, i) => ({
+      id: item.id || undefined,
+      gig_id: gigId,
+      time: item.time || "",
+      label: item.label,
+      sort_order: i,
+    }));
+
+    const { error } = await supabase.from("gig_schedule_items").upsert(toUpsert, {
+      onConflict: "id",
+      ignoreDuplicates: false
+    });
+    if (error) throw new Error(`Failed to upsert schedule: ${error.message}`);
+  }
+}
+
+/**
+ * Smart merge for materials - only deletes removed items, upserts rest
+ */
+async function smartMergeMaterials(
+  supabase: SupabaseClient,
+  gigId: string,
+  newItems: GigMaterial[] | null | undefined
+) {
+  // Fetch existing items
+  const { data: existing } = await supabase
+    .from("gig_materials")
+    .select("id")
+    .eq("gig_id", gigId);
+
+  const existingIds = new Set(existing?.map(e => e.id) || []);
+  const newIds = new Set(newItems?.filter(n => n.id).map(n => n.id) || []);
+
+  // Delete items that are no longer in the list
+  const toDelete = [...existingIds].filter(id => !newIds.has(id));
+  if (toDelete.length > 0) {
+    await supabase.from("gig_materials").delete().in("id", toDelete);
+  }
+
+  // Upsert remaining items
+  if (newItems && newItems.length > 0) {
+    const toUpsert = newItems.map((item, i) => ({
+      id: item.id || undefined,
+      gig_id: gigId,
+      label: item.label,
+      url: item.url,
+      kind: item.kind,
+      sort_order: i,
+    }));
+
+    const { error } = await supabase.from("gig_materials").upsert(toUpsert, {
+      onConflict: "id",
+      ignoreDuplicates: false
+    });
+    if (error) throw new Error(`Failed to upsert materials: ${error.message}`);
+  }
+}
+
+/**
+ * Smart merge for packing items - only deletes removed items, upserts rest
+ */
+async function smartMergePackingItems(
+  supabase: SupabaseClient,
+  gigId: string,
+  newItems: PackingChecklistItem[] | null | undefined
+) {
+  // Fetch existing items
+  const { data: existing } = await supabase
+    .from("gig_packing_items")
+    .select("id")
+    .eq("gig_id", gigId);
+
+  const existingIds = new Set(existing?.map(e => e.id) || []);
+  const newIds = new Set(newItems?.filter(n => n.id).map(n => n.id) || []);
+
+  // Delete items that are no longer in the list
+  const toDelete = [...existingIds].filter(id => !newIds.has(id));
+  if (toDelete.length > 0) {
+    await supabase.from("gig_packing_items").delete().in("id", toDelete);
+  }
+
+  // Upsert remaining items
+  if (newItems && newItems.length > 0) {
+    const toUpsert = newItems.map((item, i) => ({
+      id: item.id || undefined,
+      gig_id: gigId,
+      label: item.label,
+      sort_order: i,
+    }));
+
+    const { error } = await supabase.from("gig_packing_items").upsert(toUpsert, {
+      onConflict: "id",
+      ignoreDuplicates: false
+    });
+    if (error) throw new Error(`Failed to upsert packing items: ${error.message}`);
+  }
+}
+
+/**
+ * Batch insert setlist sections and songs (delete existing, insert fresh)
+ * Uses batch operations instead of sequential loops
+ */
+async function handleSetlistSections(
+  supabase: SupabaseClient,
+  gigId: string,
+  sections: SetlistSection[] | null | undefined
+) {
+  // Delete existing sections (cascade deletes songs)
+  await supabase.from("setlist_sections").delete().eq("gig_id", gigId);
+
+  if (!sections || sections.length === 0) return;
+
+  // Batch insert all sections at once
+  const sectionsToInsert = sections.map((s, i) => ({
+    gig_id: gigId,
+    name: s.name,
+    sort_order: i
+  }));
+
+  const { data: insertedSections, error: sectionsError } = await supabase
+    .from("setlist_sections")
+    .insert(sectionsToInsert)
+    .select("id, sort_order");
+
+  if (sectionsError) throw new Error(`Failed to insert sections: ${sectionsError.message}`);
+
+  // Batch insert all songs at once
+  const allSongs = sections.flatMap((section, sectionIdx) => {
+    const sectionId = insertedSections?.find(s => s.sort_order === sectionIdx)?.id;
+    if (!sectionId || !section.songs || section.songs.length === 0) return [];
+
+    return section.songs.map((song, songIdx) => ({
+      section_id: sectionId,
+      title: song.title,
+      artist: song.artist || null,
+      key: song.key || null,
+      tempo: song.tempo || null,
+      notes: song.notes || null,
+      reference_url: song.referenceUrl || null,
+      sort_order: songIdx
+    }));
+  });
+
+  if (allSongs.length > 0) {
+    const { error: songsError } = await supabase.from("setlist_items").insert(allSongs);
+    if (songsError) throw new Error(`Failed to insert songs: ${songsError.message}`);
+  }
+}
+
+/**
+ * Handle gig shares - check and upsert
+ */
+async function handleGigShares(
+  supabase: SupabaseClient,
+  gigId: string,
+  slug: string
+) {
+  if (!slug) return;
+
+  const { data: existing } = await supabase
+    .from("gig_shares")
+    .select("token")
+    .eq("gig_id", gigId)
+    .single();
+
+  if (!existing) {
+    await supabase.from("gig_shares").insert({
+      gig_id: gigId,
+      token: slug,
+      is_active: true
+    });
+  } else if (existing.token !== slug) {
+    await supabase.from("gig_shares").update({ token: slug }).eq("gig_id", gigId);
+  }
+}
+
+/**
+ * Handle gig roles with smart merge (existing logic)
+ */
+async function handleGigRoles(
+  supabase: SupabaseClient,
+  gigId: string,
+  lineup: LineupMember[] | null | undefined,
+  isEditing: boolean
+) {
+  if (!lineup || lineup.length === 0) return;
+
+  if (isEditing) {
+    // When editing: don't delete existing roles (preserves musician_id, contact_id, fees, etc.)
+    // Only add NEW roles that don't already exist
+    const { data: existingRoles } = await supabase
+      .from("gig_roles")
+      .select("role_name, musician_name")
+      .eq("gig_id", gigId);
+
+    // Create set of existing role+name combinations for quick lookup
+    const existingSet = new Set(
+      (existingRoles || []).map(r => `${r.role_name}::${r.musician_name || ''}`)
+    );
+
+    // Filter to only new roles that don't exist yet
+    const newRoles = lineup.filter(member =>
+      member.role && !existingSet.has(`${member.role}::${member.name || ''}`)
+    );
+
+    if (newRoles.length > 0) {
+      const rolesToInsert = newRoles.map((member, index) => ({
+        gig_id: gigId,
+        role_name: member.role,
+        musician_name: member.name || null,
+        notes: member.notes || null,
+        sort_order: (existingRoles?.length || 0) + index,
+        invitation_status: 'pending',
+      }));
+      const { error } = await supabase.from("gig_roles").insert(rolesToInsert);
+      if (error) throw new Error(`Failed to insert roles: ${error.message}`);
+    }
+  } else {
+    // When creating new gig: insert all roles
+    const rolesToInsert = lineup.map((member, index) => ({
+      gig_id: gigId,
+      role_name: member.role,
+      musician_name: member.name || null,
+      notes: member.notes || null,
+      sort_order: index,
+      invitation_status: 'pending',
+    }));
+    const { error } = await supabase.from("gig_roles").insert(rolesToInsert);
+    if (error) throw new Error(`Failed to insert roles: ${error.message}`);
+  }
+}
+
+/**
+ * Fire-and-forget: Detect important changes and notify musicians
+ * Runs in background, doesn't block save response
+ */
+async function detectChangesAndNotify(
+  supabase: SupabaseClient,
+  gigId: string,
+  newData: Partial<GigPack>,
+  dateValue: string | undefined
+) {
+  try {
+    // Fetch current gig state to compare
+    const { data: currentGig } = await supabase
+      .from("gigs")
+      .select("title, date, call_time, on_stage_time, venue_name, location_name, venue_address, location_address")
+      .eq("id", gigId)
+      .single();
+
+    if (!currentGig) return;
+
+    const importantFieldsChanged =
+      (newData.title && newData.title !== currentGig.title) ||
+      (dateValue && new Date(dateValue).toISOString().split('T')[0] !== new Date(currentGig.date).toISOString().split('T')[0]) ||
+      (newData.call_time && newData.call_time !== currentGig.call_time) ||
+      (newData.on_stage_time && newData.on_stage_time !== currentGig.on_stage_time) ||
+      (newData.venue_name && (newData.venue_name !== currentGig.venue_name && newData.venue_name !== currentGig.location_name)) ||
+      (newData.venue_address && (newData.venue_address !== currentGig.venue_address && newData.venue_address !== currentGig.location_address));
+
+    if (!importantFieldsChanged) return;
+
+    // Fetch invited musicians
+    const { data: roles } = await supabase
+      .from('gig_roles')
+      .select('musician_id')
+      .eq('gig_id', gigId)
+      .neq('invitation_status', 'pending')
+      .not('musician_id', 'is', null);
+
+    if (!roles || roles.length === 0) return;
+
+    // Notify each musician
+    const notificationPromises = roles.map(role =>
+      createNotification({
+        user_id: role.musician_id!,
+        type: 'gig_updated',
+        title: `Gig Updated: ${newData.title || currentGig.title}`,
+        message: 'Important details (date, time, or location) have changed. Please check the gig pack.',
+        link: `/gigs/${gigId}/pack`,
+      })
+    );
+
+    await Promise.all(notificationPromises);
+  } catch (err) {
+    console.error("Failed to send update notifications:", err);
+  }
+}
 
 export async function getGig(id: string): Promise<GigPack | null> {
   const supabase = await createClient();
@@ -120,19 +439,6 @@ export async function saveGigPack(
   let publicSlug = data.public_slug || "";
 
   try {
-    // For existing gigs, fetch the current slug if not provided
-    if (isEditing && gigId && !publicSlug) {
-      const { data: existingShare } = await supabase
-        .from("gig_shares")
-        .select("token")
-        .eq("gig_id", gigId)
-        .single();
-
-      if (existingShare?.token) {
-        publicSlug = existingShare.token;
-      }
-    }
-
     // Convert date string to full ISO timestamp if provided
     let dateValue: string | undefined = undefined;
     if (data.date) {
@@ -144,55 +450,12 @@ export async function saveGigPack(
       }
     }
 
-    // Check for changes and notify musicians if needed (only when editing)
-    if (isEditing && gigId) {
-      // Fetch current gig state to compare
-      const { data: currentGig } = await supabase
-        .from("gigs")
-        .select("title, date, call_time, on_stage_time, venue_name, location_name, venue_address, location_address")
-        .eq("id", gigId)
-        .single();
-
-      if (currentGig) {
-        const importantFieldsChanged =
-          (data.title && data.title !== currentGig.title) ||
-          (dateValue && new Date(dateValue).toISOString().split('T')[0] !== new Date(currentGig.date).toISOString().split('T')[0]) || // Compare dates only
-          (data.call_time && data.call_time !== currentGig.call_time) ||
-          (data.on_stage_time && data.on_stage_time !== currentGig.on_stage_time) ||
-          (data.venue_name && (data.venue_name !== currentGig.venue_name && data.venue_name !== currentGig.location_name)) ||
-          (data.venue_address && (data.venue_address !== currentGig.venue_address && data.venue_address !== currentGig.location_address));
-
-        if (importantFieldsChanged) {
-          // Fetch invited musicians
-          const { data: roles } = await supabase
-            .from('gig_roles')
-            .select('musician_id')
-            .eq('gig_id', gigId)
-            .neq('invitation_status', 'pending')
-            .not('musician_id', 'is', null);
-
-          if (roles && roles.length > 0) {
-            // Notify each musician
-            const notificationPromises = roles.map(role =>
-              createNotification({
-                user_id: role.musician_id!,
-                type: 'gig_updated',
-                title: `Gig Updated: ${data.title || currentGig.title}`,
-                message: 'Important details (date, time, or location) have changed. Please check the gig pack.',
-                link: `/gigs/${gigId}/pack`, // Assuming this is the correct link for the new pack view, or /p/{slug}
-              })
-            );
-
-            // Execute all notifications (don't await to avoid slowing down the response)
-            Promise.all(notificationPromises).catch(err =>
-              console.error("Failed to send update notifications:", err)
-            );
-          }
-        }
-      }
+    // Prepare slug for new gigs
+    if (!publicSlug) {
+      publicSlug = generateSlug(data.title);
     }
 
-    // 1. Upsert Gig
+    // 1. Upsert Gig (must complete before related items)
     const gigData = {
       title: data.title,
       date: dateValue || new Date().toISOString(),
@@ -222,11 +485,6 @@ export async function saveGigPack(
       updated_at: new Date().toISOString(),
     };
 
-    // Prepare slug for new gigs
-    if (!publicSlug) {
-      publicSlug = generateSlug(data.title);
-    }
-
     if (isEditing && gigId) {
       const { error } = await supabase
         .from("gigs")
@@ -248,145 +506,22 @@ export async function saveGigPack(
 
     if (!finalGigId) throw new Error("Failed to get gig ID");
 
-    // 2. Handle Related Items (Delete all and insert new)
-    // This is not efficient but safe for full sync logic of the editor.
+    // 2. Handle all related items IN PARALLEL for maximum performance
+    // Smart merge preserves IDs, only deletes removed items, upserts the rest
+    await Promise.all([
+      handleGigRoles(supabase, finalGigId, data.lineup, isEditing),
+      smartMergeScheduleItems(supabase, finalGigId, data.schedule),
+      smartMergeMaterials(supabase, finalGigId, data.materials),
+      smartMergePackingItems(supabase, finalGigId, data.packing_checklist),
+      handleSetlistSections(supabase, finalGigId, data.setlist_structured),
+      handleGigShares(supabase, finalGigId, publicSlug),
+    ]);
 
-    // Roles / Lineup - Smart merge to preserve rich metadata while allowing new additions
-    if (data.lineup && data.lineup.length > 0) {
-      if (isEditing) {
-        // When editing: don't delete existing roles (preserves musician_id, contact_id, fees, etc.)
-        // Only add NEW roles that don't already exist
-        const { data: existingRoles } = await supabase
-          .from("gig_roles")
-          .select("role_name, musician_name")
-          .eq("gig_id", finalGigId);
-
-        // Create set of existing role+name combinations for quick lookup
-        const existingSet = new Set(
-          (existingRoles || []).map(r => `${r.role_name}::${r.musician_name || ''}`)
-        );
-
-        // Filter to only new roles that don't exist yet
-        const newRoles = data.lineup.filter(member =>
-          member.role && !existingSet.has(`${member.role}::${member.name || ''}`)
-        );
-
-        if (newRoles.length > 0) {
-          const rolesToInsert = newRoles.map((member, index) => ({
-            gig_id: finalGigId!,
-            role_name: member.role,
-            musician_name: member.name || null,
-            notes: member.notes || null,
-            sort_order: (existingRoles?.length || 0) + index,
-            invitation_status: 'pending',
-          }));
-          const { error: rolesError } = await supabase.from("gig_roles").insert(rolesToInsert);
-          if (rolesError) throw new Error(`Failed to insert roles: ${rolesError.message}`);
-        }
-      } else {
-        // When creating new gig: insert all roles
-        const rolesToInsert = data.lineup.map((member, index) => ({
-          gig_id: finalGigId!,
-          role_name: member.role,
-          musician_name: member.name || null,
-          notes: member.notes || null,
-          sort_order: index,
-          invitation_status: 'pending',
-        }));
-        const { error: rolesError } = await supabase.from("gig_roles").insert(rolesToInsert);
-        if (rolesError) throw new Error(`Failed to insert roles: ${rolesError.message}`);
-      }
-    }
-
-    // Schedule
-    await supabase.from("gig_schedule_items").delete().eq("gig_id", finalGigId);
-    if (data.schedule && data.schedule.length > 0) {
-      const scheduleToInsert = data.schedule.map((item, index) => ({
-        gig_id: finalGigId!,
-        time: item.time || "",
-        label: item.label,
-        sort_order: index,
-      }));
-      const { error: scheduleError } = await supabase.from("gig_schedule_items").insert(scheduleToInsert);
-      if (scheduleError) throw new Error(`Failed to insert schedule: ${scheduleError.message}`);
-    }
-
-    // Materials
-    await supabase.from("gig_materials").delete().eq("gig_id", finalGigId);
-    if (data.materials && data.materials.length > 0) {
-      const materialsToInsert = data.materials.map((item, index) => ({
-        gig_id: finalGigId!,
-        label: item.label,
-        url: item.url,
-        kind: item.kind,
-        sort_order: index,
-      }));
-      const { error: materialsError } = await supabase.from("gig_materials").insert(materialsToInsert);
-      if (materialsError) throw new Error(`Failed to insert materials: ${materialsError.message}`);
-    }
-
-    // Packing Checklist
-    await supabase.from("gig_packing_items").delete().eq("gig_id", finalGigId);
-    if (data.packing_checklist && data.packing_checklist.length > 0) {
-      const packingToInsert = data.packing_checklist.map((item, index) => ({
-        gig_id: finalGigId!,
-        label: item.label,
-        sort_order: index,
-      }));
-      const { error: packingError } = await supabase.from("gig_packing_items").insert(packingToInsert);
-      if (packingError) throw new Error(`Failed to insert packing items: ${packingError.message}`);
-    }
-
-    // Setlist Structured (Optional - if we want to use sections)
-    if (data.setlist_structured && data.setlist_structured.length > 0) {
-      // Delete existing sections (cascade deletes items)
-      await supabase.from("setlist_sections").delete().eq("gig_id", finalGigId);
-
-      for (const [sectionIndex, section] of data.setlist_structured.entries()) {
-        const { data: sectionData, error: sectionError } = await supabase
-          .from("setlist_sections")
-          .insert({
-            gig_id: finalGigId!,
-            name: section.name,
-            sort_order: sectionIndex
-          })
-          .select("id")
-          .single();
-
-        if (sectionError || !sectionData) continue;
-
-        if (section.songs && section.songs.length > 0) {
-          const songsToInsert = section.songs.map((song, songIndex) => ({
-            section_id: sectionData.id,
-            title: song.title,
-            artist: song.artist || null,
-            key: song.key || null,
-            tempo: song.tempo || null,
-            notes: song.notes || null,
-            sort_order: songIndex
-          }));
-          await supabase.from("setlist_items").insert(songsToInsert);
-        }
-      }
-    }
-
-    // Public Share Token (ensure it exists)
-    if (publicSlug) {
-      const { data: existingShare } = await supabase
-        .from("gig_shares")
-        .select("token")
-        .eq("gig_id", finalGigId)
-        .single();
-
-      if (!existingShare) {
-        await supabase.from("gig_shares").insert({
-          gig_id: finalGigId,
-          token: publicSlug,
-          is_active: true
-        });
-      } else if (existingShare.token !== publicSlug) {
-        await supabase.from("gig_shares").update({ token: publicSlug }).eq("gig_id", finalGigId);
-      }
+    // 3. Fire-and-forget: Detect changes and notify musicians (doesn't block response)
+    if (isEditing && gigId) {
+      detectChangesAndNotify(supabase, gigId, data, dateValue).catch(err =>
+        console.error("Background notification error:", err)
+      );
     }
 
     revalidatePath("/gigs");
