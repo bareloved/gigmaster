@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Ensemble** is a gig management platform for musicians. It tracks projects (bands/acts), gigs, lineups, setlists, files, payments, and invitations. Built with Next.js 15 (App Router), React 19, TypeScript, Supabase, and TanStack Query.
 
-**Current Status:** 22 steps complete, production-ready with invitations, calendar integration, notifications, and payment tracking.
+**Current Status:** Not yet production-ready, some of the features we're working on are: invitations, calendar integration, notifications, and payment tracking.
 
 ## Working With Me
 
@@ -39,7 +39,11 @@ npm run check        # Lint + TypeScript check (no emit)
 - See `.cursorrules` for mandatory database safety protocols
 
 ### Testing
-No test framework currently installed. Manual testing in browser.
+```bash
+npm test              # Run tests in watch mode
+npm run test:run      # Run all tests once
+npm run test:coverage # Run with coverage report
+```
 
 ## Architecture Overview
 
@@ -48,6 +52,7 @@ No test framework currently installed. Manual testing in browser.
 - **UI:** Tailwind CSS, shadcn/ui components
 - **Backend:** Supabase (Postgres, Auth, Storage, Realtime)
 - **State:** TanStack Query v5 for server state, React Context for auth
+- **Testing:** Vitest, React Testing Library, happy-dom
 - **Future:** Expo React Native mobile companion app
 
 ### Hybrid Performance Architecture
@@ -93,6 +98,13 @@ No test framework currently installed. Manual testing in browser.
 /components
   /ui               # shadcn/ui components
   [feature].tsx     # Feature-specific components
+
+/tests               # Vitest test suite
+  /api              # API function tests
+  /components       # Component tests
+  /fixtures         # Mock data
+  /mocks            # Supabase mock factory
+  /utils            # Test utilities
 
 /docs                # Comprehensive project documentation
 ```
@@ -361,10 +373,11 @@ All foreign keys have indexes. Key performance indexes:
 2. **Database changes** - Create migration, apply via Supabase Dashboard
 3. **Types** - Update `database.ts` and `shared.ts`
 4. **API functions** - Add to `/lib/api/[feature].ts`
-5. **UI components** - Create feature components
-6. **Page integration** - Wire up to existing pages
-7. **Test** - Manual testing in browser
-8. **Document** - Add to `docs/build-process/`
+5. **Write tests** - Add API tests in `tests/api/`, component tests in `tests/components/`
+6. **UI components** - Create feature components
+7. **Page integration** - Wire up to existing pages
+8. **Test** - Run `npm run test:run` + manual browser testing
+9. **Document** - Add to `docs/build-process/`
 
 ### Modifying Database Schema
 
@@ -407,14 +420,103 @@ Two-way understanding:
 
 Conflict detection checks both Ensemble gigs AND Google Calendar events.
 
-## Testing Notes
+## Testing
 
-**No automated tests currently.** Manual testing workflow:
+### Framework: Vitest + React Testing Library
+
+**Stack:** Vitest (test runner), React Testing Library (component testing), happy-dom (fast DOM environment)
+
+### Test Structure
+
+```
+tests/
+├── setup.ts              # Global test setup, Next.js mocks
+├── mocks/
+│   └── supabase.ts       # Chainable Supabase mock factory
+├── fixtures/
+│   ├── gigs.ts           # Mock gig, role, contact data
+│   └── users.ts          # Mock user, profile data
+├── utils/
+│   └── render.tsx        # Custom render with providers
+├── api/                  # API layer tests
+│   ├── gigs.test.ts
+│   ├── gig-roles.test.ts
+│   └── gig-invitations.test.ts
+└── components/           # Component tests
+    ├── roles/
+    └── shared/
+```
+
+### Writing API Tests
+
+Mock the Supabase client with the chainable mock factory:
+
+```typescript
+import { createChainableMock } from "../mocks/supabase";
+
+vi.mock("@/lib/supabase/client");
+
+beforeEach(() => {
+  vi.mocked(createClient).mockReturnValue(mockSupabase as any);
+});
+
+it("should fetch data", async () => {
+  mockSupabase.from.mockReturnValue(
+    createChainableMock({ data: mockGig, error: null })
+  );
+
+  const result = await getGig("test-id");
+  expect(result).toEqual(mockGig);
+});
+```
+
+### Writing Component Tests
+
+Use the custom render with QueryClientProvider:
+
+```typescript
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+
+// Mock API functions
+vi.mock("@/lib/api/gig-roles", () => ({
+  updateRole: vi.fn(),
+}));
+
+// Mock user provider
+vi.mock("@/lib/providers/user-provider", () => ({
+  useUser: () => ({ user: { id: "test-user" }, profile: { name: "Test" } }),
+}));
+
+it("should submit form", async () => {
+  render(<MyComponent />);
+
+  // Use fireEvent.submit for forms (more reliable than clicking submit button)
+  const form = screen.getByRole("dialog").querySelector("form")!;
+  fireEvent.submit(form);
+
+  await waitFor(() => {
+    expect(updateRole).toHaveBeenCalled();
+  });
+});
+```
+
+### Key Testing Patterns
+
+1. **Form submissions** - Use `fireEvent.submit(form)` instead of clicking submit buttons (more reliable with React Hook Form)
+2. **Async queries** - Always wrap in `waitFor()` for TanStack Query data
+3. **Currency formatting** - Remember `formatCurrency()` adds 2 decimal places (e.g., "₪500.00")
+4. **User mocking** - Mock `useUser` hook to provide consistent user context
+5. **Supabase mocking** - Use chainable mock that supports `.from().select().eq().single()` patterns
+
+### Manual Testing Checklist
+
+In addition to automated tests:
 
 1. Build succeeds (`npm run build`)
 2. Lint passes (`npm run lint`)
 3. TypeScript checks pass (`npm run check`)
-4. Manual browser testing for all user flows
+4. Manual browser testing for critical user flows
 5. Test with multiple user accounts for RLS verification
 6. Test on mobile viewport for responsive design
 
@@ -478,9 +580,8 @@ See `lib/README.md` and `docs/mobile-integration-guide.md` for details.
 1. **No recurring events** - Calendar import treats each instance separately
 2. **Single currency** - ILS only (field ready for multi-currency)
 3. **No email preferences** - Users can't toggle notification types
-4. **No automated tests** - Manual testing only
-5. **No file uploads** - External links only (Google Drive, Dropbox, etc.)
-6. **Limited search** - Basic `ilike` pattern matching (no full-text yet)
+4. **No file uploads** - External links only (Google Drive, Dropbox, etc.)
+5. **Limited search** - Basic `ilike` pattern matching (no full-text yet)
 
 ## Getting Help
 
@@ -490,13 +591,5 @@ See `lib/README.md` and `docs/mobile-integration-guide.md` for details.
 - **Database issues:** `docs/agent-protocols/database-safety.md`
 
 ## Recent Major Changes
-
-- **Step 22 (Nov 20, 2024):** Money View v1 with earnings & payouts
-- **Step 21 (Nov 20, 2024):** Profile avatar upload + Google OAuth extraction
-- **Step 20 (Nov 19, 2024):** Unified user search (command palette pattern)
-- **Step 19 (Nov 18, 2024):** Real-time in-app notifications
-- **Steps 15-17 (Nov 18, 2024):** Full calendar integration (ICS + Google OAuth)
-- **Step 14 (Nov 17, 2024):** "My Circle" contacts system with auto-linking
-- **Step 13 (Nov 16, 2024):** Invitation system with email/WhatsApp
 
 See `BUILD_STEPS.md` for complete history.
