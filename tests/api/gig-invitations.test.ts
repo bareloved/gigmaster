@@ -579,7 +579,8 @@ describe("Gig Invitations API", () => {
       const result = await getGigInvitations("test-gig-id");
 
       expect(result).toHaveLength(2);
-      expect(result[0].gig_roles).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((result[0] as any).gig_roles).toBeDefined();
       expect(mockSupabase.from).toHaveBeenCalledWith("gig_invitations");
     });
 

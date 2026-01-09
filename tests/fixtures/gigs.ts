@@ -69,8 +69,9 @@ export const mockGigRole: GigRole = {
   sort_order: 0,
   status_changed_at: null,
   status_changed_by: null,
-  created_at: "2024-01-01T00:00:00Z",
-  updated_at: "2024-01-01T00:00:00Z",
+  status: null,
+  user_id: null,
+  is_paid: false,
 };
 
 /**
@@ -134,6 +135,9 @@ export const mockContact = {
   last_worked_date: "2024-11-01",
   created_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-01T00:00:00Z",
+  gigsCount: 5,
+  mostCommonRole: "Keys",
+  notes: null,
 };
 
 /**
@@ -145,4 +149,6 @@ export const mockSystemUser = {
   email: "alice@example.com",
   avatar_url: "https://example.com/avatar.jpg",
   main_instrument: "Drums",
+  phone: null,
+  created_at: "2024-01-01T00:00:00Z",
 };
