@@ -2,7 +2,8 @@
 
 import { useUser } from "@/lib/providers/user-provider";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getMyPendingInvitations, getMyDeclinedInvitations, updateMyInvitationStatus, checkIfRoleReplaced } from "@/lib/api/gig-roles";
+import { getMyPendingInvitations, getMyDeclinedInvitations, updateMyInvitationStatus } from "@/lib/api/gig-roles";
+import type { GigRole } from "@/lib/types/shared";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -59,56 +60,143 @@ export default function InvitationsPage() {
     staleTime: 1000 * 60 * 2,
   });
   
-  // Re-accept mutation
+  // Re-accept mutation (for declined invitations) - INSTANT UI with optimistic update
   const reacceptMutation = useMutation({
     mutationFn: async (roleId: string) => {
-      // Check if role was replaced
-      const isReplaced = await checkIfRoleReplaced(roleId);
-      if (isReplaced) {
-        throw new Error("This spot has already been filled. Ask the host if they want to re-invite you.");
-      }
-      
-      // Accept the role
+      // Accept the role - backend handles replacement check
       await updateMyInvitationStatus(roleId, 'accepted');
+    },
+    onMutate: async (roleId) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ["declined-invitations", user?.id] });
+
+      // Snapshot for rollback
+      const previousDeclined = queryClient.getQueryData<GigRole[]>(
+        ["declined-invitations", user?.id]
+      );
+
+      // Instantly remove from declined list
+      if (previousDeclined) {
+        queryClient.setQueryData(
+          ["declined-invitations", user?.id],
+          previousDeclined.filter(role => role.id !== roleId)
+        );
+      }
+
+      return { previousDeclined };
     },
     onSuccess: () => {
       toast.success("You're now playing this gig.");
-      queryClient.invalidateQueries({ queryKey: ["declined-invitations"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-gigs"] });
-      queryClient.invalidateQueries({ queryKey: ["player-gigs"] });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _roleId, context) => {
+      // Rollback on error
+      if (context?.previousDeclined) {
+        queryClient.setQueryData(
+          ["declined-invitations", user?.id],
+          context.previousDeclined
+        );
+      }
       toast.error(error.message || "Failed to accept invitation");
     },
   });
   
-  // Decline mutation for pending invitations
+  // Decline mutation for pending invitations - INSTANT UI with optimistic update
   const declineMutation = useMutation({
     mutationFn: async (roleId: string) => {
       await updateMyInvitationStatus(roleId, 'declined');
     },
+    onMutate: async (roleId) => {
+      // Cancel any outgoing refetches
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: ["pending-invitations", user?.id] }),
+        queryClient.cancelQueries({ queryKey: ["declined-invitations", user?.id] }),
+      ]);
+
+      // Snapshot both lists for rollback
+      const previousPending = queryClient.getQueryData<GigRole[]>(
+        ["pending-invitations", user?.id]
+      );
+      const previousDeclined = queryClient.getQueryData<GigRole[]>(
+        ["declined-invitations", user?.id]
+      );
+
+      // Find the role being declined
+      const declinedRole = previousPending?.find(role => role.id === roleId);
+
+      // Instantly remove from pending
+      if (previousPending) {
+        queryClient.setQueryData(
+          ["pending-invitations", user?.id],
+          previousPending.filter(role => role.id !== roleId)
+        );
+      }
+
+      // Instantly add to declined (if we found the role)
+      if (declinedRole && previousDeclined) {
+        queryClient.setQueryData(
+          ["declined-invitations", user?.id],
+          [declinedRole, ...previousDeclined]
+        );
+      }
+
+      return { previousPending, previousDeclined };
+    },
     onSuccess: () => {
       toast.info("You declined this gig. You can still find it under 'Invites → Declined' if you change your mind.");
-      queryClient.invalidateQueries({ queryKey: ["pending-invitations"] });
-      queryClient.invalidateQueries({ queryKey: ["declined-invitations"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-gigs"] });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _roleId, context) => {
+      // Rollback both lists on error
+      if (context?.previousPending) {
+        queryClient.setQueryData(
+          ["pending-invitations", user?.id],
+          context.previousPending
+        );
+      }
+      if (context?.previousDeclined) {
+        queryClient.setQueryData(
+          ["declined-invitations", user?.id],
+          context.previousDeclined
+        );
+      }
       toast.error(error.message || "Failed to decline invitation");
     },
   });
   
-  // Accept mutation for pending invitations
+  // Accept mutation for pending invitations - INSTANT UI with optimistic update
   const acceptMutation = useMutation({
     mutationFn: async (roleId: string) => {
       await updateMyInvitationStatus(roleId, 'accepted');
     },
+    onMutate: async (roleId) => {
+      // Cancel any outgoing refetches to prevent overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ["pending-invitations", user?.id] });
+
+      // Snapshot current state for rollback
+      const previousPending = queryClient.getQueryData<GigRole[]>(
+        ["pending-invitations", user?.id]
+      );
+
+      // Instantly remove from pending list
+      if (previousPending) {
+        queryClient.setQueryData(
+          ["pending-invitations", user?.id],
+          previousPending.filter(role => role.id !== roleId)
+        );
+      }
+
+      return { previousPending };
+    },
     onSuccess: () => {
       toast.success("Invitation accepted!");
-      queryClient.invalidateQueries({ queryKey: ["pending-invitations"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-gigs"] });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _roleId, context) => {
+      // Rollback on error
+      if (context?.previousPending) {
+        queryClient.setQueryData(
+          ["pending-invitations", user?.id],
+          context.previousPending
+        );
+      }
       toast.error(error.message || "Failed to accept invitation");
     },
   });

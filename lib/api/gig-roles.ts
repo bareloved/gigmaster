@@ -220,6 +220,11 @@ export async function searchMusicianNames(query: string = ""): Promise<MusicianS
 /**
  * Update player's invitation status from their perspective
  * Keeps declined status as 'declined' for proper tracking
+ *
+ * PERFORMANCE: Optimized to minimize DB round-trips
+ * - Single query to fetch role + gig data for validation
+ * - Parallel operations where possible
+ * - Fire-and-forget for non-critical operations (history, notifications)
  */
 export async function updateMyInvitationStatus(
   roleId: string,
@@ -229,47 +234,13 @@ export async function updateMyInvitationStatus(
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
-  
-  // Check if this role belongs to current user
+
+  // Single query: fetch role with all data needed for validation AND notification
   const { data: role, error: fetchError } = await supabase
     .from('gig_roles')
-    .select('musician_id, invitation_status')
-    .eq('id', roleId)
-    .single();
-    
-  if (fetchError || !role) {
-    throw new Error('Role not found');
-  }
-  
-  if (role.musician_id !== user.id) {
-    throw new Error('Not authorized to update this role');
-  }
-  
-  const oldStatus = role.invitation_status;
-  
-  // Update role status
-  const { error: updateError } = await supabase
-    .from('gig_roles')
-    .update({
-      invitation_status: status,
-      status_changed_at: new Date().toISOString(),
-      status_changed_by: user.id,
-    })
-    .eq('id', roleId);
-    
-  if (updateError) {
-    console.error('Error updating role status:', updateError);
-    throw new Error('Failed to update status');
-  }
-  
-  // Record status change history
-  await recordStatusChange(roleId, oldStatus, status, user.id, notes);
-  
-  // Get gig details and notify manager about status change
-  const { data: gigData } = await supabase
-    .from('gig_roles')
     .select(`
-      gig_id,
+      musician_id,
+      invitation_status,
       role_name,
       gigs!inner (
         id,
@@ -279,54 +250,113 @@ export async function updateMyInvitationStatus(
     `)
     .eq('id', roleId)
     .single();
-    
-  if (gigData) {
-    const gig = gigData.gigs as any;
-    const managerId = gig?.owner_id;
-    
-    // Get current user's name
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('name')
-      .eq('id', user.id)
-      .single();
-    
-    const userName = profile?.name || 'A musician';
-    
-    // Notify manager based on status change (if we have a manager ID)
-    if (managerId) {
-      if (status === 'accepted') {
-        await createNotification({
-          user_id: managerId,
-          type: 'status_changed',
-          title: `${userName} accepted`,
-          message: `${userName} accepted their role as ${gigData.role_name} in ${gig.title}`,
-          link: `/gigs/${gig.id}`,
-          gig_id: gig.id,
-          gig_role_id: roleId,
-        });
-      } else if (status === 'declined') {
-        await createNotification({
-          user_id: managerId,
-          type: 'status_changed',
-          title: `${userName} declined`,
-          message: `${userName} declined their role as ${gigData.role_name} in ${gig.title}`,
-          link: `/gigs/${gig.id}`,
-          gig_id: gig.id,
-          gig_role_id: roleId,
-        });
-      } else if (status === 'needs_sub') {
-        await createNotification({
-          user_id: managerId,
-          type: 'status_changed',
-          title: `${userName} needs a sub`,
-          message: `${userName} needs a sub for their role as ${gigData.role_name} in ${gig.title}`,
-          link: `/gigs/${gig.id}`,
-          gig_id: gig.id,
-          gig_role_id: roleId,
-        });
-      }
-    }
+
+  if (fetchError || !role) {
+    throw new Error('Role not found');
+  }
+
+  if (role.musician_id !== user.id) {
+    throw new Error('Not authorized to update this role');
+  }
+
+  // Check if role was replaced (for re-accept flow)
+  if (role.invitation_status === 'replaced') {
+    throw new Error("This spot has already been filled. Ask the host if they want to re-invite you.");
+  }
+
+  const oldStatus = role.invitation_status;
+  const gig = role.gigs as { id: string; title: string; owner_id: string };
+
+  // Update role status - this is the critical operation
+  const { error: updateError } = await supabase
+    .from('gig_roles')
+    .update({
+      invitation_status: status,
+      status_changed_at: new Date().toISOString(),
+      status_changed_by: user.id,
+    })
+    .eq('id', roleId);
+
+  if (updateError) {
+    console.error('Error updating role status:', updateError);
+    throw new Error('Failed to update status');
+  }
+
+  // FIRE-AND-FORGET: Record history and notify manager asynchronously
+  // These don't block the user response
+  notifyManagerAsync(supabase, {
+    roleId,
+    roleName: role.role_name,
+    gig,
+    userId: user.id,
+    oldStatus,
+    newStatus: status,
+    notes,
+  }).catch(err => {
+    console.error('Background notification failed:', err);
+  });
+}
+
+/**
+ * Background function to handle status history and manager notifications
+ * Runs async to not block the user response
+ */
+async function notifyManagerAsync(
+  supabase: ReturnType<typeof createClient>,
+  params: {
+    roleId: string;
+    roleName: string;
+    gig: { id: string; title: string; owner_id: string };
+    userId: string;
+    oldStatus: string | null;
+    newStatus: string;
+    notes?: string;
+  }
+): Promise<void> {
+  const { roleId, roleName, gig, userId, oldStatus, newStatus, notes } = params;
+  const managerId = gig.owner_id;
+
+  // Run history recording and profile fetch in parallel
+  const [, profileResult] = await Promise.all([
+    // Record status change history
+    recordStatusChange(roleId, oldStatus, newStatus, userId, notes),
+    // Get user's name for notification
+    supabase.from('profiles').select('name').eq('id', userId).single(),
+  ]);
+
+  const userName = profileResult.data?.name || 'A musician';
+
+  // Only notify manager if they exist and status warrants it
+  if (!managerId) return;
+
+  let notificationData: { title: string; message: string } | null = null;
+
+  if (newStatus === 'accepted') {
+    notificationData = {
+      title: `${userName} accepted`,
+      message: `${userName} accepted their role as ${roleName} in ${gig.title}`,
+    };
+  } else if (newStatus === 'declined') {
+    notificationData = {
+      title: `${userName} declined`,
+      message: `${userName} declined their role as ${roleName} in ${gig.title}`,
+    };
+  } else if (newStatus === 'needs_sub') {
+    notificationData = {
+      title: `${userName} needs a sub`,
+      message: `${userName} needs a sub for their role as ${roleName} in ${gig.title}`,
+    };
+  }
+
+  if (notificationData) {
+    await createNotification({
+      user_id: managerId,
+      type: 'status_changed',
+      ...notificationData,
+      link: `/gigs/${gig.id}`,
+      gig_id: gig.id,
+      gig_role_id: roleId,
+    });
   }
 }
 
