@@ -443,7 +443,7 @@ export async function acceptMultipleInvitations(
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
-  
+
   // Update all roles
   const { error } = await supabase
     .from('gig_roles')
@@ -454,18 +454,72 @@ export async function acceptMultipleInvitations(
     })
     .in('id', roleIds)
     .eq('musician_id', user.id);
-    
+
   if (error) {
     console.error('Error accepting invitations:', error);
     throw new Error('Failed to accept invitations');
   }
-  
+
   // Record history for each (in parallel)
   await Promise.all(
-    roleIds.map(roleId => 
+    roleIds.map(roleId =>
       recordStatusChange(roleId, 'invited', 'accepted', user.id, 'Bulk accept')
     )
   );
+
+  // Notify managers about each acceptance (fire-and-forget)
+  try {
+    // Get role details with gig info
+    const { data: roles } = await supabase
+      .from('gig_roles')
+      .select(`
+        id,
+        role_name,
+        gigs!inner (id, title, owner_id)
+      `)
+      .in('id', roleIds);
+
+    if (roles && roles.length > 0) {
+      // Get user name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+
+      const userName = profile?.name || 'A musician';
+
+      // Group by manager to avoid duplicate notifications
+      const managerNotifications = new Map<string, { gig: any; roles: string[] }>();
+
+      for (const role of roles) {
+        const gig = role.gigs as any;
+        const managerId = gig?.owner_id;
+        if (managerId && managerId !== user.id) {
+          if (!managerNotifications.has(managerId)) {
+            managerNotifications.set(managerId, { gig, roles: [] });
+          }
+          managerNotifications.get(managerId)!.roles.push(role.role_name);
+        }
+      }
+
+      // Send notifications
+      for (const [managerId, data] of managerNotifications) {
+        const rolesList = data.roles.join(', ');
+        await createNotification({
+          user_id: managerId,
+          type: 'status_changed',
+          title: `${userName} accepted`,
+          message: `${userName} accepted their roles (${rolesList}) in ${data.gig.title}`,
+          link: `/gigs/${data.gig.id}`,
+          gig_id: data.gig.id,
+        });
+      }
+    }
+  } catch (notifyError) {
+    console.error('Error notifying managers about bulk acceptance:', notifyError);
+    // Don't fail - notifications are secondary
+  }
 }
 
 /**
@@ -555,7 +609,7 @@ export async function addSystemUserToGig(data: {
 }): Promise<GigRole> {
   const supabase = createClient();
 
-  // Insert the role with musician_id already set
+  // Insert the role with musician_id already set and status 'invited'
   const { data: role, error } = await supabase
     .from('gig_roles')
     .insert({
@@ -564,7 +618,7 @@ export async function addSystemUserToGig(data: {
       musician_name: data.userName,
       role_name: data.roleName,
       agreed_fee: data.agreedFee,
-      invitation_status: 'pending', // Manager must click "Invite All" to send invitations
+      invitation_status: 'invited', // Notify user immediately when added
       payment_status: 'pending',
     })
     .select()
@@ -572,8 +626,23 @@ export async function addSystemUserToGig(data: {
 
   if (error) throw new Error(error.message || 'Failed to add user to gig');
 
-  // NOTE: Notification will be sent when manager clicks "Invite All"
-  // Do NOT send notification here - user should not be notified until invitations are sent
+  // Fetch gig title for notification
+  const { data: gig } = await supabase
+    .from('gigs')
+    .select('title')
+    .eq('id', data.gigId)
+    .single();
+
+  // Send notification to the invited user
+  await createNotification({
+    user_id: data.userId,
+    type: 'invitation_received',
+    title: `Invitation: ${gig?.title || 'New Gig'}`,
+    message: `You've been invited as ${data.roleName}`,
+    link: `/gigs/${data.gigId}/pack`,
+    gig_id: data.gigId,
+    gig_role_id: role.id,
+  });
 
   return role;
 }

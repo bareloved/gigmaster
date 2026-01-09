@@ -343,12 +343,54 @@ export async function acceptInvitation(token: string): Promise<void> {
   
   // Record status change in history
   await recordStatusChange(
-    invitation.gig_role_id, 
-    'invited', 
-    'accepted', 
+    invitation.gig_role_id,
+    'invited',
+    'accepted',
     user.id,
     'Accepted via email invitation'
   );
+
+  // Notify the gig manager about the acceptance
+  try {
+    const { data: roleData } = await supabase
+      .from('gig_roles')
+      .select(`
+        gig_id,
+        role_name,
+        gigs!inner (id, title, owner_id)
+      `)
+      .eq('id', invitation.gig_role_id)
+      .single();
+
+    if (roleData) {
+      const gig = roleData.gigs as any;
+      const managerId = gig?.owner_id;
+
+      // Get user name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+
+      const userName = profile?.name || 'A musician';
+
+      if (managerId && managerId !== user.id) {
+        await createNotification({
+          user_id: managerId,
+          type: 'status_changed',
+          title: `${userName} accepted`,
+          message: `${userName} accepted their role as ${roleData.role_name} in ${gig.title}`,
+          link: `/gigs/${gig.id}`,
+          gig_id: gig.id,
+          gig_role_id: invitation.gig_role_id,
+        });
+      }
+    }
+  } catch (notifyError) {
+    console.error('Error notifying manager about acceptance:', notifyError);
+    // Don't fail the acceptance - notification is secondary
+  }
 }
 
 /**
@@ -412,6 +454,48 @@ export async function declineInvitation(
     user.id,
     reason || 'Declined via email invitation'
   );
+
+  // Notify the gig manager about the decline
+  try {
+    const { data: roleData } = await supabase
+      .from('gig_roles')
+      .select(`
+        gig_id,
+        role_name,
+        gigs!inner (id, title, owner_id)
+      `)
+      .eq('id', invitation.gig_role_id)
+      .single();
+
+    if (roleData) {
+      const gig = roleData.gigs as any;
+      const managerId = gig?.owner_id;
+
+      // Get user name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+
+      const userName = profile?.name || 'A musician';
+
+      if (managerId && managerId !== user.id) {
+        await createNotification({
+          user_id: managerId,
+          type: 'status_changed',
+          title: `${userName} needs a sub`,
+          message: `${userName} declined their role as ${roleData.role_name} in ${gig.title}`,
+          link: `/gigs/${gig.id}`,
+          gig_id: gig.id,
+          gig_role_id: invitation.gig_role_id,
+        });
+      }
+    }
+  } catch (notifyError) {
+    console.error('Error notifying manager about decline:', notifyError);
+    // Don't fail the decline - notification is secondary
+  }
 }
 
 /**

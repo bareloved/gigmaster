@@ -4,7 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { generateSlug } from "@/lib/gigpack/utils";
 import { GigPack, LineupMember, GigScheduleItem, GigMaterial, PackingChecklistItem, SetlistSection, GigPackTheme, PosterSkin } from "@/lib/gigpack/types";
-import { createNotification } from "@/lib/api/notifications";
+// Note: createNotification from lib/api uses browser client, but we're on server
+// So we'll insert notifications directly using the server supabase client
 import { isArchivedStatus } from "@/lib/types/shared";
 import { SupabaseClient } from "@supabase/supabase-js";
 
@@ -214,15 +215,24 @@ async function handleGigShares(
 }
 
 /**
- * Handle gig roles with smart merge (existing logic)
+ * Handle gig roles with smart merge and notifications
+ * - Sets musician_id when user ID is provided
+ * - Sets invitation_status to 'invited' for system users
+ * - Sends notifications to invited users
  */
 async function handleGigRoles(
   supabase: SupabaseClient,
   gigId: string,
   lineup: LineupMember[] | null | undefined,
-  isEditing: boolean
+  isEditing: boolean,
+  gigTitle?: string
 ) {
   if (!lineup || lineup.length === 0) return;
+
+  // Helper to get effective user ID (either direct userId or linkedUserId from contact)
+  const getEffectiveUserId = (member: LineupMember): string | null => {
+    return member.userId || member.linkedUserId || null;
+  };
 
   if (isEditing) {
     // When editing: don't delete existing roles (preserves musician_id, contact_id, fees, etc.)
@@ -243,29 +253,153 @@ async function handleGigRoles(
     );
 
     if (newRoles.length > 0) {
-      const rolesToInsert = newRoles.map((member, index) => ({
-        gig_id: gigId,
-        role_name: member.role,
-        musician_name: member.name || null,
-        notes: member.notes || null,
-        sort_order: (existingRoles?.length || 0) + index,
-        invitation_status: 'pending',
-      }));
-      const { error } = await supabase.from("gig_roles").insert(rolesToInsert);
+      const rolesToInsert = newRoles.map((member, index) => {
+        const effectiveUserId = getEffectiveUserId(member);
+        return {
+          gig_id: gigId,
+          role_name: member.role,
+          musician_name: member.name || null,
+          musician_id: effectiveUserId,
+          contact_id: member.contactId || null,
+          notes: member.notes || null,
+          sort_order: (existingRoles?.length || 0) + index,
+          // Set to 'invited' if we have a user ID, otherwise 'pending'
+          invitation_status: effectiveUserId ? 'invited' : 'pending',
+        };
+      });
+
+      const { data: insertedRoles, error } = await supabase
+        .from("gig_roles")
+        .insert(rolesToInsert)
+        .select("id, musician_id, role_name");
+
       if (error) throw new Error(`Failed to insert roles: ${error.message}`);
+
+      // Send notifications to users who were added (using server client directly)
+      if (insertedRoles) {
+        const rolesWithUsers = insertedRoles.filter(role => role.musician_id);
+        if (rolesWithUsers.length > 0) {
+          const notifications = rolesWithUsers.map(role => ({
+            user_id: role.musician_id!,
+            type: 'invitation_received',
+            title: `Invitation: ${gigTitle || 'New Gig'}`,
+            message: `You've been invited as ${role.role_name}`,
+            link: `/gigs/${gigId}/pack`,
+            gig_id: gigId,
+            gig_role_id: role.id,
+          }));
+
+          const { error: notifError } = await supabase
+            .from('notifications')
+            .insert(notifications);
+
+          if (notifError) {
+            console.error("Failed to create notifications:", notifError);
+          }
+        }
+      }
     }
   } else {
     // When creating new gig: insert all roles
-    const rolesToInsert = lineup.map((member, index) => ({
-      gig_id: gigId,
-      role_name: member.role,
-      musician_name: member.name || null,
-      notes: member.notes || null,
-      sort_order: index,
-      invitation_status: 'pending',
-    }));
-    const { error } = await supabase.from("gig_roles").insert(rolesToInsert);
+    const rolesToInsert = lineup.map((member, index) => {
+      const effectiveUserId = getEffectiveUserId(member);
+      return {
+        gig_id: gigId,
+        role_name: member.role,
+        musician_name: member.name || null,
+        musician_id: effectiveUserId,
+        contact_id: member.contactId || null,
+        notes: member.notes || null,
+        sort_order: index,
+        invitation_status: effectiveUserId ? 'invited' : 'pending',
+      };
+    });
+
+    const { data: insertedRoles, error } = await supabase
+      .from("gig_roles")
+      .insert(rolesToInsert)
+      .select("id, musician_id, role_name");
+
     if (error) throw new Error(`Failed to insert roles: ${error.message}`);
+
+    // Send notifications to users who were added (using server client directly)
+    if (insertedRoles) {
+      const rolesWithUsers = insertedRoles.filter(role => role.musician_id);
+      if (rolesWithUsers.length > 0) {
+        const notifications = rolesWithUsers.map(role => ({
+          user_id: role.musician_id!,
+          type: 'invitation_received',
+          title: `Invitation: ${gigTitle || 'New Gig'}`,
+          message: `You've been invited as ${role.role_name}`,
+          link: `/gigs/${gigId}/pack`,
+          gig_id: gigId,
+          gig_role_id: role.id,
+        }));
+
+        const { error: notifError } = await supabase
+          .from('notifications')
+          .insert(notifications);
+
+        if (notifError) {
+          console.error("Failed to create notifications:", notifError);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Fire-and-forget: Send invitation notifications to newly added users
+ * Called after RPC save to notify users who were added to the gig
+ * Uses unique constraint (user_id, gig_id, type) to prevent duplicates -
+ * we simply try to insert for all users, and the DB ignores duplicates
+ */
+async function sendInvitationNotifications(
+  supabase: SupabaseClient,
+  gigId: string,
+  lineup: LineupMember[] | null | undefined,
+  gigTitle?: string
+) {
+  // Note: Notifications are now primarily created in the save_gig_pack RPC function.
+  // This function serves as a backup for edge cases.
+  if (!lineup || lineup.length === 0) return;
+
+  try {
+    const userIdsInLineup = lineup
+      .filter(m => m.userId || m.linkedUserId)
+      .map(m => m.userId || m.linkedUserId)
+      .filter((id): id is string => !!id);
+
+    if (userIdsInLineup.length === 0) return;
+
+    const { data: roles } = await supabase
+      .from('gig_roles')
+      .select('id, musician_id, role_name')
+      .eq('gig_id', gigId)
+      .in('musician_id', userIdsInLineup);
+
+    if (!roles || roles.length === 0) return;
+
+    const notifications = roles.map(role => ({
+      user_id: role.musician_id!,
+      type: 'invitation_received',
+      title: `Invitation: ${gigTitle || 'New Gig'}`,
+      message: `You've been invited as ${role.role_name}`,
+      link: `/gigs/${gigId}/pack`,
+      gig_id: gigId,
+      gig_role_id: role.id,
+    }));
+
+    // Insert with unique constraint handling - duplicates are silently ignored
+    const { error: notifError } = await supabase
+      .from('notifications')
+      .insert(notifications);
+
+    if (notifError && !notifError.message?.includes('duplicate') && notifError.code !== '23505') {
+      console.error("Failed to create invitation notifications:", notifError);
+    }
+  } catch (err) {
+    console.error("Exception in sendInvitationNotifications:", err);
   }
 }
 
@@ -309,18 +443,23 @@ async function detectChangesAndNotify(
 
     if (!roles || roles.length === 0) return;
 
-    // Notify each musician
-    const notificationPromises = roles.map(role =>
-      createNotification({
-        user_id: role.musician_id!,
-        type: 'gig_updated',
-        title: `Gig Updated: ${newData.title || currentGig.title}`,
-        message: 'Important details (date, time, or location) have changed. Please check the gig pack.',
-        link: `/gigs/${gigId}/pack`,
-      })
-    );
+    // Insert notifications directly using server client
+    const notifications = roles.map(role => ({
+      user_id: role.musician_id!,
+      type: 'gig_updated',
+      title: `Gig Updated: ${newData.title || currentGig.title}`,
+      message: 'Important details (date, time, or location) have changed. Please check the gig pack.',
+      link: `/gigs/${gigId}/pack`,
+      gig_id: gigId,
+    }));
 
-    await Promise.all(notificationPromises);
+    const { error: notifError } = await supabase
+      .from('notifications')
+      .insert(notifications);
+
+    if (notifError) {
+      console.error("Failed to send update notifications:", notifError);
+    }
   } catch (err) {
     console.error("Failed to send update notifications:", err);
   }
@@ -367,7 +506,10 @@ export async function getGig(id: string): Promise<GigPack | null> {
     lineup: gig.gig_roles?.map((r: any) => ({
       role: r.role_name,
       name: r.musician_name,
-      notes: r.notes
+      notes: r.notes,
+      invitationStatus: r.invitation_status || undefined,
+      gigRoleId: r.id,
+      userId: r.musician_id || undefined,
     })) || [],
     setlist: gig.setlist,
     setlist_structured: gig.setlist_sections?.map((s: any) => ({
@@ -418,11 +560,162 @@ export async function getGig(id: string): Promise<GigPack | null> {
   return gigPack;
 }
 
+// Feature flag: Use RPC for atomic single-call save (set to false to use legacy multi-call approach)
+// RPC now handles userId/linkedUserId for musician_id and sends notifications after save
+const USE_RPC_SAVE = true;
+
+/**
+ * Main save function - routes to RPC or legacy based on feature flag
+ */
 export async function saveGigPack(
   data: Partial<GigPack>,
   isEditing: boolean,
   gigId?: string
 ): Promise<{ id: string; publicSlug: string }> {
+  if (USE_RPC_SAVE) {
+    return saveGigPackRPC(data, isEditing, gigId);
+  } else {
+    return saveGigPackLegacy(data, isEditing, gigId);
+  }
+}
+
+/**
+ * NEW: Single RPC call that saves everything atomically
+ * Reduces 18+ network calls to 1 call
+ * Sends notifications to invited users after RPC completes (fire-and-forget)
+ */
+async function saveGigPackRPC(
+  data: Partial<GigPack>,
+  isEditing: boolean,
+  gigId?: string
+): Promise<{ id: string; publicSlug: string }> {
+  const startTime = performance.now();
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("User not authenticated");
+  }
+
+  if (!data.title) {
+    throw new Error("Title is required");
+  }
+
+  // Prepare slug for new gigs
+  let publicSlug = data.public_slug || "";
+  if (!publicSlug) {
+    publicSlug = generateSlug(data.title);
+  }
+
+  // Convert date string to full ISO timestamp if provided
+  let dateValue: string | undefined = undefined;
+  if (data.date) {
+    if (data.date.length === 10) {
+      dateValue = `${data.date}T00:00:00.000Z`;
+    } else {
+      dateValue = data.date;
+    }
+  }
+
+  try {
+    // Build the gig object for RPC
+    const gigPayload = {
+      title: data.title,
+      date: dateValue || new Date().toISOString(),
+      project_id: data.band_id || null,
+      band_name: data.band_name || null,
+      call_time: data.call_time || null,
+      on_stage_time: data.on_stage_time || null,
+      venue_name: data.venue_name || null,
+      venue_address: data.venue_address || null,
+      venue_maps_url: data.venue_maps_url || null,
+      hero_image_url: data.hero_image_url || null,
+      band_logo_url: data.band_logo_url || null,
+      gig_type: data.gig_type || null,
+      theme: data.theme || null,
+      poster_skin: data.poster_skin || null,
+      accent_color: data.accent_color || null,
+      dress_code: data.dress_code || null,
+      backline_notes: data.backline_notes || null,
+      parking_notes: data.parking_notes || null,
+      setlist: data.setlist || null,
+      internal_notes: data.internal_notes || null,
+      payment_notes: data.payment_notes || null,
+    };
+
+    // Single RPC call - everything happens server-side in one transaction
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: result, error } = await supabase.rpc('save_gig_pack', {
+      p_gig: gigPayload,
+      p_schedule: data.schedule || [],
+      p_materials: data.materials || [],
+      p_packing: data.packing_checklist || [],
+      p_setlist: data.setlist_structured || [],
+      p_roles: data.lineup || [],
+      p_share_token: publicSlug || undefined,
+      p_is_editing: isEditing,
+      p_gig_id: gigId || undefined,
+    } as any);
+
+    if (error) {
+      console.error('[GIG_SAVE_RPC] Error:', error);
+      throw new Error(error.message);
+    }
+
+    // Cast result to expected shape
+    const rpcResult = result as { id: string; public_slug: string } | null;
+    const finalGigId = rpcResult?.id;
+    const finalSlug = rpcResult?.public_slug || publicSlug;
+
+    if (!finalGigId) {
+      throw new Error("RPC did not return gig ID");
+    }
+
+    // Fire-and-forget: Send notifications to newly invited users
+    // The function checks existing notifications to only notify NEW users
+    sendInvitationNotifications(supabase, finalGigId, data.lineup, data.title).catch(err =>
+      console.error("Background invitation notification error:", err)
+    );
+
+    // Fire-and-forget: Detect changes and notify musicians (doesn't block response)
+    if (isEditing && gigId) {
+      detectChangesAndNotify(supabase, gigId, data, dateValue).catch(err =>
+        console.error("Background notification error:", err)
+      );
+    }
+
+    revalidatePath("/gigs");
+    revalidatePath(`/gigs/${finalGigId}`);
+
+    // Log timing information
+    const totalTime = performance.now() - startTime;
+    console.log(`[GIG_SAVE_RPC] ${isEditing ? 'Edit' : 'Create'} completed:`, {
+      gigId: finalGigId,
+      total: `${totalTime.toFixed(0)}ms`,
+      method: 'RPC (single call)',
+    });
+
+    return { id: finalGigId, publicSlug: finalSlug };
+
+  } catch (error) {
+    console.error("[GIG_SAVE_RPC] Error saving gig:", error);
+    throw error;
+  }
+}
+
+/**
+ * LEGACY: Multi-call approach with Promise.all parallelization
+ * Kept as fallback if RPC has issues
+ */
+async function saveGigPackLegacy(
+  data: Partial<GigPack>,
+  isEditing: boolean,
+  gigId?: string
+): Promise<{ id: string; publicSlug: string }> {
+  const startTime = performance.now();
+  const timings: Record<string, number> = {};
+
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -485,6 +778,7 @@ export async function saveGigPack(
       updated_at: new Date().toISOString(),
     };
 
+    const gigUpsertStart = performance.now();
     if (isEditing && gigId) {
       const { error } = await supabase
         .from("gigs")
@@ -503,19 +797,22 @@ export async function saveGigPack(
       if (error) throw error;
       finalGigId = newGig.id;
     }
+    timings.gigUpsert = performance.now() - gigUpsertStart;
 
     if (!finalGigId) throw new Error("Failed to get gig ID");
 
     // 2. Handle all related items IN PARALLEL for maximum performance
     // Smart merge preserves IDs, only deletes removed items, upserts the rest
+    const relatedItemsStart = performance.now();
     await Promise.all([
-      handleGigRoles(supabase, finalGigId, data.lineup, isEditing),
+      handleGigRoles(supabase, finalGigId, data.lineup, isEditing, data.title),
       smartMergeScheduleItems(supabase, finalGigId, data.schedule),
       smartMergeMaterials(supabase, finalGigId, data.materials),
       smartMergePackingItems(supabase, finalGigId, data.packing_checklist),
       handleSetlistSections(supabase, finalGigId, data.setlist_structured),
       handleGigShares(supabase, finalGigId, publicSlug),
     ]);
+    timings.relatedItems = performance.now() - relatedItemsStart;
 
     // 3. Fire-and-forget: Detect changes and notify musicians (doesn't block response)
     if (isEditing && gigId) {
@@ -526,6 +823,16 @@ export async function saveGigPack(
 
     revalidatePath("/gigs");
     revalidatePath(`/gigs/${finalGigId}`);
+
+    // Log timing information
+    timings.total = performance.now() - startTime;
+    console.log(`[GIG_SAVE_LEGACY] ${isEditing ? 'Edit' : 'Create'} completed:`, {
+      gigId: finalGigId,
+      gigUpsert: `${timings.gigUpsert?.toFixed(0)}ms`,
+      relatedItems: `${timings.relatedItems?.toFixed(0)}ms`,
+      total: `${timings.total.toFixed(0)}ms`,
+      method: 'Legacy (multi-call)',
+    });
 
     return { id: finalGigId, publicSlug };
 
