@@ -7,7 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Music, Briefcase, Calendar, Grid3x3, List, CalendarDays, Search, X, History as HistoryIcon } from "lucide-react";
+import { Music, Briefcase, Grid3x3, List, CalendarDays, Search, X, History as HistoryIcon } from "lucide-react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listAllPastGigs, type DashboardGig } from "@/lib/api/dashboard-gigs";
 import { DashboardGigItem } from "@/components/dashboard/gig-item";
@@ -24,7 +24,6 @@ const GigEditorPanel = dynamic(
 import {
   format as formatDate,
   subDays,
-  subMonths,
   subYears
 } from "date-fns";
 

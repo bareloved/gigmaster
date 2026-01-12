@@ -1,6 +1,18 @@
 import { createClient } from '@/lib/supabase/client';
 import type { SetlistLearningStatus, SetlistLearningStatusInsert, SetlistLearningStatusUpdate, PracticeItem } from '@/lib/types/shared';
 
+// Type definition for learning status row
+interface LearningStatusRow {
+  setlist_item_id: string;
+  musician_id: string;
+  learned: boolean;
+  last_practiced_at: string | null;
+  practice_count: number;
+  difficulty: 'easy' | 'medium' | 'hard' | null;
+  priority: 'low' | 'medium' | 'high';
+  notes: string | null;
+}
+
 /**
  * Setlist Learning Status API
  * Functions for tracking individual musician learning progress for songs
@@ -56,7 +68,7 @@ export async function upsertLearningStatus(
 ): Promise<SetlistLearningStatus> {
   const supabase = createClient();
 
-  const dbData: any = {
+  const dbData: Record<string, unknown> = {
     setlist_item_id: data.setlistItemId,
     musician_id: data.musicianId,
   };
@@ -120,8 +132,6 @@ export async function recordPracticeSession(
   setlistItemId: string,
   musicianId: string
 ): Promise<SetlistLearningStatus> {
-  const supabase = createClient();
-
   // Get current status or create default
   const existing = await getLearningStatus(setlistItemId, musicianId);
   const currentCount = existing?.practiceCount || 0;
@@ -260,9 +270,9 @@ export async function getPracticeItems(
   }
 
   // Create a map for quick lookup
-  const statusMap = new Map<string, any>();
+  const statusMap = new Map<string, LearningStatusRow>();
   if (learningStatuses) {
-    learningStatuses.forEach(status => {
+    (learningStatuses as LearningStatusRow[]).forEach(status => {
       statusMap.set(status.setlist_item_id, status);
     });
   }

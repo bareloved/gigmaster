@@ -4,7 +4,7 @@
  */
 
 // English schedule terms
-const ENGLISH_TERMS = [
+const _ENGLISH_TERMS = [
   'arrival',
   'load-in',
   'load in',
@@ -29,7 +29,7 @@ const ENGLISH_TERMS = [
 ];
 
 // Hebrew schedule terms
-const HEBREW_TERMS = [
+const _HEBREW_TERMS = [
   'הגעה', // arrival
   'טעינה', // load-in
   'סאונדצ\'ק', // soundcheck

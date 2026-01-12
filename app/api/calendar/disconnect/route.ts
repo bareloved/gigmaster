@@ -37,7 +37,7 @@ export async function POST() {
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Disconnect error:", error);
     return NextResponse.json(
       { error: "Internal server error" },

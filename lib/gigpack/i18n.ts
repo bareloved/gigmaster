@@ -1,7 +1,10 @@
 // Mock implementation of next-intl for GigPack port
 // containing the English strings from vendor/gigpack/messages/en.json
 
-const MESSAGES: Record<string, any> = {
+interface MessageTree {
+  [key: string]: string | MessageTree;
+}
+const MESSAGES: MessageTree = {
   common: {
     save: "Save changes",
     cancel: "Cancel",
@@ -448,20 +451,26 @@ const MESSAGES: Record<string, any> = {
 };
 
 export function useTranslations(namespace: string) {
-  return (key: string, params?: Record<string, any>) => {
+  return (key: string, params?: Record<string, string | number>) => {
     const namespaceKeys = namespace.split(".");
-    let current: any = MESSAGES;
-    
+    let current: string | MessageTree = MESSAGES;
+
     // Navigate to namespace
     for (const k of namespaceKeys) {
-      current = current?.[k];
+      if (typeof current === 'object' && current !== null) {
+        current = current[k];
+      }
     }
-    
+
     // Navigate nested keys (e.g., "schedule.tabLabel")
     const keyParts = key.split(".");
-    let value = current;
+    let value: string | MessageTree | undefined = current;
     for (const part of keyParts) {
-      value = value?.[part];
+      if (typeof value === 'object' && value !== null) {
+        value = value[part];
+      } else {
+        value = undefined;
+      }
     }
     
     if (!value || typeof value === 'object') {

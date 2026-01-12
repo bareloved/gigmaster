@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useTranslations, useLocale } from "@/lib/gigpack/i18n";
 import { GigPack } from "@/lib/gigpack/types";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, DollarSign, Paperclip, ExternalLink, Heart, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, Guitar, Drum, Piano, Volume2, Radio } from "lucide-react";
+import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, Paperclip, ExternalLink, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, Guitar, Drum, Piano, Volume2, Radio } from "lucide-react";
 import { classifyGigVisualTheme, pickFallbackImageForTheme } from "@/lib/gigpack/gig-visual-theme";
 
 interface MinimalLayoutProps {
@@ -18,7 +17,7 @@ interface MinimalLayoutProps {
   locale?: string;
 }
 
-export function MinimalLayout({ gigPack, openMaps, slug, locale: localeProp }: MinimalLayoutProps) {
+export function MinimalLayout({ gigPack, openMaps }: MinimalLayoutProps) {
   const activeLocale = useLocale();
   
   const t = useTranslations("public");
@@ -35,7 +34,7 @@ export function MinimalLayout({ gigPack, openMaps, slug, locale: localeProp }: M
   try {
     const classifiedTheme = classifyGigVisualTheme(gigPack as GigPack);
     backgroundImage = gigPack.hero_image_url || pickFallbackImageForTheme(classifiedTheme, gigPack.id);
-  } catch (error) {
+  } catch {
     backgroundImage = "/gig-fallbacks/generic-1.jpeg";
   }
 
@@ -172,7 +171,7 @@ export function MinimalLayout({ gigPack, openMaps, slug, locale: localeProp }: M
           {gigPack.band_logo_url && (
             <div className={`absolute top-4 md:top-6 z-10 ${activeLocale === 'he' ? 'right-4 md:right-6' : 'left-4 md:left-6'}`}>
               <div className="bg-white/95 dark:bg-black/80 p-2 rounded-lg shadow-lg">
-                <img src={gigPack.band_logo_url} alt="Band logo" className="band-logo-small" />
+                <Image src={gigPack.band_logo_url} alt="Band logo" width={64} height={64} className="band-logo-small object-contain" />
               </div>
           </div>
         )}
@@ -254,7 +253,7 @@ export function MinimalLayout({ gigPack, openMaps, slug, locale: localeProp }: M
                             size="sm"
                             className="h-8 w-8 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm border-white/30 text-white shadow-lg"
                           >
-                            <img src="/wazeicon.png" alt="Waze" className="h-7 w-7" />
+                            <Image src="/wazeicon.png" alt="Waze" width={28} height={28} />
                           </Button>
                         </>
                       )}

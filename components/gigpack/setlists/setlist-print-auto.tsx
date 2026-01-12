@@ -101,7 +101,7 @@ function calculateOptimalFontSize(
 
   // Get scaling factor based on song count
   let scalingFactor: number = FONT_SIZING_CONFIG.scalingFactors.small.factor;
-  for (const [key, config] of Object.entries(FONT_SIZING_CONFIG.scalingFactors)) {
+  for (const [, config] of Object.entries(FONT_SIZING_CONFIG.scalingFactors)) {
     if (songCount <= config.maxCount) {
       scalingFactor = config.factor;
       break;

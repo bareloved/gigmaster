@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(
       new URL("/settings/calendar?success=connected", request.url)
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("OAuth callback error:", error);
     return NextResponse.redirect(
       new URL(`/settings/calendar?error=callback_failed`, request.url)

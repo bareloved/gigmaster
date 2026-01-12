@@ -132,7 +132,7 @@ export async function updateGigStatus(gigId: string, status: GigStatus): Promise
 
   // Send notifications to musicians based on status change
   if (gig) {
-    const roles = gig.gig_roles as any[];
+    const roles = gig.gig_roles as Array<{ id: string; musician_id: string | null }>;
     if (roles && roles.length > 0) {
       for (const role of roles) {
         if (role.musician_id) {

@@ -66,11 +66,6 @@ export async function POST(request: Request) {
       process.env.APP_ORIGIN ||
       "http://localhost:3000";
 
-    const locale =
-      payload.locale && ["en", "he"].includes(payload.locale)
-        ? payload.locale
-        : "en";
-
     const url = new URL("/setlists/print", origin);
     // Let URLSearchParams handle encoding; avoid double-encoding.
     const json = JSON.stringify(payload);

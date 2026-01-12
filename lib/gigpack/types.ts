@@ -163,6 +163,6 @@ export interface SetlistData {
   location?: string;
   date?: string;
   lines: string[];
-  options?: any;
+  options?: Record<string, unknown>;
   locale?: string;
 }

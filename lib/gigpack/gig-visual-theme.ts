@@ -9,7 +9,6 @@
  * 4. Generic fallback (weakest signal)
  */
 
-import type { GigPack } from "@/lib/gigpack/types";
 
 /**
  * Visual themes representing different gig aesthetics.

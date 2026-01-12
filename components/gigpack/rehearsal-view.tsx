@@ -5,7 +5,7 @@ import { Clock, MapPin, Shirt, Package, ExternalLink, PlayCircle, Disc3 } from "
 import { formatDate } from "@/lib/gigpack/utils";
 import { Button } from "@/components/ui/button";
 import { PackingChecklist } from "@/components/gigpack/packing-checklist";
-import { useTranslations, useLocale } from "@/components/gigpack/hooks";
+import { useTranslations } from "@/components/gigpack/hooks";
 
 interface RehearsalViewProps {
   gigPack: Omit<GigPack, "internal_notes" | "owner_id">;

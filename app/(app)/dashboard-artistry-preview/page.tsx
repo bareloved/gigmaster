@@ -17,7 +17,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
 import {
   Popover,
   PopoverContent,
@@ -329,7 +328,6 @@ function getPracticeTypePill(type: "new" | "refresh" | "section") {
 export default function DashboardArtistryPreview() {
   // Filter state for "This Week on Stage"
   const [roleFilter, setRoleFilter] = useState<"all" | "hosted" | "playing" | "subbing" | "md">("all");
-  const [timeFilter, setTimeFilter] = useState<"week" | "7days" | "month">("week");
   
   // Focus mode state
   const [focusMode, setFocusMode] = useState(false);
@@ -355,10 +353,6 @@ export default function DashboardArtistryPreview() {
     setSelectedGigIndex(prev => (prev < MOCK_ALL_GIGS.length - 1 ? prev + 1 : 0));
   };
   
-  const resetToNextGig = () => {
-    setSelectedGigIndex(0);
-  };
-
   // Calculate readiness percentage and breakdown for selected gig
   const readinessData = useMemo(() => {
     const { songsTotal, songsLearned, chartsReady, soundsReady, travelChecked, gearPacked } = selectedGig.readiness;

@@ -18,7 +18,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Popover,
@@ -36,7 +35,6 @@ import {
   Eye,
   EyeOff,
   FileText,
-  PlayCircle,
   Plus,
   CheckCircle2,
   AlertTriangle,
@@ -47,18 +45,18 @@ import {
   Crown,
   Mail,
 } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUser } from "@/lib/providers/user-provider";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { listDashboardGigs, type DashboardGig } from "@/lib/api/dashboard-gigs";
+import { listDashboardGigs } from "@/lib/api/dashboard-gigs";
 import { getPlayerMoneySummary } from "@/lib/api/player-money";
 import { getGigReadiness, updateGigReadiness, calculateReadinessScore, getOrCreateGigReadiness } from "@/lib/api/gig-readiness";
 import type { ReadinessScore } from "@/lib/types/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { format, parseISO, startOfWeek, endOfWeek, isWithinInterval } from "date-fns";
+import { format, parseISO } from "date-fns";
 import dynamic from "next/dynamic";
 import { GigStatusBadge } from "@/components/gigs/shared/status-badge";
 import { PracticeFocusWidget } from "@/components/dashboard/practice-widget";
@@ -143,11 +141,14 @@ export default function DashboardPage() {
     setIsEditorOpen(true);
   };
 
-  // Fetch gigs for next 7 days
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const sevenDaysFromNow = new Date(today);
-  sevenDaysFromNow.setDate(today.getDate() + 7);
+  // Fetch gigs for next 7 days - memoize dates to prevent unnecessary re-renders
+  const { today, sevenDaysFromNow } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const sevenDaysFromNow = new Date(today);
+    sevenDaysFromNow.setDate(today.getDate() + 7);
+    return { today, sevenDaysFromNow };
+  }, []);
 
   const {
     data: gigsData,
@@ -180,7 +181,8 @@ export default function DashboardPage() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const allGigs = gigsData?.gigs || [];
+  // Memoize allGigs to prevent dependency issues
+  const allGigs = useMemo(() => gigsData?.gigs || [], [gigsData?.gigs]);
 
   // Split gigs into today and upcoming
   const { todayGigs, upcomingGigs } = useMemo(() => {
@@ -203,11 +205,6 @@ export default function DashboardPage() {
     if (upcomingGigs.length > 0) return upcomingGigs[0];
     return null;
   }, [todayGigs, upcomingGigs, allGigs, selectedGigIndex]);
-
-  // Reset to next gig function
-  const resetToNextGig = () => {
-    setSelectedGigIndex(0);
-  };
 
   // Fetch readiness for next gig
   const {
@@ -235,7 +232,7 @@ export default function DashboardPage() {
         await getOrCreateGigReadiness(nextGig.gigId, user.id, 0);
       }
 
-      const updateData: any = {};
+      const updateData: Record<string, boolean | number> = {};
       updateData[updates.field] = updates.value;
 
       return updateGigReadiness(nextGig.gigId, user.id, updateData);
@@ -838,7 +835,7 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {upcomingGigs.map((gig, index) => (
+                    {upcomingGigs.map((gig) => (
                       <div
                         key={gig.gigId}
                         onClick={() => {

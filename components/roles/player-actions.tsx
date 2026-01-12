@@ -38,7 +38,8 @@ export function PlayerStatusActions({
 }: PlayerStatusActionsProps) {
   const [notes, setNotes] = useState(playerNotes || '');
   const [loading, setLoading] = useState(false);
-  const [conflicts, setConflicts] = useState<any[]>([]);
+  type GigConflict = { id: string; title: string; start_time: string | null };
+  const [conflicts, setConflicts] = useState<GigConflict[]>([]);
   const queryClient = useQueryClient();
   
   const handleStatusChange = async (status: 'accepted' | 'declined' | 'needs_sub') => {
@@ -92,31 +93,32 @@ export function PlayerStatusActions({
         queryKey: ['gig-roles', gigId],
         refetchType: 'active'
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating status:', error);
-      toast.error(error.message || 'Failed to update status');
+      const message = error instanceof Error ? error.message : 'Failed to update status';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   };
-  
+
   const handleNotesUpdate = async () => {
     if (notes === (playerNotes || '')) return; // No changes
-    
+
     try {
       await updateMyPlayerNotes(roleId, notes);
       toast.success('Notes saved');
-      
+
       // Invalidate queries to refetch updated data
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({
         queryKey: ['gig-pack', gigId],
         refetchType: 'active'
       });
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({
         queryKey: ['gig', gigId],
         refetchType: 'active'
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving notes:', error);
       toast.error('Failed to save notes');
     }

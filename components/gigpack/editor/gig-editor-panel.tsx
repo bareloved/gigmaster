@@ -24,33 +24,28 @@ import {
   Users,
   Music,
   Package,
-  Image as ImageIcon,
   Plus,
   Trash2,
-  Upload,
   Check,
   ExternalLink,
   Link as LinkIcon,
   FileText,
   Sparkles,
-  Loader2,
   Shirt,
   ParkingCircle,
   Paperclip,
   Link2,
   Clipboard,
 } from "lucide-react";
-import { GigPack, LineupMember, SetlistSection, PackingChecklistItem, GigPackTheme, PosterSkin, GigMaterial, GigMaterialKind, GigScheduleItem, Band } from "@/lib/gigpack/types";
+import { GigPack, LineupMember, PackingChecklistItem, GigMaterial, GigMaterialKind, GigScheduleItem, Band } from "@/lib/gigpack/types";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { generateSlug } from "@/lib/gigpack/utils";
 import { uploadImage, deleteImage, getPathFromUrl, validateImageFile } from "@/lib/utils/image-upload";
 import { updateGig } from "@/lib/api/gigs";
 import { useSaveGigPack } from "@/hooks/use-gig-mutations";
 import { Calendar } from "@/components/ui/calendar";
 import { TimePicker } from "@/components/gigpack/ui/time-picker";
 import { VenueAutocomplete } from "@/components/gigpack/ui/venue-autocomplete";
-import { RoleSelect } from "@/components/gigpack/ui/role-select";
 import { LineupMemberSearch } from "@/components/gigpack/ui/lineup-member-search";
 import { LineupMemberPill } from "@/components/gigpack/ui/lineup-member-pill";
 import { Input } from "@/components/ui/input";
@@ -73,13 +68,10 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PasteScheduleDialog } from "@/components/gigpack/dialogs/paste-schedule-dialog";
-import { GIGPACK_TEMPLATES, GigPackTemplate, applyTemplateToFormDefaults } from "@/lib/gigpack/templates";
+import { GigPackTemplate, applyTemplateToFormDefaults } from "@/lib/gigpack/templates";
 
 // ============================================================================
 // Types
@@ -274,7 +266,6 @@ export function GigEditorPanel({
   const { toast } = useToast();
   const t = useTranslations("gigpack");
   const tCommon = useTranslations("common");
-  const tAuth = useTranslations("auth");
   const tTemplates = useTranslations("templates");
   const locale = useLocale();
   const [, startTransition] = useTransition();
@@ -366,8 +357,8 @@ export function GigEditorPanel({
   const [bandLogoUrl, setBandLogoUrl] = useState(gigPack?.band_logo_url || "");
   const [heroImageUrl, setHeroImageUrl] = useState(gigPack?.hero_image_url || "");
   const [accentColor, setAccentColor] = useState(gigPack?.accent_color || "");
-  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-  const [isUploadingHero, setIsUploadingHero] = useState(false);
+  const [, setIsUploadingLogo] = useState(false);
+  const [, setIsUploadingHero] = useState(false);
 
   // Pending files for background upload (stored locally until save)
   const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
@@ -432,7 +423,7 @@ export function GigEditorPanel({
   }, [gigPack]);
 
   // Apply a template to the form (resets fields with template values)
-  const applyTemplate = (template: GigPackTemplate) => {
+  const _applyTemplate = (template: GigPackTemplate) => {
     const values = applyTemplateToFormDefaults(template);
 
     // Reset form with template values
@@ -647,7 +638,7 @@ export function GigEditorPanel({
   };
 
   // Image upload handlers - store locally for background upload on save
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const _handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -670,7 +661,7 @@ export function GigEditorPanel({
     setBandLogoUrl("");
   };
 
-  const handleHeroUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const _handleHeroUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -693,7 +684,7 @@ export function GigEditorPanel({
     setHeroImageUrl("");
   };
 
-  const handleRemoveLogo = () => {
+  const _handleRemoveLogo = () => {
     // Clear pending file and preview if any
     if (logoPreviewUrl) {
       URL.revokeObjectURL(logoPreviewUrl);
@@ -703,7 +694,7 @@ export function GigEditorPanel({
     removeImageFromState(bandLogoUrl, setBandLogoUrl);
   };
 
-  const handleRemoveHero = () => {
+  const _handleRemoveHero = () => {
     // Clear pending file and preview if any
     if (heroPreviewUrl) {
       URL.revokeObjectURL(heroPreviewUrl);

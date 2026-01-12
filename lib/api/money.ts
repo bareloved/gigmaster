@@ -1,11 +1,36 @@
 import { createClient } from '@/lib/supabase/client';
-import type { 
-  MyEarningsGig, 
-  MyEarningsSummary, 
+import type {
+  MyEarningsGig,
+  MyEarningsSummary,
   PayoutRow,
   PaymentStatus,
-  PaymentStatusUpdate 
+  PaymentStatusUpdate
 } from '@/lib/types/shared';
+
+// Type definitions for database join results
+interface GigOwnerProfile {
+  name: string | null;
+}
+
+interface GigRoleWithGig {
+  id: string;
+  role_name: string;
+  agreed_fee: number | null;
+  payment_status: string | null;
+  paid_amount: number | null;
+  paid_at: string | null;
+  currency: string | null;
+  musician_id: string | null;
+  musician_name: string | null;
+  gigs: {
+    id: string;
+    title: string;
+    date: string;
+    location_name: string | null;
+    owner_id: string;
+    owner: GigOwnerProfile | null;
+  };
+}
 
 /**
  * Get My Earnings data for current user
@@ -62,7 +87,7 @@ export async function getMyEarnings(
   if (error) throw error;
 
   // Transform to MyEarningsGig[]
-  const gigs: MyEarningsGig[] = (roles || []).map((r: any) => ({
+  const gigs: MyEarningsGig[] = ((roles || []) as GigRoleWithGig[]).map((r) => ({
     gigRoleId: r.id,
     gigId: r.gigs.id,
     gigTitle: r.gigs.title,
@@ -186,7 +211,7 @@ export async function getPayouts(
   if (error) throw error;
 
   // Transform to PayoutRow[]
-  const payouts = (roles || []).map((r: any) => ({
+  const payouts = ((roles || []) as GigRoleWithGig[]).map((r) => ({
     gigRoleId: r.id,
     gigId: r.gigs.id,
     gigTitle: r.gigs.title,
@@ -236,14 +261,18 @@ export async function updatePaymentStatus(
   if (fetchError || !role) throw new Error('Role not found');
 
   const isMusician = role.musician_id === user.id;
-  const isManager = (role.gigs as any).owner_id === user.id;
+  const isManager = (role.gigs as { owner_id: string }).owner_id === user.id;
 
   if (!isMusician && !isManager) {
     throw new Error('Not authorized to update this payment');
   }
 
   // Build update object
-  const updateData: any = {
+  const updateData: {
+    payment_status: string;
+    paid_amount?: number | null;
+    paid_at?: string | null;
+  } = {
     payment_status: update.paymentStatus,
   };
 

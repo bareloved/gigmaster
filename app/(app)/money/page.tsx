@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,6 @@ import { PayoutsTable } from '@/components/money/payouts-table';
 import { SummaryCardsSkeleton, MoneyTableSkeleton } from '@/components/money/table-skeleton';
 import { getMyEarnings, getPayouts, checkIsManager } from '@/lib/api/money';
 import { useUser } from '@/lib/providers/user-provider';
-import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
 import { PaymentStatus } from '@/lib/types/shared';
 

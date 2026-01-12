@@ -1,6 +1,6 @@
 /**
  * Gig Invitations API
- * 
+ *
  * Handles email invitation flow for musicians:
  * - Invite musicians by email with magic links
  * - Accept/decline invitations
@@ -8,9 +8,50 @@
  */
 
 import { createClient } from '@/lib/supabase/client';
-import type { GigInvitation, GigRoleStatusHistory } from '@/lib/types/shared';
+import type { GigInvitation } from '@/lib/types/shared';
 import { generateWhatsAppInviteLink } from '@/lib/utils/whatsapp';
 import { createNotification } from './notifications';
+
+// Type definitions for database join results
+interface GigOwnerProfile {
+  id: string;
+  name: string | null;
+}
+
+interface GigRoleGigDetails {
+  id: string;
+  title: string;
+  date: string | null;
+  start_time: string | null;
+  location_name?: string | null;
+  owner_id: string;
+  owner: GigOwnerProfile | null;
+}
+
+interface GigRoleWithGig {
+  id: string;
+  gig_id: string;
+  role_name: string;
+  contact_id?: string | null;
+  invitation_status?: string | null;
+  gigs: GigRoleGigDetails | GigRoleGigDetails[];
+}
+
+interface RoleWithGigForNotification {
+  gig_id: string;
+  role_name: string;
+  gigs: {
+    id: string;
+    title: string;
+    owner_id: string;
+  };
+}
+
+interface InvitationEmailRole {
+  gig_id: string;
+  role_name: string;
+  gigs: GigRoleGigDetails | GigRoleGigDetails[];
+}
 
 /**
  * Generate secure random token for magic links
@@ -108,9 +149,9 @@ export async function inviteMusicianByEmail(
   
   if (profile) {
     // User exists, send them an in-app notification
-    const gig = role.gigs as any;
+    const gig = (Array.isArray(role.gigs) ? role.gigs[0] : role.gigs) as GigRoleGigDetails;
     const hostName = gig.owner?.name || null;
-    
+
     await createNotification({
       user_id: profile.id,
       type: 'invitation_received',
@@ -277,7 +318,7 @@ export async function acceptInvitation(token: string): Promise<void> {
   }
   
   // Phase 4: Link contact to user account if this role has a contact
-  const gigRole = invitation.gig_roles as any;
+  const gigRole = invitation.gig_roles as GigRoleWithGig | null;
   if (gigRole?.contact_id) {
     try {
       // Update contact: link to user and set status to active_user
@@ -363,7 +404,7 @@ export async function acceptInvitation(token: string): Promise<void> {
       .single();
 
     if (roleData) {
-      const gig = roleData.gigs as any;
+      const gig = roleData.gigs as RoleWithGigForNotification['gigs'];
       const managerId = gig?.owner_id;
 
       // Get user name
@@ -468,7 +509,7 @@ export async function declineInvitation(
       .single();
 
     if (roleData) {
-      const gig = roleData.gigs as any;
+      const gig = roleData.gigs as RoleWithGigForNotification['gigs'];
       const managerId = gig?.owner_id;
 
       // Get user name
@@ -532,7 +573,7 @@ async function recordStatusChange(
 async function sendInvitationEmail(
   email: string,
   token: string,
-  role: any
+  role: InvitationEmailRole
 ): Promise<void> {
   // Build invitation link
   const baseUrl = typeof window !== 'undefined' 

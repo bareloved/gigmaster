@@ -1,4 +1,4 @@
-import { SetlistSection, GigPackTheme, PosterSkin, GigPackTemplateDefaultValues } from "./types";
+import { SetlistSection, GigPackTheme, GigPackTemplateDefaultValues } from "./types";
 
 /**
  * GigPack Template Type

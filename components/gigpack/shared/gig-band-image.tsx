@@ -118,7 +118,7 @@ export const GigBandImage = ({
   }
 
   // Generate a consistent gradient based on band name (for fallback)
-  const getBandGradient = (bandName: string | null) => {
+  const _getBandGradient = (bandName: string | null) => {
     if (!bandName) return "from-slate-300 to-slate-400 dark:from-slate-700 dark:to-slate-800";
     const colors = [
       "from-blue-400 to-indigo-500",
@@ -131,8 +131,6 @@ export const GigBandImage = ({
     const hash = bandName.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
     return colors[hash % colors.length];
   };
-
-  const gradient = getBandGradient(gig.band_name);
 
   // Dimensions based on variant
   const dimensions = {
@@ -149,44 +147,20 @@ export const GigBandImage = ({
   }
 
   if (imageUrl && !imageLoadFailed) {
-    // Check if this is a fallback image (static asset in public/) or external image
-    const isFallbackImage = imageUrl.startsWith('/gig-fallbacks/');
-
-    // Convert to absolute URL to bypass locale-based routing
-    const absoluteImageUrl = isFallbackImage && typeof window !== 'undefined'
-      ? `${window.location.origin}${imageUrl}`
-      : imageUrl;
-
     return (
       <div className={cn("relative overflow-hidden bg-muted", dimensions.className, variant === "card" ? "rounded-t-lg" : "rounded-md")}>
-        {/* Use plain img for static fallback images, Image component for optimized external images */}
-        {isFallbackImage ? (
-          <img
-            src={absoluteImageUrl}
-            alt={gig.band_name || gig.title}
-            className={cn(
-              "w-full h-full object-cover"
-            )}
-            onError={() => {
-              setImageLoadFailed(true);
-            }}
-          />
-        ) : (
-          <Image
-            src={imageUrl}
-            alt={gig.band_name || gig.title}
-            fill
-            sizes={variant === "card" ? "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" : "80px"}
-            className={cn(
-              "object-cover"
-            )}
-            loading="lazy"
-            quality={60}
-            onError={() => {
-              setImageLoadFailed(true);
-            }}
-          />
-        )}
+        <Image
+          src={imageUrl}
+          alt={gig.band_name || gig.title}
+          fill
+          sizes={variant === "card" ? "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" : "80px"}
+          className="object-cover"
+          loading="lazy"
+          quality={60}
+          onError={() => {
+            setImageLoadFailed(true);
+          }}
+        />
         {/* Gradient overlay for text readability - fade to black */}
         {variant === "card" && (
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/80" />

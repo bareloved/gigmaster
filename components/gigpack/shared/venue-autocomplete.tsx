@@ -31,7 +31,7 @@ function VenueAutocompleteInner({
   className,
 }: VenueAutocompleteProps) {
   const containerRef = React.useRef<HTMLDivElement>(null)
-  const autocompleteRef = React.useRef<any>(null)
+  const autocompleteRef = React.useRef<google.maps.places.Autocomplete | null>(null)
   const inputValueRef = React.useRef(value || "")
   const [isReady, setIsReady] = React.useState(false)
   const [inputValue, setInputValue] = React.useState(value || "")
@@ -123,9 +123,9 @@ function VenueAutocompleteInner({
     autocompleteRef.current = autocomplete
 
     // Listen for place selection (gmp-select event)
-    const handlePlaceSelect = async (event: any) => {
+    const handlePlaceSelect = async (event: CustomEvent<{ placePrediction: { toPlace: () => google.maps.places.Place } }>) => {
       try {
-        const placePrediction = event.placePrediction
+        const placePrediction = event.detail?.placePrediction || (event as { placePrediction?: { toPlace: () => google.maps.places.Place } }).placePrediction
         if (!placePrediction) return
 
         const place = placePrediction.toPlace()
@@ -142,7 +142,7 @@ function VenueAutocompleteInner({
         inputValueRef.current = name
         onChangeRef.current?.(name)
         onPlaceSelectRef.current?.({ name, address, mapsUrl })
-      } catch (err) {
+      } catch {
         // Silently handle errors
       }
     }
@@ -184,17 +184,19 @@ function VenueAutocompleteInner({
 
     setIsReady(true)
 
+    // Copy containerRef.current to a variable for cleanup
+    const container = containerRef.current
+
     return () => {
       clearTimeout(initTimer)
       timers.forEach(clearTimeout)
       autocomplete.removeEventListener("gmp-select", handlePlaceSelect)
       autocompleteRef.current = null
-      if (containerRef.current) {
-        containerRef.current.innerHTML = ""
+      if (container) {
+        container.innerHTML = ""
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [places, styleAutocompleteInput])
+  }, [places, styleAutocompleteInput, placeholder])
 
   // Re-apply styles when theme changes (listen for class changes on html element)
   React.useEffect(() => {

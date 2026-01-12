@@ -18,7 +18,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ContactStatusBadge } from '@/components/contacts/status-badge';
 import { Search, Music, Users, Loader2 } from 'lucide-react';
-import { getCurrencySymbol } from '@/lib/utils/currency';
 import { useKeyboardSubmit } from '@/hooks/use-keyboard-submit';
 
 interface AddFromCircleDialogProps {
@@ -205,7 +204,7 @@ export function AddFromCircleDialog({
                               </div>
                             )}
                           </div>
-                          <ContactStatusBadge status={contact.status as any} />
+                          <ContactStatusBadge status={contact.status} />
                         </div>
                       </label>
                     </div>

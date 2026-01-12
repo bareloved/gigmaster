@@ -1,17 +1,57 @@
 import { createClient } from "@/lib/supabase/client";
-import type { 
-  GigRole, 
-  GigRoleInsert, 
-  GigRoleUpdate, 
-  InvitationStatus,
-  MusicianSuggestion 
+import type {
+  GigRole,
+  GigRoleInsert,
+  GigRoleUpdate,
+  MusicianSuggestion
 } from "@/lib/types/shared";
-import { 
-  getOrCreateContact, 
-  incrementContactUsage, 
-  findContactByName 
+import {
+  getOrCreateContact,
+  incrementContactUsage,
+  findContactByName
 } from "@/lib/api/musician-contacts";
 import { createNotification } from "./notifications";
+
+// Type definitions for database join results
+interface GigRoleWithGig {
+  musician_name: string | null;
+  role_name: string;
+  created_at: string;
+  gigs: {
+    owner_id: string;
+  };
+}
+
+interface GigRoleWithGigDetails {
+  id: string;
+  gigs: {
+    id: string;
+    title: string;
+    date: string | null;
+  } | null;
+}
+
+interface GigConflictRole {
+  id: string;
+  gigs: {
+    id: string;
+    title: string;
+    date: string;
+    start_time: string | null;
+    end_time: string | null;
+    location_name: string | null;
+  };
+}
+
+interface BulkAcceptRole {
+  id: string;
+  role_name: string;
+  gigs: {
+    id: string;
+    title: string;
+    owner_id: string;
+  };
+}
 
 export async function listRolesForGig(gigId: string): Promise<GigRole[]> {
   const supabase = createClient();
@@ -125,8 +165,8 @@ export async function updateRole(roleId: string, data: GigRoleUpdate): Promise<G
   
   // If payment status changed from unpaid to paid, notify the musician
   if (currentRole && data.payment_status === 'paid' && currentRole.payment_status !== 'paid' && currentRole.musician_id) {
-    const gig = currentRole.gigs as any;
-    
+    const gig = currentRole.gigs as { id: string; title: string };
+
     await createNotification({
       user_id: currentRole.musician_id,
       type: 'payment_received',
@@ -179,7 +219,7 @@ export async function searchMusicianNames(query: string = ""): Promise<MusicianS
   // Group by musician name and aggregate data
   const musicianMap = new Map<string, MusicianSuggestion>();
 
-  roles?.forEach((role: any) => {
+  (roles as GigRoleWithGig[] | null)?.forEach((role) => {
     const name = role.musician_name?.trim();
     if (!name) return;
 
@@ -412,14 +452,14 @@ export async function getMyPendingInvitations(
     console.error('Error fetching pending invitations:', error);
     throw new Error('Failed to fetch pending invitations');
   }
-  
+
   // Sort by date ascending (soonest first) in JavaScript
-  const sorted = (data || []).sort((a: any, b: any) => {
+  const sorted = ((data || []) as GigRoleWithGigDetails[]).sort((a, b) => {
     const dateA = a.gigs?.date || '';
     const dateB = b.gigs?.date || '';
     return dateA.localeCompare(dateB);
   });
-  
+
   return sorted as GigRole[];
 }
 
@@ -453,14 +493,14 @@ export async function getMyDeclinedInvitations(
     console.error('Error fetching declined invitations:', error);
     throw new Error('Failed to fetch declined invitations');
   }
-  
+
   // Sort by date ascending (soonest first) in JavaScript
-  const sorted = (data || []).sort((a: any, b: any) => {
+  const sorted = ((data || []) as GigRoleWithGigDetails[]).sort((a, b) => {
     const dateA = a.gigs?.date || '';
     const dateB = b.gigs?.date || '';
     return dateA.localeCompare(dateB);
   });
-  
+
   return sorted as GigRole[];
 }
 
@@ -520,10 +560,11 @@ export async function acceptMultipleInvitations(
       const userName = profile?.name || 'A musician';
 
       // Group by manager to avoid duplicate notifications
-      const managerNotifications = new Map<string, { gig: any; roles: string[] }>();
+      type GigInfo = { id: string; title: string; owner_id: string };
+      const managerNotifications = new Map<string, { gig: GigInfo; roles: string[] }>();
 
-      for (const role of roles) {
-        const gig = role.gigs as any;
+      for (const role of (roles as BulkAcceptRole[])) {
+        const gig = role.gigs;
         const managerId = gig?.owner_id;
         if (managerId && managerId !== user.id) {
           if (!managerNotifications.has(managerId)) {
@@ -583,9 +624,9 @@ export async function checkGigConflicts(
   date: string,
   startTime: string,
   endTime: string
-): Promise<any[]> {
+): Promise<GigConflictRole['gigs'][]> {
   const supabase = createClient();
-  
+
   const { data, error } = await supabase
     .from('gig_roles')
     .select(`
@@ -603,17 +644,17 @@ export async function checkGigConflicts(
     .eq('invitation_status', 'accepted')
     .eq('gigs.date', date)
     .neq('gig_id', gigId);
-    
+
   if (error) {
     console.error('Error checking conflicts:', error);
     return [];
   }
-  
+
   // Filter by time overlap
-  const conflicts = (data || []).filter((role: any) => {
+  const conflicts = ((data || []) as GigConflictRole[]).filter((role) => {
     const gig = role.gigs;
     if (!gig.start_time || !gig.end_time) return false;
-    
+
     // Check if times overlap
     return (
       (startTime >= gig.start_time && startTime < gig.end_time) ||
@@ -621,8 +662,8 @@ export async function checkGigConflicts(
       (startTime <= gig.start_time && endTime >= gig.end_time)
     );
   });
-  
-  return conflicts.map((r: any) => r.gigs);
+
+  return conflicts.map((r) => r.gigs);
 }
 
 /**
@@ -786,8 +827,8 @@ export async function reinviteMusician(
   if (fetchError || !role) {
     throw new Error('Role not found');
   }
-  
-  const gig = role.gigs as any;
+
+  const gig = role.gigs as { id: string; title: string; owner_id: string };
   const gigOwnerId = gig?.owner_id;
   
   if (gigOwnerId !== user.id) {

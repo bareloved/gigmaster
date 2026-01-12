@@ -47,9 +47,12 @@ export interface GoogleTokens {
   expiry_date: number; // Unix timestamp in ms
 }
 
+// Google Calendar API types from googleapis
+type GoogleCalendarAPI = ReturnType<typeof google.calendar>;
+
 export class GoogleCalendarClient {
   private oauth2Client: OAuth2Client;
-  private calendar: any;
+  private calendar: GoogleCalendarAPI;
 
   constructor() {
     const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
@@ -103,8 +106,9 @@ export class GoogleCalendarClient {
         refresh_token: tokens.refresh_token,
         expiry_date: tokens.expiry_date,
       };
-    } catch (error: any) {
-      throw new Error(`Failed to authorize with Google: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to authorize with Google: ${message}`);
     }
   }
 
@@ -128,8 +132,9 @@ export class GoogleCalendarClient {
         refresh_token: refreshToken, // Refresh token stays the same
         expiry_date: credentials.expiry_date,
       };
-    } catch (error: any) {
-      throw new Error(`Failed to refresh token: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to refresh token: ${message}`);
     }
   }
 
@@ -164,34 +169,38 @@ export class GoogleCalendarClient {
 
       const events = response.data.items || [];
 
-      return events.map((event: any): GoogleCalendarEvent => ({
-        id: event.id,
+      return events.map((event): GoogleCalendarEvent => ({
+        id: event.id || '',
         summary: event.summary || "Untitled Event",
-        description: event.description,
-        location: event.location,
+        description: event.description || undefined,
+        location: event.location || undefined,
         start: {
-          dateTime: event.start.dateTime,
-          date: event.start.date,
-          timeZone: event.start.timeZone,
+          dateTime: event.start?.dateTime || undefined,
+          date: event.start?.date || undefined,
+          timeZone: event.start?.timeZone || undefined,
         },
         end: {
-          dateTime: event.end.dateTime,
-          date: event.end.date,
-          timeZone: event.end.timeZone,
+          dateTime: event.end?.dateTime || undefined,
+          date: event.end?.date || undefined,
+          timeZone: event.end?.timeZone || undefined,
         },
-        htmlLink: event.htmlLink,
-        status: event.status,
-        organizer: event.organizer,
-        attendees: event.attendees?.map((attendee: any) => ({
-          email: attendee.email,
-          displayName: attendee.displayName,
-          responseStatus: attendee.responseStatus,
-          organizer: attendee.organizer,
-          self: attendee.self,
+        htmlLink: event.htmlLink || '',
+        status: event.status || '',
+        organizer: event.organizer ? {
+          email: event.organizer.email || '',
+          displayName: event.organizer.displayName || undefined,
+        } : undefined,
+        attendees: event.attendees?.map((attendee) => ({
+          email: attendee.email || '',
+          displayName: attendee.displayName || undefined,
+          responseStatus: attendee.responseStatus as 'accepted' | 'declined' | 'tentative' | 'needsAction' | undefined,
+          organizer: attendee.organizer || undefined,
+          self: attendee.self || undefined,
         })),
       }));
-    } catch (error: any) {
-      throw new Error(`Failed to list calendar events: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to list calendar events: ${message}`);
     }
   }
 
@@ -208,26 +217,30 @@ export class GoogleCalendarClient {
       const event = response.data;
 
       return {
-        id: event.id,
+        id: event.id || '',
         summary: event.summary || "Untitled Event",
-        description: event.description,
-        location: event.location,
+        description: event.description || undefined,
+        location: event.location || undefined,
         start: {
-          dateTime: event.start.dateTime,
-          date: event.start.date,
-          timeZone: event.start.timeZone,
+          dateTime: event.start?.dateTime || undefined,
+          date: event.start?.date || undefined,
+          timeZone: event.start?.timeZone || undefined,
         },
         end: {
-          dateTime: event.end.dateTime,
-          date: event.end.date,
-          timeZone: event.end.timeZone,
+          dateTime: event.end?.dateTime || undefined,
+          date: event.end?.date || undefined,
+          timeZone: event.end?.timeZone || undefined,
         },
-        htmlLink: event.htmlLink,
-        status: event.status,
-        organizer: event.organizer,
+        htmlLink: event.htmlLink || '',
+        status: event.status || '',
+        organizer: event.organizer ? {
+          email: event.organizer.email || '',
+          displayName: event.organizer.displayName || undefined,
+        } : undefined,
       };
-    } catch (error: any) {
-      throw new Error(`Failed to get calendar event: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to get calendar event: ${message}`);
     }
   }
 }

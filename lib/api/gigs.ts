@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import type { Gig, GigInsert, GigUpdate } from "@/lib/types/shared";
+import type { GigInsert, GigUpdate } from "@/lib/types/shared";
 import { createNotification } from "./notifications";
 
 export async function createGig(data: Omit<GigInsert, "id" | "created_at" | "updated_at" | "owner_id">) {
@@ -82,7 +82,7 @@ export async function deleteGig(gigId: string) {
 
   // Notify all invited musicians before deleting
   if (gig) {
-    const roles = gig.gig_roles as any[];
+    const roles = gig.gig_roles as Array<{ id: string; musician_id: string | null }>;
     if (roles && roles.length > 0) {
       for (const role of roles) {
         if (role.musician_id) {

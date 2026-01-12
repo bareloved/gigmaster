@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, ArrowLeft, Edit, Share2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,6 @@ import { GigPack } from '@/lib/gigpack/types';
 export default function GigPackPage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const router = useRouter();
   const queryClient = useQueryClient();
   const gigId = params.id as string;
   const returnUrl = searchParams.get('returnUrl') || '/dashboard';
@@ -31,7 +30,7 @@ export default function GigPackPage() {
   const [isPolling, setIsPolling] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
-  const { data: gigPack, isLoading, error, refetch } = useQuery({
+  const { data: gigPack, isLoading, error } = useQuery({
     queryKey: ['gig-pack-full', gigId],
     queryFn: () => getGigPackFull(gigId),
     enabled: !!gigId,

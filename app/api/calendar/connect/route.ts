@@ -13,7 +13,7 @@ export async function GET() {
     const authUrl = googleClient.getAuthorizationUrl();
 
     return NextResponse.json({ url: authUrl });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Failed to generate auth URL:", error);
     return NextResponse.json(
       { error: "Failed to initiate connection" },

@@ -2,6 +2,52 @@ import { createClient } from '@/lib/supabase/client';
 import type { GigPack, LineupMember, GigScheduleItem, GigMaterial, GigPackTheme, PosterSkin } from '@/lib/gigpack/types';
 import type { GigPackData } from '@/lib/types/shared';
 
+// Type definitions for database join results
+interface GigScheduleItemRow {
+  id: string;
+  time: string | null;
+  label: string;
+  sort_order: number | null;
+}
+
+interface GigRoleRow {
+  id: string;
+  role_name: string;
+  musician_name: string | null;
+  musician_id: string | null;
+  invitation_status: string | null;
+  sort_order: number | null;
+}
+
+interface GigMaterialRow {
+  id: string;
+  label: string;
+  url: string;
+  kind: string;
+  sort_order: number | null;
+}
+
+interface GigPackingItemRow {
+  id: string;
+  label: string;
+  sort_order: number | null;
+}
+
+interface SetlistItemRow {
+  id: string;
+  title: string;
+  artist: string | null;
+  key: string | null;
+  tempo: string | null;
+  notes: string | null;
+  sort_order: number;
+}
+
+interface GigOwnerProfile {
+  id: string;
+  name: string | null;
+}
+
 /**
  * Gig Pack API
  * Fetches all data needed for the GigPack view
@@ -84,18 +130,18 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
     .order('sort_order', { ascending: true });
 
   // Transform schedule items
-  const schedule: GigScheduleItem[] = (gig.gig_schedule_items as any[] || [])
+  const schedule: GigScheduleItem[] = ((gig.gig_schedule_items as GigScheduleItemRow[]) || [])
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-    .map((item: any) => ({
+    .map((item) => ({
       id: item.id,
       time: item.time,
       label: item.label,
     }));
 
   // Transform lineup from gig_roles
-  const lineup: LineupMember[] = (gig.gig_roles as any[] || [])
+  const lineup: LineupMember[] = ((gig.gig_roles as GigRoleRow[]) || [])
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-    .map((role: any) => ({
+    .map((role) => ({
       role: role.role_name,
       name: role.musician_name || undefined,
       notes: undefined,
@@ -105,31 +151,31 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
     }));
 
   // Transform materials
-  const materials: GigMaterial[] = (gig.gig_materials as any[] || [])
+  const materials: GigMaterial[] = ((gig.gig_materials as GigMaterialRow[]) || [])
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-    .map((m: any) => ({
+    .map((m) => ({
       id: m.id,
       label: m.label,
       url: m.url,
-      kind: m.kind || 'other',
+      kind: (m.kind || 'other') as GigMaterial['kind'],
     }));
 
   // Transform packing items
-  const packingChecklist = (gig.gig_packing_items as any[] || [])
+  const packingChecklist = ((gig.gig_packing_items as GigPackingItemRow[]) || [])
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-    .map((item: any) => ({
+    .map((item) => ({
       id: item.id,
       label: item.label,
     }));
 
   // Build setlist text from structured setlist or use raw text
   let setlistText = gig.setlist || '';
-  const setlistStructured = setlistSections?.map((section: any) => ({
+  const setlistStructured = setlistSections?.map((section) => ({
     id: section.id,
     name: section.name,
-    songs: ((section.setlist_items as any[]) || [])
+    songs: ((section.setlist_items as SetlistItemRow[]) || [])
       .sort((a, b) => a.sort_order - b.sort_order)
-      .map((item: any) => ({
+      .map((item) => ({
         id: item.id,
         title: item.title,
         artist: item.artist || undefined,
@@ -155,7 +201,7 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
   }
 
   // Get share token
-  const shareToken = (gig.gig_shares as any[])?.[0]?.token || null;
+  const shareToken = (gig.gig_shares as Array<{ token: string }>)?.[0]?.token || null;
 
   // owner_id is required for GigPack type
   if (!gig.owner_id) {
@@ -345,7 +391,7 @@ export async function getGigPack(
   let position = 1;
   if (setlistSections) {
     for (const section of setlistSections) {
-      const items = (section.setlist_items as any[]) || [];
+      const items = (section.setlist_items as SetlistItemRow[]) || [];
       for (const item of items.sort((a, b) => a.sort_order - b.sort_order)) {
         flatSetlist.push({
           id: item.id,
@@ -375,9 +421,9 @@ export async function getGigPack(
   }
 
   // Transform schedule items
-  const scheduleItems = (gig.gig_schedule_items as any[] || [])
+  const scheduleItems = ((gig.gig_schedule_items as GigScheduleItemRow[]) || [])
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-    .map((item: any) => ({
+    .map((item) => ({
       time: item.time,
       label: item.label,
     }));
@@ -390,9 +436,9 @@ export async function getGigPack(
     : null;
 
   // Transform materials/resources
-  const resources = (gig.gig_materials as any[] || [])
+  const resources = ((gig.gig_materials as GigMaterialRow[]) || [])
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-    .map((m: any) => ({
+    .map((m) => ({
       id: m.id,
       label: m.label,
       url: m.url,
@@ -413,8 +459,8 @@ export async function getGigPack(
     schedule: scheduleText,
     host: gig.owner
       ? {
-          id: (gig.owner as any).id,
-          name: (gig.owner as any).name || 'Unknown',
+          id: (gig.owner as GigOwnerProfile).id,
+          name: (gig.owner as GigOwnerProfile).name || 'Unknown',
         }
       : null,
     setlist: flatSetlist,

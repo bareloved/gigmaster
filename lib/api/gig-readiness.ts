@@ -109,7 +109,7 @@ export async function updateGigReadiness(
   const supabase = createClient();
 
   // Build update object with only provided fields
-  const updateData: any = {};
+  const updateData: Record<string, number | boolean | string | null> = {};
   if (updates.songsTotal !== undefined) updateData.songs_total = updates.songsTotal;
   if (updates.songsLearned !== undefined) updateData.songs_learned = updates.songsLearned;
   if (updates.chartsReady !== undefined) updateData.charts_ready = updates.chartsReady;

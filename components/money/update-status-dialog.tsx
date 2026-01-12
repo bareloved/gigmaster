@@ -63,8 +63,9 @@ export function UpdatePaymentStatusDialog({
       });
       onOpenChange(false);
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to update payment status');
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to update payment status';
+      toast.error(message);
     },
   });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { useTranslations } from "@/hooks/use-translations";
 import { Band, LineupMember, PosterSkin } from "@/lib/types/gigpack";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -267,7 +268,7 @@ export function BandEditorPanel({
         default_lineup: defaultLineup as unknown as Json,
       };
 
-      let rawData: any;
+      let rawData: typeof bandData & { cover_image_url?: string | null };
 
       if (isEditing) {
         // Update existing band
@@ -381,10 +382,12 @@ export function BandEditorPanel({
               {bandLogoUrl ? (
                 <div className="flex items-center gap-4">
                   <div className="relative w-20 h-20 border border-border rounded-lg overflow-hidden bg-muted">
-                    <img
+                    <Image
                       src={bandLogoUrl}
                       alt="Band logo"
-                      className="w-full h-full object-contain"
+                      fill
+                      className="object-contain"
+                      sizes="80px"
                     />
                   </div>
                   <div className="flex gap-2">
@@ -438,10 +441,12 @@ export function BandEditorPanel({
               {heroImageUrl ? (
                 <div className="flex items-start gap-4">
                   <div className="relative w-40 h-24 border border-border rounded-lg overflow-hidden bg-muted">
-                    <img
+                    <Image
                       src={heroImageUrl}
                       alt="Hero image"
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      sizes="160px"
                     />
                   </div>
                   <div className="flex gap-2">

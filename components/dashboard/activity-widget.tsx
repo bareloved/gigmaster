@@ -192,7 +192,7 @@ function ActivityMetadata({
   metadata,
 }: {
   activityType: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }) {
   // Render specific metadata based on activity type
   if (activityType === "setlist_updated" && metadata.changes) {

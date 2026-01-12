@@ -281,8 +281,8 @@ export function MyEarningsTable({ gigs }: { gigs: MyEarningsGig[] }) {
     }
 
     const sorted = [...gigs].sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
+      let aValue: string | number;
+      let bValue: string | number;
 
       switch (sortConfig.key) {
         case 'date':
@@ -348,8 +348,9 @@ export function MyEarningsTable({ gigs }: { gigs: MyEarningsGig[] }) {
         refetchType: 'active'
       });
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to update payment status');
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to update payment status';
+      toast.error(message);
     },
   });
 

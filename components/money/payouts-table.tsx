@@ -38,8 +38,9 @@ export function PayoutsTable({ payouts }: { payouts: PayoutRow[] }) {
         refetchType: 'active'
       });
     },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to update payment status');
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to update payment status';
+      toast.error(message);
     },
   });
 

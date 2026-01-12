@@ -22,7 +22,7 @@ export async function listUserBands(): Promise<Band[]> {
     hero_image_url: b.hero_image_url || null,
     accent_color: b.accent_color || null,
     poster_skin: (b.poster_skin as "clean" | "paper" | "grain") || "clean",
-    default_lineup: (b.default_lineup as any) || [],
+    default_lineup: (b.default_lineup as Array<{ role: string; name?: string }>) || [],
   }));
 }
 

@@ -4,13 +4,11 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "@/lib/gigpack/i18n";
 import { GigPack, GigPackTheme } from "@/lib/gigpack/types";
-import { RefreshCw, Eye } from "lucide-react";
 import { MinimalLayout } from "@/components/gigpack/layouts/minimal-layout";
 // RehearsalView is skipped for now, mapping to MinimalLayout for MVP phase
 // import { RehearsalView } from "@/components/gigpack/rehearsal-view";
 import { DarkModeToggle as ThemeToggle } from "@/components/layout/dark-mode-toggle";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 class PublicGigPackErrorBoundary extends React.Component<
   { children: React.ReactNode; slug: string },
@@ -56,13 +54,13 @@ interface PublicGigPackViewProps {
 export function PublicGigPackView({ initialGigPack, slug, locale = "en" }: PublicGigPackViewProps) {
 
   const searchParams = useSearchParams();
-  const t = useTranslations("publicView");
-  const [gigPack, setGigPack] = useState(initialGigPack);
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  const [isChecking, setIsChecking] = useState(false);
-  const [isUserActive, setIsUserActive] = useState(true);
+  const _t = useTranslations("publicView");
+  const [gigPack] = useState(initialGigPack);
+  const [, _setLastUpdated] = useState<Date>(new Date());
+  const [, _setIsChecking] = useState(false);
+  const [, _setIsUserActive] = useState(true);
 
-  const [isRehearsalMode, setIsRehearsalMode] = useState(() => {
+  const [isRehearsalMode] = useState(() => {
     const viewParam = searchParams.get("view");
     const modeParam = searchParams.get("mode");
     if (viewParam === "stage" || modeParam === "rehearsal") {
@@ -75,7 +73,7 @@ export function PublicGigPackView({ initialGigPack, slug, locale = "en" }: Publi
     return false;
   });
 
-  const theme: GigPackTheme = (gigPack.theme || "minimal") as GigPackTheme;
+  const _theme: GigPackTheme = (gigPack.theme || "minimal") as GigPackTheme;
 
   useEffect(() => {
     if (typeof window !== "undefined") {

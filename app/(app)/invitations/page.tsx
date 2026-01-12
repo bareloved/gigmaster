@@ -12,10 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, MapPin, Clock, Music, AlertCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState } from "react";
-import { PlayerStatusActions } from "@/components/roles/player-actions";
 
 function formatTime(time: string | null): string {
   if (!time) return "";
@@ -32,7 +30,6 @@ function getWeekdayAndDate(dateStr: string): { weekday: string; shortDate: strin
 
 export default function InvitationsPage() {
   const { user } = useUser();
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("pending");
   
@@ -259,7 +256,7 @@ export default function InvitationsPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {pendingInvitations.map((role: any) => {
+                  {(pendingInvitations as GigRole[]).map((role) => {
                     const gig = role.gigs;
                     const { weekday, shortDate } = getWeekdayAndDate(gig.date);
                     
@@ -370,7 +367,7 @@ export default function InvitationsPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {declinedInvitations.map((role: any) => {
+                  {(declinedInvitations as GigRole[]).map((role) => {
                     const gig = role.gigs;
                     const { weekday, shortDate } = getWeekdayAndDate(gig.date);
                     

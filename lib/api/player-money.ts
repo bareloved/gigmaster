@@ -1,6 +1,26 @@
 import { createClient } from '@/lib/supabase/client';
 import type { PlayerMoneySummary, PlayerMoneyGig } from '@/lib/types/shared';
 
+// Type definitions for database rows
+interface SummaryRow {
+  agreed_fee: number | null;
+  payment_status: string | null;
+  gigs: { date: string };
+}
+
+interface GigPaymentRow {
+  id: string;
+  role_name: string;
+  agreed_fee: number | null;
+  payment_status: string | null;
+  gigs: {
+    id: string;
+    title: string;
+    date: string;
+    owner: { name: string | null } | null;
+  };
+}
+
 /**
  * Player Money API
  * Functions for querying financial data for musicians/players
@@ -55,7 +75,7 @@ export async function getPlayerMoneySummary(
   let totalEarned = 0;
   let totalUnpaid = 0;
 
-  data.forEach((item: any) => {
+  (data as SummaryRow[]).forEach((item) => {
     const fee = item.agreed_fee || 0;
 
     if (item.payment_status === 'paid') {
@@ -128,8 +148,8 @@ export async function getPlayerMoneyGigs(
   }
 
   // Transform the data to a flatter structure and sort by date descending
-  return data
-    .map((item: any) => ({
+  return (data as GigPaymentRow[])
+    .map((item) => ({
       id: item.gigs.id,
       date: item.gigs.date,
       gigTitle: item.gigs.title,

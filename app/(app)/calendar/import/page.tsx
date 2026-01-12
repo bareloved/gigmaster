@@ -10,7 +10,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { 
   Calendar, 
   CheckCircle2, 
@@ -174,7 +173,7 @@ export default function CalendarImportPage() {
         throw new Error("Failed to import event");
       }
 
-      const data = await response.json();
+      await response.json();
       setImportedEvents(new Set([...importedEvents, event.id]));
       toast.success(`Imported "${event.summary}" as a gig`);
     } catch (error) {

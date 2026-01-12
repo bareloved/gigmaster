@@ -13,7 +13,7 @@ export interface GigActivityLogEntry {
   user_id: string | null;
   activity_type: ActivityType;
   description: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   created_at: string;
   user?: {
     name: string | null;
@@ -212,7 +212,7 @@ export async function logActivity(
   gigId: string,
   activityType: ActivityType,
   description: string,
-  metadata: Record<string, any> = {}
+  metadata: Record<string, unknown> = {}
 ): Promise<void> {
   const supabase = createClient();
 

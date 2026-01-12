@@ -2,6 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createEvents, EventAttributes } from "ics";
 
+// Type definitions for database rows
+interface GigOwnerProfile {
+  name: string | null;
+}
+
+interface ManagerGigRow {
+  id: string;
+  title: string;
+  date: string;
+  start_time: string | null;
+  end_time: string | null;
+  location_name: string | null;
+  status: string | null;
+  owner: GigOwnerProfile | null;
+}
+
+interface PlayerGigRow {
+  role_name: string;
+  invitation_status: string | null;
+  gigs: {
+    id: string;
+    title: string;
+    date: string;
+    start_time: string | null;
+    end_time: string | null;
+    location_name: string | null;
+    status: string | null;
+    owner: GigOwnerProfile | null;
+  };
+}
+
 /**
  * ICS Calendar Feed Endpoint
  * 
@@ -113,7 +144,7 @@ export async function GET(request: NextRequest) {
     const gigMap = new Map();
 
     // Add manager gigs
-    (managerGigs || []).forEach((row: any) => {
+    ((managerGigs || []) as ManagerGigRow[]).forEach((row) => {
       gigMap.set(row.id, {
         gigId: row.id,
         gigTitle: row.title,
@@ -129,7 +160,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Add player gigs
-    (playerGigs || []).forEach((row: any) => {
+    ((playerGigs || []) as PlayerGigRow[]).forEach((row) => {
       const gig = row.gigs;
       const gigId = gig.id;
       

@@ -25,9 +25,10 @@ function AcceptInvitationContent() {
       setTimeout(() => {
         router.push('/dashboard?view=player');
       }, 2000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus('error');
-      setError(err.message || 'Failed to accept invitation');
+      const message = err instanceof Error ? err.message : 'Failed to accept invitation';
+      setError(message);
     }
   };
 

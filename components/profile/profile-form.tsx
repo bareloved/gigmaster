@@ -16,7 +16,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { COUNTRY_CODES } from "@/lib/utils/phone";
 import { uploadAvatar, getUserInitials } from "@/lib/utils/avatar";
-import { Camera, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { useUser } from "@/lib/providers/user-provider";
 

@@ -11,6 +11,7 @@ import {
   clearAllNotifications,
   subscribeToNotifications,
 } from "@/lib/api/notifications";
+import type { Notification } from "@/lib/types/shared";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -81,7 +82,7 @@ export function NotificationsDropdown() {
       // Add new notification to cache
       queryClient.setQueryData(
         ["notifications", user.id],
-        (old: any[]) => [notification, ...(old || [])]
+        (old: Notification[] | undefined) => [notification, ...(old || [])]
       );
       // Increment unread count
       queryClient.setQueryData(

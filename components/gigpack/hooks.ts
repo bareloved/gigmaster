@@ -1,5 +1,5 @@
 // Mock hooks for next-intl until full i18n is set up
-export function useTranslations(namespace: string) {
+export function useTranslations(_namespace: string) {
   const messages: Record<string, string> = {
     // Public View Keys
     "rehearsalMode": "Rehearsal Mode",
@@ -51,11 +51,11 @@ export function useTranslations(namespace: string) {
     "stageViewFooter": "GigMaster Stage View",
   };
 
-  return (key: string, params?: any) => {
+  return (key: string, params?: Record<string, string | number>) => {
     let msg = messages[key] || key;
     if (params) {
        Object.keys(params).forEach(k => {
-         msg = msg.replace(`{${k}}`, params[k]);
+         msg = msg.replace(`{${k}}`, String(params[k]));
        });
     }
     return msg;

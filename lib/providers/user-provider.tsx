@@ -19,6 +19,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true); // Start as true, show loading screen until auth resolves
   const hasFetchedRef = useRef(false);
+  const userIdRef = useRef<string | undefined>(undefined);
 
   const fetchUserAndProfile = async () => {
     if (hasFetchedRef.current) return;
@@ -35,6 +36,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
       const authUser = userResult.data.user;
       setUser(authUser);
+      userIdRef.current = authUser?.id;
 
       // Only set profile if it matches the current user
       if (authUser && profileResult.data?.id === authUser.id) {
@@ -45,6 +47,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Error fetching user/profile:", error);
       setUser(null);
+      userIdRef.current = undefined;
       setProfile(null);
     } finally {
       setIsLoading(false);
@@ -59,9 +62,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      // Only update if user actually changed
-      if (session?.user?.id !== user?.id) {
+      // Only update if user actually changed (use ref to avoid stale closure)
+      if (session?.user?.id !== userIdRef.current) {
         setUser(session?.user ?? null);
+        userIdRef.current = session?.user?.id;
         if (session?.user) {
           // Reset flag to allow refetch for new user
           hasFetchedRef.current = false;

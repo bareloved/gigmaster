@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { GigPack, GigScheduleItem, GigMaterial, PackingChecklistItem, LineupMember, SetlistSection } from "@/lib/types/gigpack";
+import { GigPack } from "@/lib/types/gigpack";
 import { revalidatePath } from "next/cache";
 
 export async function saveGigPack(data: Partial<GigPack>, isEditing: boolean) {
@@ -14,7 +14,7 @@ export async function saveGigPack(data: Partial<GigPack>, isEditing: boolean) {
 
   // 1. Prepare Gig Payload
   // Map GigPack fields to Ensemble 'gigs' table columns
-  const gigPayload: any = {
+  const gigPayload: Record<string, unknown> = {
     title: data.title,
     project_id: data.band_id || null, // Map band_id -> project_id
     date: data.date,

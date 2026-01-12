@@ -9,6 +9,66 @@ import { GigPack, LineupMember, GigScheduleItem, GigMaterial, PackingChecklistIt
 import { isArchivedStatus } from "@/lib/types/shared";
 import { SupabaseClient } from "@supabase/supabase-js";
 
+// Type definitions for database join results
+interface GigOwnerProfile {
+  name: string | null;
+}
+
+interface GigRoleRow {
+  id: string;
+  role_name: string;
+  musician_name: string | null;
+  notes: string | null;
+  invitation_status: string | null;
+  musician_id: string | null;
+}
+
+interface SetlistItemRow {
+  id: string;
+  title: string;
+  artist: string | null;
+  key: string | null;
+  tempo: string | null;
+  notes: string | null;
+  reference_url: string | null;
+}
+
+interface SetlistSectionRow {
+  id: string;
+  name: string;
+  setlist_items: SetlistItemRow[];
+}
+
+interface PackingItemRow {
+  id: string;
+  label: string;
+}
+
+interface MaterialRow {
+  id: string;
+  label: string;
+  url: string;
+  kind: string;
+}
+
+interface ScheduleItemRow {
+  id: string;
+  time: string | null;
+  label: string;
+}
+
+interface RpcSaveParams {
+  p_gig: Record<string, unknown>;
+  p_schedule: GigScheduleItem[];
+  p_materials: GigMaterial[];
+  p_packing: PackingChecklistItem[];
+  p_setlist: SetlistSection[];
+  p_roles: LineupMember[];
+  p_share_token: string | undefined;
+  p_is_editing: boolean;
+  p_gig_id: string | undefined;
+}
+
 // ============================================
 // HELPER FUNCTIONS FOR PARALLEL OPERATIONS
 // ============================================
@@ -492,7 +552,7 @@ export async function getGig(id: string): Promise<GigPack | null> {
   const gigPack: GigPack = {
     id: gig.id,
     owner_id: gig.owner_id || "",
-    owner_name: (gig.owner as any)?.name || null,
+    owner_name: (gig.owner as GigOwnerProfile | null)?.name || null,
     title: gig.title,
     status: gig.status || "draft",
     band_id: gig.project_id,
@@ -503,7 +563,7 @@ export async function getGig(id: string): Promise<GigPack | null> {
     venue_name: gig.location_name || gig.venue_name,
     venue_address: gig.location_address || gig.venue_address,
     venue_maps_url: gig.venue_maps_url,
-    lineup: gig.gig_roles?.map((r: any) => ({
+    lineup: (gig.gig_roles as GigRoleRow[] | null)?.map((r) => ({
       role: r.role_name,
       name: r.musician_name,
       notes: r.notes,
@@ -512,10 +572,10 @@ export async function getGig(id: string): Promise<GigPack | null> {
       userId: r.musician_id || undefined,
     })) || [],
     setlist: gig.setlist,
-    setlist_structured: gig.setlist_sections?.map((s: any) => ({
+    setlist_structured: (gig.setlist_sections as SetlistSectionRow[] | null)?.map((s) => ({
       id: s.id,
       name: s.name,
-      songs: s.setlist_items?.map((song: any) => ({
+      songs: (s.setlist_items as SetlistItemRow[])?.map((song) => ({
         id: song.id,
         title: song.title,
         artist: song.artist,
@@ -539,18 +599,18 @@ export async function getGig(id: string): Promise<GigPack | null> {
     hero_image_url: gig.hero_image_url,
     accent_color: gig.accent_color,
     poster_skin: gig.poster_skin as PosterSkin,
-    packing_checklist: gig.gig_packing_items?.map((i: any) => ({
+    packing_checklist: (gig.gig_packing_items as PackingItemRow[] | null)?.map((i) => ({
       id: i.id,
       label: i.label
     })) || [],
     gig_type: gig.gig_type,
-    materials: gig.gig_materials?.map((m: any) => ({
+    materials: (gig.gig_materials as MaterialRow[] | null)?.map((m) => ({
       id: m.id,
       label: m.label,
       url: m.url,
-      kind: m.kind
+      kind: m.kind as GigMaterial['kind']
     })) || [],
-    schedule: gig.gig_schedule_items?.map((s: any) => ({
+    schedule: (gig.gig_schedule_items as ScheduleItemRow[] | null)?.map((s) => ({
       id: s.id,
       time: s.time,
       label: s.label
@@ -645,7 +705,7 @@ async function saveGigPackRPC(
     };
 
     // Single RPC call - everything happens server-side in one transaction
-     
+
     const { data: result, error } = await supabase.rpc('save_gig_pack', {
       p_gig: gigPayload,
       p_schedule: data.schedule || [],
@@ -656,7 +716,7 @@ async function saveGigPackRPC(
       p_share_token: publicSlug || undefined,
       p_is_editing: isEditing,
       p_gig_id: gigId || undefined,
-    } as any);
+    } as RpcSaveParams);
 
     if (error) {
       console.error('[GIG_SAVE_RPC] Error:', error);

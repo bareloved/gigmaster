@@ -20,9 +20,35 @@ import { useUser } from "@/lib/providers/user-provider";
 import { DashboardGigItem } from "@/components/dashboard/gig-item";
 import { DashboardGigItemGrid } from "@/components/dashboard/gig-item-grid";
 import type { DashboardGig } from "@/lib/types/shared";
-import { parseISO } from "date-fns";
 import dynamic from "next/dynamic";
 import { getGig } from "./actions";
+
+// Type definitions for database join results
+interface GigRoleRow {
+  id: string;
+  musician_id: string | null;
+  invitation_status: string | null;
+  payment_status: string | null;
+}
+
+interface GigOwnerProfile {
+  name: string | null;
+}
+
+interface GigWithRoles {
+  id: string;
+  title: string;
+  date: string;
+  start_time: string | null;
+  end_time: string | null;
+  location_name: string | null;
+  status: string | null;
+  owner_id: string;
+  hero_image_url: string | null;
+  gig_type: string | null;
+  owner: GigOwnerProfile | GigOwnerProfile[] | null;
+  gig_roles: GigRoleRow[];
+}
 
 const GigEditorPanel = dynamic(
   () => import("@/components/gigpack/editor/gig-editor-panel").then((mod) => mod.GigEditorPanel),
@@ -126,11 +152,11 @@ export default function AllGigsPage() {
       // Transform to DashboardGig format
       // Filter and transform gigs where user is either manager or player
       // Exclude declined invitations from player perspective
-      const transformedGigs: DashboardGig[] = (gigs || [])
-        .filter((gig: any) => {
+      const transformedGigs: DashboardGig[] = ((gigs || []) as GigWithRoles[])
+        .filter((gig) => {
           const roles = Array.isArray(gig.gig_roles) ? gig.gig_roles : [];
           // Only consider roles that are not pending or declined
-          const userRoles = roles.filter((r: any) =>
+          const userRoles = roles.filter((r) =>
             r?.musician_id === user?.id &&
             r?.invitation_status !== 'pending' &&
             r?.invitation_status !== 'declined'
@@ -141,10 +167,10 @@ export default function AllGigsPage() {
           // Only include gigs where user is manager or player (with active invitation)
           return isManager || isPlayer;
         })
-        .map((gig: any) => {
+        .map((gig) => {
           const roles = Array.isArray(gig.gig_roles) ? gig.gig_roles : [];
           // Only consider roles that are not pending or declined
-          const userRoles = roles.filter((r: any) =>
+          const userRoles = roles.filter((r) =>
             r?.musician_id === user?.id &&
             r?.invitation_status !== 'pending' &&
             r?.invitation_status !== 'declined'

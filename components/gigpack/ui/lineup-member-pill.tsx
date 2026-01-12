@@ -142,7 +142,7 @@ export function LineupMemberPill({
   const [editingName, setEditingName] = useState(name);
 
   // Look up avatar for the name
-  const { avatarUrl, isLinkedUser, primaryInstrument } = useContactAvatarLookup(name);
+  const { avatarUrl, isLinkedUser } = useContactAvatarLookup(name);
 
   // Show empty state inputs when no name
   const hasName = name.trim().length > 0;

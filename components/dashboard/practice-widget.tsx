@@ -8,10 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Music, 
-  CheckCircle2, 
-  Clock, 
+import {
+  Music,
+  CheckCircle2,
   Calendar,
   ChevronRight,
   Headphones

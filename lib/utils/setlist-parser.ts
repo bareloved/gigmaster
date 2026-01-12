@@ -120,7 +120,7 @@ export function parseSetlistText(text: string): ParsedSong[] {
  * 
  * See: docs/future-enhancements/setlist-enhancements.md
  */
-export async function parseSetlistWithAI(text: string): Promise<ParsedSong[]> {
+export async function parseSetlistWithAI(_text: string): Promise<ParsedSong[]> {
   // TODO: Implement when AI API key is available
   throw new Error("AI parsing not yet implemented. Use parseSetlistText() for now.");
 }

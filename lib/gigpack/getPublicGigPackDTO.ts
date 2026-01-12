@@ -1,6 +1,53 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { GigPack, GigPackTheme, PosterSkin } from "@/lib/gigpack/types";
+import { GigPack, GigPackTheme, PosterSkin, GigMaterialKind } from "@/lib/gigpack/types";
 import { isArchivedStatus } from "@/lib/types/shared";
+
+// Type definitions for database join results
+interface ScheduleItemRow {
+  id: string;
+  time: string | null;
+  label: string;
+  sort_order: number | null;
+}
+
+interface RoleRow {
+  role_name: string;
+  musician_name: string | null;
+  notes: string | null;
+  sort_order: number | null;
+}
+
+interface SetlistItemRow {
+  id: string;
+  title: string;
+  artist: string | null;
+  key: string | null;
+  tempo: string | null;
+  notes: string | null;
+  reference_url: string | null;
+  sort_order: number;
+}
+
+interface SetlistSectionRow {
+  id: string;
+  name: string;
+  sort_order: number;
+  items: SetlistItemRow[];
+}
+
+interface MaterialRow {
+  id: string;
+  label: string;
+  url: string;
+  kind: string;
+  sort_order: number | null;
+}
+
+interface PackingRow {
+  id: string;
+  label: string;
+  sort_order: number | null;
+}
 
 // Helper type for public DTO (subset of GigPack)
 export type PublicGigPackDTO = Omit<GigPack, "internal_notes" | "owner_id">;
@@ -69,54 +116,54 @@ export async function getPublicGigPackDTO(token: string): Promise<PublicGigPackD
     theme: (gig.theme || "minimal") as GigPackTheme,
     poster_skin: (gig.poster_skin || "clean") as PosterSkin,
 
-    schedule: (gig.schedule || [])
-      .sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
-      .map((s: any) => ({
+    schedule: ((gig.schedule || []) as ScheduleItemRow[])
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+      .map((s) => ({
         id: s.id,
         time: s.time,
         label: s.label,
       })),
 
-    lineup: (gig.roles || [])
-      .sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
-      .map((r: any) => ({
+    lineup: ((gig.roles || []) as RoleRow[])
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+      .map((r) => ({
         role: r.role_name,
-        name: r.musician_name,
-        notes: r.notes,
+        name: r.musician_name || undefined,
+        notes: r.notes || undefined,
       })),
 
     setlist: gig.setlist, // Flat text
 
-    setlist_structured: (gig.setlist_sections || [])
-      .sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
-      .map((section: any) => ({
+    setlist_structured: ((gig.setlist_sections || []) as SetlistSectionRow[])
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+      .map((section) => ({
         id: section.id,
         name: section.name,
-        songs: (section.items || [])
-          .sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
-          .map((item: any) => ({
+        songs: ((section.items || []) as SetlistItemRow[])
+          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+          .map((item) => ({
             id: item.id,
             title: item.title,
-            artist: item.artist,
-            key: item.key,
-            tempo: item.tempo,
-            notes: item.notes,
-            referenceUrl: item.reference_url,
+            artist: item.artist || undefined,
+            key: item.key || undefined,
+            tempo: item.tempo || undefined,
+            notes: item.notes || undefined,
+            referenceUrl: item.reference_url || undefined,
           })),
       })),
 
-    materials: (gig.materials || [])
-      .sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
-      .map((m: any) => ({
+    materials: ((gig.materials || []) as MaterialRow[])
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+      .map((m) => ({
         id: m.id,
         label: m.label,
         url: m.url,
-        kind: m.kind as any,
+        kind: m.kind as GigMaterialKind,
       })),
 
-    packing_checklist: (gig.packing || [])
-      .sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
-      .map((p: any) => ({
+    packing_checklist: ((gig.packing || []) as PackingRow[])
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+      .map((p) => ({
         id: p.id,
         label: p.label,
       })),

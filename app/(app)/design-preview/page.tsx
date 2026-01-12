@@ -3,19 +3,10 @@
 import { useState } from "react";
 import {
   Music,
-  Calendar,
   MapPin,
   Clock,
-  Zap,
-  CheckCircle2,
-  AlertTriangle,
-  Crown,
   Star,
   ChevronRight,
-  Sparkles,
-  Circle,
-  Square,
-  Triangle,
 } from "lucide-react";
 
 type ThemeKey = "vintage" | "jazz" | "brutalist" | "retro70s" | "editorial";

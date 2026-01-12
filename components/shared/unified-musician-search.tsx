@@ -34,7 +34,7 @@ interface UnifiedMusicianSearchProps {
 }
 
 export function UnifiedMusicianSearch({
-  gigId,
+  gigId: _gigId,
   onAddFromCircle,
   onAddSystemUser,
   onInviteByEmail,

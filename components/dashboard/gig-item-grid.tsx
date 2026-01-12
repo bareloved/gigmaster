@@ -51,13 +51,12 @@ const DeleteGigDialog = dynamic(
 interface GigGridInnerContentProps {
   gig: DashboardGig;
   gigDate: Date;
-  formattedDate: string;
   heroImage: string;
   index?: number;
 }
 
 // PERFORMANCE: Memoize inner content to prevent re-renders when parent state changes
-const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, formattedDate, heroImage, index }: GigGridInnerContentProps) {
+const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, heroImage, index }: GigGridInnerContentProps) {
   return (
     <>
       {/* Hero Image - always show with fallback */}

@@ -1,6 +1,28 @@
 import { createClient } from "@/lib/supabase/client";
 import type { DashboardGig } from "@/lib/types/shared";
 
+// Type definition for RPC response row
+interface DashboardRpcRow {
+  gig_id: string;
+  gig_title: string;
+  date: string;
+  start_time: string | null;
+  end_time: string | null;
+  location_name: string | null;
+  status: string | null;
+  is_manager: boolean;
+  is_player: boolean;
+  player_role_name: string | null;
+  player_gig_role_id: string | null;
+  invitation_status: string | null;
+  payment_status: string | null;
+  host_name: string | null;
+  host_id: string | null;
+  total_count: number;
+  gig_type: string | null;
+  hero_image_url: string | null;
+}
+
 /**
  * Dashboard Gigs API
  *
@@ -64,7 +86,7 @@ export async function listDashboardGigs(
     if (!rpcError && rpcData && Array.isArray(rpcData) && rpcData.length > 0) {
       // RPC succeeded - transform response
       const total = rpcData[0]?.total_count ?? 0;
-      const gigs: DashboardGig[] = rpcData.map((row: any) => ({
+      const gigs: DashboardGig[] = (rpcData as DashboardRpcRow[]).map((row) => ({
         gigId: row.gig_id,
         gigTitle: row.gig_title,
         date: row.date,
@@ -358,7 +380,7 @@ export async function listAllPastGigs(
 
     if (!rpcError && rpcData && Array.isArray(rpcData) && rpcData.length > 0) {
       const total = rpcData[0]?.total_count ?? 0;
-      const gigs: DashboardGig[] = rpcData.map((row: any) => ({
+      const gigs: DashboardGig[] = (rpcData as DashboardRpcRow[]).map((row) => ({
         gigId: row.gig_id,
         gigTitle: row.gig_title,
         date: row.date,

@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 import { GigPack } from "@/lib/gigpack/types";
 
 interface GigEditorWrapperProps {
-  mode: "create" | "edit";
   gig?: GigPack | null;
 }
 
-export function GigEditorWrapper({ mode, gig }: GigEditorWrapperProps) {
+export function GigEditorWrapper({ gig }: GigEditorWrapperProps) {
   const router = useRouter();
 
   const handleClose = (open: boolean) => {

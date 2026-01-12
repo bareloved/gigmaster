@@ -14,7 +14,6 @@ import {
   Plus,
   Menu,
   Mail,
-  Building2,
   Guitar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";

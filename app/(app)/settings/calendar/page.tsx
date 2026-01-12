@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,7 @@ function CalendarSettingsContent() {
   const { user, isLoading: userLoading } = useUser();
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [, setIsGenerating] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   
@@ -98,7 +98,7 @@ function CalendarSettingsContent() {
       setCopied(true);
       toast.success("Calendar URL copied to clipboard");
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
+    } catch {
       toast.error("Failed to copy URL");
     }
   };
@@ -418,18 +418,6 @@ function CalendarSettingsContent() {
 }
 
 export default function CalendarSettingsPage() {
-  return (
-    <Suspense fallback={
-      <div className="container max-w-4xl py-8 space-y-6">
-        <div>
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-96" />
-        </div>
-        <Skeleton className="h-96 w-full" />
-      </div>
-    }>
-      <CalendarSettingsContent />
-    </Suspense>
-  );
+  return <CalendarSettingsContent />;
 }
 
