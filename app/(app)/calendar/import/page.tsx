@@ -584,7 +584,7 @@ export default function CalendarImportPage() {
         <Alert>
           <Calendar className="h-4 w-4" />
           <AlertDescription>
-            No events found in the next 30 days. Click "Fetch Events" to load your calendar.
+            No events found in the next 30 days. Click &quot;Fetch Events&quot; to load your calendar.
           </AlertDescription>
         </Alert>
       )}

@@ -64,7 +64,6 @@ export default function GigPackPage() {
   // Set up smart polling with activity detection
   useEffect(() => {
     let activityTimeout: NodeJS.Timeout;
-    let pollInterval: NodeJS.Timeout;
 
     const resetActivityTimeout = () => {
       setIsUserActive(true);
@@ -96,10 +95,10 @@ export default function GigPackPage() {
     // Set polling interval based on activity state
     // Poll every 10 seconds when active, every 60 seconds when idle
     const intervalTime = isUserActive && !document.hidden ? 10000 : 60000;
-    pollInterval = setInterval(poll, intervalTime);
+    const pollIntervalId = setInterval(poll, intervalTime);
 
     return () => {
-      clearInterval(pollInterval);
+      clearInterval(pollIntervalId);
       clearTimeout(activityTimeout);
       activityEvents.forEach(event => {
         document.removeEventListener(event, resetActivityTimeout);

@@ -235,7 +235,7 @@ export default function InvitationsPage() {
             <CardHeader>
               <CardTitle>Pending Invitations</CardTitle>
               <CardDescription>
-                Gigs you've been invited to that are waiting for your response.
+                Gigs you&apos;ve been invited to that are waiting for your response.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -254,7 +254,7 @@ export default function InvitationsPage() {
                   <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No pending invitations</h3>
                   <p className="text-sm text-muted-foreground max-w-sm">
-                    You're all caught up! When you receive new gig invitations, they'll appear here.
+                    You&apos;re all caught up! When you receive new gig invitations, they&apos;ll appear here.
                   </p>
                 </div>
               ) : (
@@ -346,7 +346,7 @@ export default function InvitationsPage() {
             <CardHeader>
               <CardTitle>Declined Invitations</CardTitle>
               <CardDescription>
-                Gigs you previously declined. You can still change your mind if the spot hasn't been filled.
+                Gigs you previously declined. You can still change your mind if the spot hasn&apos;t been filled.
               </CardDescription>
             </CardHeader>
             <CardContent>

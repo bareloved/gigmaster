@@ -27,7 +27,7 @@ ${magicLink}
 Looking forward to having you on this gig!`;
 
   // Clean phone number (remove + and any spaces/dashes)
-  const cleanPhone = phone.replace(/[\s\-\+\(\)]/g, '');
+  const cleanPhone = phone.replace(/[\s\-+()]/g, '');
   
   // URL encode the message
   const encodedMessage = encodeURIComponent(message);
@@ -43,7 +43,7 @@ Looking forward to having you on this gig!`;
 export function isValidPhoneNumber(phone: string): boolean {
   // Basic validation: starts with +, then digits, min 10 chars
   const phoneRegex = /^\+\d{10,15}$/;
-  return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
+  return phoneRegex.test(phone.replace(/[\s\-()]/g, ''));
 }
 
 /**
@@ -52,7 +52,7 @@ export function isValidPhoneNumber(phone: string): boolean {
  */
 export function formatPhoneNumber(phone: string): string {
   // Remove all non-digit characters except +
-  const cleaned = phone.replace(/[^\d\+]/g, '');
+  const cleaned = phone.replace(/[^\d+]/g, '');
   
   // Return as-is if already formatted or invalid
   if (!cleaned.startsWith('+') || cleaned.length < 10) {

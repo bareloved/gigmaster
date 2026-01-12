@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, DollarSign, Paperclip, ExternalLink, Heart, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, Guitar, Drum, Piano, Volume2, Radio } from "lucide-react";
-import { classifyGigVisualTheme, pickFallbackImageForTheme } from "@/lib/gigpack/visual-theme";
+import { classifyGigVisualTheme, pickFallbackImageForTheme } from "@/lib/gigpack/gig-visual-theme";
 
 interface MinimalLayoutProps {
   gigPack: Omit<GigPack, "internal_notes" | "owner_id">;
@@ -33,7 +33,7 @@ export function MinimalLayout({ gigPack, openMaps, slug, locale: localeProp }: M
 
   let backgroundImage;
   try {
-    const classifiedTheme = classifyGigVisualTheme({ gig: gigPack as GigPack });
+    const classifiedTheme = classifyGigVisualTheme(gigPack as GigPack);
     backgroundImage = gigPack.hero_image_url || pickFallbackImageForTheme(classifiedTheme, gigPack.id);
   } catch (error) {
     backgroundImage = "/gig-fallbacks/generic-1.jpeg";

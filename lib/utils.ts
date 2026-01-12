@@ -6,18 +6,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function getInitials(name?: string | null, email?: string | null): string {
-  if (name) {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  }
-  return email?.[0]?.toUpperCase() || "U";
-}
-
 export function getUserDisplayName(
   profile?: { name: string | null } | null,
   user?: User | null

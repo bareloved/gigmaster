@@ -99,6 +99,9 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
       role: role.role_name,
       name: role.musician_name || undefined,
       notes: undefined,
+      invitationStatus: role.invitation_status || undefined,
+      gigRoleId: role.id,
+      userId: role.musician_id || undefined,
     }));
 
   // Transform materials

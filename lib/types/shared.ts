@@ -449,31 +449,3 @@ export interface PaymentStatusUpdate {
   paidAmount?: number | null;
   paidDate?: string | null;
 }
-
-/**
- * Dashboard KPIs for artistry-focused dashboard
- * Aggregated metrics for quick musician-focused overview
- */
-export interface DashboardKPIs {
-  gigsThisWeek: {
-    total: number;
-    hosted: number;
-    playing: number;
-  };
-  songsToLearn: {
-    total: number;
-    acrossGigs: number;
-  };
-  changesSinceLastVisit: {
-    total: number;
-    breakdown: {
-      setlists: number;
-      notes: number;
-      files: number;
-      roles: number;
-    };
-  };
-  pendingInvitations: {
-    total: number;
-  };
-}

@@ -142,7 +142,7 @@ export function BulkAddSetlistDialog({
         <DialogHeader>
           <DialogTitle>Bulk Add Songs</DialogTitle>
           <DialogDescription>
-            Paste your setlist and we'll parse it for you. One song per line.
+            Paste your setlist and we&apos;ll parse it for you. One song per line.
           </DialogDescription>
         </DialogHeader>
 

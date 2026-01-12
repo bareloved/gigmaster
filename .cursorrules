@@ -7,10 +7,6 @@
    - **NO Local Commands**: Do not use `supabase db` CLI locally.
    - **Use MCP Tools**: Use `mcp_supabase_*` tools to query/modify the remote DB.
    - **RLS Safety**: ALWAYS query `pg_policies` before dropping. Use EXACT names. Check for circular dependencies.
-3. **Clavix Agents**:
-   - **Planning Mode**: No code allowed.
-   - **Implementation Mode**: Code allowed.
-   - *Ref: `.clavix/instructions/workflows/`*
 
 ---
 
@@ -26,9 +22,9 @@
 - **Mobile**: Expo (React Native) - future integration. Shared types/logic required.
 
 ### 1-3. Core Domain & Entities
-- **Personas**: Musician (Player), MD (Leader), Agency, Hybrid.
+- **Personas**: Musician
 - **Entities**: 
-  - `User`: Musician/Manager.
+  - `User`: Musician
   - `Project`: Band/Act.
   - `Gig`: Event (date, time, location).
   - `GigRole`: Slot (e.g., "Keys") + Status (Invited/Accepted) + Pay.
@@ -36,9 +32,8 @@
 
 ### 4. Key Workflows
 1. **Data/UI**: Basic CRUD for Gigs/Projects.
-2. **Views**: "As Player" (My Gigs) vs "As Manager" (My Projects).
-3. **Gig Pack**: The "One Sheet" (Logistics, Music, People, Money).
-4. **Money**: Financial tracking per gig/role.
+2. **Gig Pack**: The "One Sheet" (Logistics, Music, People, Money).
+
 
 ### 6. Architecture & Performance Checklist
 - **Queries**: Fetch ONLY needed fields. No `SELECT *`.
@@ -64,7 +59,7 @@
 - **Location**: `/docs/build-process/step-X-[name].md`.
 
 ### 3. Coding Standards
-- **Simple**: Avoid over-engineering.
+- **Simple**: Try to avoid over-engineering but don't settle for too simple if you can find a better one.
 - **Clean**: Files < 300 lines. Refactor if larger.
 - **Safe**: No mocking in dev/prod.
 - **Context7**: Use `context7` MCP to fetch library docs before coding.

@@ -63,8 +63,6 @@ import dynamic from "next/dynamic";
 import { GigStatusBadge } from "@/components/gigs/shared/status-badge";
 import { PracticeFocusWidget } from "@/components/dashboard/practice-widget";
 import { GigActivityWidget } from "@/components/dashboard/activity-widget";
-import { DashboardKPICards } from "@/components/dashboard/kpi-cards";
-import { fetchDashboardKPIs, updateLastVisit, getLastVisit } from "@/lib/api/dashboard-kpis";
 import { useFocusMode } from "@/hooks/use-focus-mode";
 import { useDashboardKeyboardShortcuts } from "@/hooks/use-dashboard-keyboard-shortcuts";
 import { getGig } from "../gigs/actions";
@@ -182,32 +180,6 @@ export default function DashboardPage() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Fetch dashboard KPIs
-  const {
-    data: dashboardKPIs,
-    isLoading: isLoadingKPIs,
-  } = useQuery({
-    queryKey: ["dashboard-kpis", user?.id],
-    queryFn: () => {
-      // Get last visit from localStorage
-      const lastVisitStr = typeof window !== 'undefined'
-        ? localStorage.getItem(`dashboard_last_visit_${user!.id}`)
-        : null;
-      const lastVisit = lastVisitStr ? new Date(lastVisitStr) : undefined;
-
-      return fetchDashboardKPIs(lastVisit);
-    },
-    enabled: !!user,
-    staleTime: 1000 * 60 * 2, // 2 minutes
-  });
-
-  // Update last visit timestamp on mount
-  useEffect(() => {
-    if (user) {
-      updateLastVisit();
-    }
-  }, [user]);
-
   const allGigs = gigsData?.gigs || [];
 
   // Split gigs into today and upcoming
@@ -278,7 +250,7 @@ export default function DashboardPage() {
   useDashboardKeyboardShortcuts(nextGig?.gigId, !!nextGig);
 
   // Show loading screen until all critical data is ready
-  const isInitialLoading = isLoadingGigs || isLoadingKPIs || isLoadingMoney;
+  const isInitialLoading = isLoadingGigs || isLoadingMoney;
 
   if (isInitialLoading) {
     return <AppLoadingScreen />;
@@ -286,11 +258,13 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header with Focus Mode Toggle */}
-      <div className="flex items-start justify-between gap-4">
+      {/* Page Header with Focus Mode Toggle - Concert Poster Energy */}
+      <div className="flex items-start justify-between gap-4 pb-2 border-b-4 border-primary/20">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Get ready for your next gigs.</p>
+          <h1 className="font-display text-6xl font-bold tracking-tighter uppercase text-foreground">
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground mt-2 text-lg font-medium">Get ready for your next gigs.</p>
         </div>
 
         {/* Focus Mode Toggle */}
@@ -301,7 +275,7 @@ export default function DashboardPage() {
                 variant={focusMode ? "default" : "outline"}
                 size="sm"
                 onClick={() => setFocusMode(!focusMode)}
-                className="gap-2"
+                className="gap-2 transition-all duration-300 hover:scale-105"
               >
                 {focusMode ? (
                   <>
@@ -346,11 +320,6 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* Top KPI Cards - Hidden in Focus Mode */}
-      {!focusMode && (
-        <DashboardKPICards kpis={dashboardKPIs ?? null} isLoading={isLoadingKPIs} />
-      )}
-
       {/* Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* LEFT COLUMN (Main - 2/3 width) */}
@@ -376,8 +345,8 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           ) : nextGig ? (
-            <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200 min-h-[600px]">
-              <CardContent className="p-6 relative min-h-[600px]">
+            <Card className="overflow-hidden shadow-stage-lg hover:shadow-glow-red transition-all duration-500 min-h-[600px] border-2 border-primary/20 animate-fade-in">
+              <CardContent className="p-8 relative min-h-[600px] poster-gradient-warm">
                 {/* Gig Selector - Top Right Corner */}
                 {allGigs.length > 1 && (
                   <div className="absolute top-4 right-4">
@@ -432,28 +401,28 @@ export default function DashboardPage() {
                 )}
 
                 {/* Card Title */}
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-muted-foreground">
-                    {todayGigs.includes(nextGig) ? "Today's Gig" : "Next Gig"}
+                <div className="mb-6">
+                  <h3 className="font-display text-3xl font-bold tracking-tight text-primary uppercase">
+                    {todayGigs.includes(nextGig) ? "Tonight!" : "Next Up"}
                   </h3>
                 </div>
 
                 {/* Header Row with Date Pill */}
-                <div className="flex items-start gap-4 mb-4 pr-16">
-                  {/* Date Pill */}
-                  <div className="flex-shrink-0 flex flex-col items-center justify-center bg-primary/10 rounded-lg px-3 py-2 min-w-[60px]">
-                    <div className="text-xs font-medium text-muted-foreground uppercase">
+                <div className="flex items-start gap-6 mb-6 pr-16">
+                  {/* Date Pill - Enhanced */}
+                  <div className="flex-shrink-0 flex flex-col items-center justify-center bg-primary rounded-xl px-5 py-3 min-w-[80px] shadow-stage text-primary-foreground">
+                    <div className="font-mono text-sm font-bold uppercase tracking-wider">
                       {getWeekdayAndDate(nextGig.date).weekday}
                     </div>
-                    <div className="text-xl font-bold">
+                    <div className="font-display text-4xl font-bold leading-none mt-1">
                       {format(parseISO(nextGig.date), "d")}
                     </div>
                   </div>
 
                   {/* Gig Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap mb-2">
-                      <h2 className="text-2xl font-bold">{nextGig.gigTitle}</h2>
+                    <div className="flex items-center gap-3 flex-wrap mb-3">
+                      <h2 className="font-display text-5xl font-bold tracking-tight leading-tight">{nextGig.gigTitle}</h2>
                       {/* Host/Invited Badge */}
                       {nextGig.isManager ? (
                         <Badge variant="outline" className="bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-950 dark:border-orange-800 dark:text-orange-300">
@@ -467,11 +436,11 @@ export default function DashboardPage() {
                         </Badge>
                       ) : null}
                     </div>
-                    <div className="flex items-center gap-4 text-sm flex-wrap">
+                    <div className="flex items-center gap-4 text-base flex-wrap font-medium">
                       {nextGig.locationName && (
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <span>{nextGig.locationName}</span>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-5 w-5 text-primary" />
+                          <span className="text-foreground/90">{nextGig.locationName}</span>
                         </div>
                       )}
                     </div>
@@ -479,40 +448,40 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Times & Role */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 bg-card/50 backdrop-blur-sm rounded-xl p-4 border border-border/50">
                   {nextGig.startTime && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-5 w-5 text-secondary" />
                       <div>
-                        <div className="text-xs text-muted-foreground">Start Time</div>
-                        <div className="font-medium">{formatTime(nextGig.startTime)}</div>
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Start</div>
+                        <div className="font-mono text-lg font-bold">{formatTime(nextGig.startTime)}</div>
                       </div>
                     </div>
                   )}
                   {nextGig.endTime && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex items-center gap-3">
+                      <Clock className="h-5 w-5 text-secondary" />
                       <div>
-                        <div className="text-xs text-muted-foreground">End Time</div>
-                        <div className="font-medium">{formatTime(nextGig.endTime)}</div>
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">End</div>
+                        <div className="font-mono text-lg font-bold">{formatTime(nextGig.endTime)}</div>
                       </div>
                     </div>
                   )}
                   {nextGig.playerRoleName && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Music className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex items-center gap-3">
+                      <Music className="h-5 w-5 text-accent" />
                       <div>
-                        <div className="text-xs text-muted-foreground">Your Role</div>
-                        <Badge variant="secondary" className="mt-0.5">{nextGig.playerRoleName}</Badge>
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Your Role</div>
+                        <Badge variant="secondary" className="mt-1 text-sm font-bold">{nextGig.playerRoleName}</Badge>
                       </div>
                     </div>
                   )}
                 </div>
 
-                <Separator className="my-4" />
+                <Separator className="my-6 border-t-2 border-dashed" />
 
-                {/* Quick Actions with Keyboard Shortcuts */}
-                <div className="flex flex-wrap gap-2 mb-2">
+                {/* Quick Actions with Keyboard Shortcuts - Enhanced */}
+                <div className="flex flex-wrap gap-3 mb-4">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -617,7 +586,7 @@ export default function DashboardPage() {
 
                 <Separator className="my-4" />
 
-                {/* Readiness Section */}
+                {/* Readiness Section - Enhanced */}
                 {isLoadingReadiness ? (
                   <div className="space-y-3">
                     <Skeleton className="h-6 w-48" />
@@ -625,14 +594,14 @@ export default function DashboardPage() {
                     <Skeleton className="h-20 w-full" />
                   </div>
                 ) : (
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-semibold flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-primary" />
+                  <div className="bg-card/60 backdrop-blur-sm rounded-xl p-5 border-2 border-accent/30">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-display text-2xl font-bold flex items-center gap-2 uppercase tracking-tight">
+                        <Zap className="h-6 w-6 text-secondary" />
                         Prep Checklist
                       </h3>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold">{readinessScore.overall}%</span>
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-3xl font-bold text-primary">{readinessScore.overall}%</span>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -835,7 +804,7 @@ export default function DashboardPage() {
                   <Calendar className="h-12 w-12 text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No upcoming gigs</h3>
                   <p className="text-sm text-muted-foreground max-w-sm mb-4">
-                    You don't have any gigs in the next 7 days.
+                    You don&apos;t have any gigs in the next 7 days.
                   </p>
                   <Button onClick={() => router.push("/gigs/new")} className="gap-2">
                     <Plus className="h-4 w-4" />
@@ -846,15 +815,17 @@ export default function DashboardPage() {
             </Card>
           )}
 
-          {/* This Week on Stage - Hidden in Focus Mode */}
+          {/* This Week on Stage - Hidden in Focus Mode - Ticket Style */}
           {!focusMode && (
-            <Card className="min-h-[400px]">
-              <CardHeader>
+            <Card className="min-h-[400px] shadow-stage border-2 animate-fade-in">
+              <CardHeader className="border-b-2 border-dashed border-border/50">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl">This Week on Stage</CardTitle>
+                  <CardTitle className="font-display text-3xl font-bold uppercase tracking-tight">
+                    This Week on Stage
+                  </CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="min-h-[300px]">
+              <CardContent className="min-h-[300px] p-6">
                 {isLoadingGigs ? (
                   <div className="space-y-3 min-h-[300px]">
                     <Skeleton className="h-24 w-full" />
@@ -866,8 +837,8 @@ export default function DashboardPage() {
                     No gigs for this week.
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {upcomingGigs.map((gig) => (
+                  <div className="space-y-4">
+                    {upcomingGigs.map((gig, index) => (
                       <div
                         key={gig.gigId}
                         onClick={() => {
@@ -877,22 +848,22 @@ export default function DashboardPage() {
                             router.push(`/gigs/${gig.gigId}/pack`);
                           }
                         }}
-                        className="cursor-pointer"
+                        className="cursor-pointer animate-fade-in"
                       >
-                        <Card className="overflow-hidden hover:shadow-md transition-shadow">
-                          <CardContent className="p-4 relative">
+                        <Card className="ticket-card overflow-hidden hover:shadow-stage transition-all duration-300 hover:scale-[1.02] border-l-4">
+                          <CardContent className="p-5 relative">
                             {/* Gig Status Badge - Top Right */}
                             <div className="absolute top-3 right-3 scale-90 origin-top-right">
                               <GigStatusBadge status={gig.status ?? 'draft'} />
                             </div>
 
-                            <div className="flex items-start gap-3">
-                              {/* Date badge */}
-                              <div className="flex-shrink-0 flex flex-col items-center justify-center bg-muted rounded-md px-2.5 py-1.5 min-w-[50px]">
-                                <div className="text-xs font-medium text-muted-foreground">
+                            <div className="flex items-start gap-4">
+                              {/* Date badge - Enhanced */}
+                              <div className="flex-shrink-0 flex flex-col items-center justify-center bg-secondary/20 rounded-lg px-3 py-2 min-w-[60px] border-2 border-secondary/30">
+                                <div className="font-mono text-xs font-bold text-muted-foreground uppercase">
                                   {getWeekdayAndDate(gig.date).weekday}
                                 </div>
-                                <div className="text-sm font-bold">
+                                <div className="font-display text-xl font-bold text-secondary">
                                   {getWeekdayAndDate(gig.date).shortDate.split(" ")[1]}
                                 </div>
                               </div>
@@ -900,7 +871,7 @@ export default function DashboardPage() {
                               {/* Gig Info */}
                               <div className="flex-1 min-w-0 pr-16">
                                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                                  <h4 className="font-semibold text-sm">{gig.gigTitle}</h4>
+                                  <h4 className="font-bold text-lg">{gig.gigTitle}</h4>
                                   {/* Host/Invited Badge */}
                                   {gig.isManager ? (
                                     <Badge variant="outline" className="gap-0.5 text-[10px] h-5 px-1.5 bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-950 dark:border-orange-800 dark:text-orange-300 whitespace-nowrap">
@@ -954,48 +925,48 @@ export default function DashboardPage() {
             {/* Practice Focus Widget */}
             {user && <PracticeFocusWidget userId={user.id} limit={5} />}
 
-            {/* Money Snapshot */}
-            <Card className="border-dashed">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2 text-muted-foreground">
-                  <Euro className="h-4 w-4" />
-                  Money Snapshot
+            {/* Money Snapshot - Receipt Style */}
+            <Card className="border-2 border-dashed border-border/50 shadow-stage bg-card animate-fade-in">
+              <CardHeader className="pb-3 border-b-2 border-dashed border-border/50">
+                <CardTitle className="font-display text-xl font-bold flex items-center gap-2 uppercase tracking-tight">
+                  <Euro className="h-5 w-5 text-secondary" />
+                  Money
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-4">
                 {isLoadingMoney ? (
                   <div className="space-y-2">
                     <Skeleton className="h-6 w-24" />
                     <Skeleton className="h-4 w-32" />
                   </div>
                 ) : moneySummary ? (
-                  <div className="space-y-2 text-sm">
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">This month</div>
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-lg font-semibold">
+                  <div className="space-y-3">
+                    <div className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">This month</div>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono text-3xl font-bold text-primary">
                         ₪{(moneySummary.totalEarned + moneySummary.totalUnpaid).toLocaleString('en-US', { maximumFractionDigits: 0 })}
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        total ({moneySummary.gigCount} gigs)
-                      </span>
+                    </div>
+                    <div className="font-mono text-sm text-muted-foreground">
+                      {moneySummary.gigCount} {moneySummary.gigCount === 1 ? 'gig' : 'gigs'}
                     </div>
                     {moneySummary.totalUnpaid > 0 && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <Badge variant="outline" className="text-xs">
+                      <div className="flex items-center gap-2 pt-2 border-t border-dashed">
+                        <Badge variant="outline" className="font-mono text-xs font-bold border-amber-500/30 text-amber-600 dark:text-amber-400">
                           ₪{moneySummary.totalUnpaid.toLocaleString('en-US', { maximumFractionDigits: 0 })} unpaid
                         </Badge>
                       </div>
                     )}
-                    <Separator className="my-3" />
+                    <Separator className="my-3 border-dashed" />
                     <Link href="/money">
-                      <Button variant="ghost" size="sm" className="w-full justify-between text-xs h-8">
-                        Go to Money view
-                        <ChevronRight className="h-3.5 w-3.5" />
+                      <Button variant="ghost" size="sm" className="w-full justify-between font-medium hover:bg-primary/10 transition-colors">
+                        View All Earnings
+                        <ChevronRight className="h-4 w-4" />
                       </Button>
                     </Link>
                   </div>
                 ) : (
-                  <div className="text-xs text-muted-foreground">No financial data available</div>
+                  <div className="text-sm text-muted-foreground">No financial data available</div>
                 )}
               </CardContent>
             </Card>
@@ -1015,12 +986,14 @@ export default function DashboardPage() {
         }}
         gigPack={editingGig || undefined}
         onCreateSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ["dashboard-gigs"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-gigs", user?.id] });
+          queryClient.invalidateQueries({ queryKey: ["all-gigs", user?.id] });
           setIsEditorOpen(false);
           setEditingGigId(null);
         }}
         onUpdateSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ["dashboard-gigs"] });
+          queryClient.invalidateQueries({ queryKey: ["dashboard-gigs", user?.id] });
+          queryClient.invalidateQueries({ queryKey: ["all-gigs", user?.id] });
           queryClient.invalidateQueries({ queryKey: ["gig-editor", editingGigId] });
         }}
       />

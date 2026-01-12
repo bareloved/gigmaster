@@ -1,13 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import { heebo, anton, antonSC, notoSansHebrew, zalandoSansEn } from "@/lib/fonts";
+import { bebasNeue, manrope, jetBrainsMono, notoSansHebrew, anton } from "@/lib/fonts";
 import "./globals.css";
 import { QueryProvider } from "@/lib/providers/query-provider";
 import { ThemeProvider } from "@/lib/providers/theme-provider";
 import { UserProvider } from "@/lib/providers/user-provider";
 import { Toaster } from "sonner";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Ensemble - Gig Brain",
@@ -21,7 +18,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} ${heebo.variable} ${anton.variable} ${antonSC.variable} ${notoSansHebrew.variable} ${zalandoSansEn.variable}`} suppressHydrationWarning>
+      <body
+        className={`${manrope.className} ${bebasNeue.variable} ${jetBrainsMono.variable} ${anton.variable} ${notoSansHebrew.variable}`}
+        suppressHydrationWarning
+      >
         <ThemeProvider>
           <UserProvider>
             <QueryProvider>

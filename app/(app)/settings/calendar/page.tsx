@@ -372,10 +372,10 @@ function CalendarSettingsContent() {
             </h3>
             <ol className="list-decimal list-inside space-y-1 text-sm text-gray-700">
               <li>Open Google Calendar</li>
-              <li>Click the "+" next to "Other calendars"</li>
-              <li>Select "From URL"</li>
+              <li>Click the &quot;+&quot; next to &quot;Other calendars&quot;</li>
+              <li>Select &quot;From URL&quot;</li>
               <li>Paste your calendar subscription URL</li>
-              <li>Click "Add calendar"</li>
+              <li>Click &quot;Add calendar&quot;</li>
             </ol>
             <p className="text-xs text-gray-500 mt-2">
               Note: Google Calendar refreshes subscribed calendars every few hours
@@ -392,7 +392,7 @@ function CalendarSettingsContent() {
               <li>Open Calendar app</li>
               <li>Go to File → New Calendar Subscription</li>
               <li>Paste your calendar subscription URL</li>
-              <li>Click "Subscribe"</li>
+              <li>Click &quot;Subscribe&quot;</li>
               <li>Choose refresh frequency (recommended: every hour)</li>
             </ol>
           </div>
@@ -405,10 +405,10 @@ function CalendarSettingsContent() {
             </h3>
             <ol className="list-decimal list-inside space-y-1 text-sm text-gray-700">
               <li>Open Outlook Calendar</li>
-              <li>Click "Add calendar" → "Subscribe from web"</li>
+              <li>Click &quot;Add calendar&quot; → &quot;Subscribe from web&quot;</li>
               <li>Paste your calendar subscription URL</li>
-              <li>Name your calendar (e.g., "Ensemble Gigs")</li>
-              <li>Click "Import"</li>
+              <li>Name your calendar (e.g., &quot;Ensemble Gigs&quot;)</li>
+              <li>Click &quot;Import&quot;</li>
             </ol>
           </div>
         </CardContent>

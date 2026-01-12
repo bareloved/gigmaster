@@ -14,7 +14,7 @@ import {
   Grid3x3,
   List,
 } from "lucide-react";
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/providers/user-provider";
 import { DashboardGigItem } from "@/components/dashboard/gig-item";
@@ -34,7 +34,6 @@ type ViewMode = "list" | "grid";
 export default function AllGigsPage() {
   const { user } = useUser();
   const router = useRouter();
-  const queryClient = useQueryClient();
 
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [searchQuery, setSearchQuery] = useState("");
@@ -382,17 +381,14 @@ export default function AllGigsPage() {
           if (!open) setEditingGigId(null);
         }}
         gigPack={editingGig || undefined}
-        onCreateSuccess={(newGig) => {
-          queryClient.invalidateQueries({ queryKey: ["all-gigs"] });
+        onCreateSuccess={() => {
+          // Cache invalidation handled by useSaveGigPack hook
           setIsEditorOpen(false);
           setEditingGigId(null);
-          // Optional: navigate to the new pack or stay here
         }}
         onUpdateSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ["all-gigs"] });
-          // We don't necessarily need to close if they want to keep editing,
-          // but usually on success it's good to close or show success.
-          // For now, let's just refresh.
+          // Cache invalidation handled by useSaveGigPack hook
+          // Just keep the sheet open for continued editing
         }}
       />
     </div>

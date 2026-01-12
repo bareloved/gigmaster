@@ -111,7 +111,7 @@ export function PracticeFocusWidget({
         <div className="text-center py-6">
           <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">
-            You're all caught up! 🎉
+            You&apos;re all caught up!
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             No songs to practice right now

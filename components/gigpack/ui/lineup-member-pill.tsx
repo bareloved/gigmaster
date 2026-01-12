@@ -78,12 +78,40 @@ interface LineupMemberPillProps {
   name: string;
   role: string;
   notes?: string;
+  invitationStatus?: string;
   onNameChange: (name: string) => void;
   onRoleChange: (role: string) => void;
   onNotesChange: (notes: string) => void;
   onRemove: () => void;
   disabled?: boolean;
   showRemove?: boolean;
+}
+
+/**
+ * Get compact status badge styling based on invitation status
+ * Returns null if no badge should be shown
+ */
+function getStatusBadgeConfig(status?: string): { label: string; variant: "default" | "secondary" | "destructive" | "outline" } | null {
+  if (!status) return null;
+
+  switch (status) {
+    case "accepted":
+      return { label: "Confirmed", variant: "default" };
+    case "invited":
+      return { label: "Invited", variant: "secondary" };
+    case "pending":
+      return { label: "Pending", variant: "outline" };
+    case "declined":
+      return { label: "Declined", variant: "destructive" };
+    case "needs_sub":
+      return { label: "Needs Sub", variant: "outline" };
+    case "tentative":
+      return { label: "Maybe", variant: "secondary" };
+    case "replaced":
+      return { label: "Replaced", variant: "outline" };
+    default:
+      return null;
+  }
 }
 
 /**
@@ -102,6 +130,7 @@ export function LineupMemberPill({
   name,
   role,
   notes = "",
+  invitationStatus,
   onNameChange,
   onRoleChange,
   onNotesChange,
@@ -250,11 +279,26 @@ export function LineupMemberPill({
           ) : (
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <span className="font-medium text-sm truncate">{name}</span>
-              {isLinkedUser && (
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  Active
-                </Badge>
-              )}
+              {/* Invitation status badge - Google Calendar style */}
+              {(() => {
+                const statusConfig = getStatusBadgeConfig(invitationStatus);
+                if (statusConfig) {
+                  return (
+                    <Badge variant={statusConfig.variant} className="text-[10px] px-1.5 py-0 shrink-0">
+                      {statusConfig.label}
+                    </Badge>
+                  );
+                }
+                // Fallback: show "Active" badge for linked users without status
+                if (isLinkedUser && !invitationStatus) {
+                  return (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">
+                      Active
+                    </Badge>
+                  );
+                }
+                return null;
+              })()}
               {!disabled && (
                 <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-auto shrink-0" />
               )}

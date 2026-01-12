@@ -27,7 +27,7 @@ import { formatCurrency } from "@/lib/utils/currency";
 
 interface UnifiedMusicianSearchProps {
   gigId: string;
-  onAddFromCircle: (contactId: string, contactName: string, defaultRole: string, defaultFee: number | null) => void;
+  onAddFromCircle: (contactId: string, contactName: string, defaultRole: string, defaultFee: number | null, linkedUserId: string | null) => void;
   onAddSystemUser: (userId: string, userName: string, instrument: string | null) => void;
   onInviteByEmail: () => void;
   onInviteByWhatsApp: () => void;
@@ -47,7 +47,7 @@ export function UnifiedMusicianSearch({
   // Search My Circle
   const { data: circleResults = [] } = useQuery({
     queryKey: ["contacts-search", user?.id, searchValue],
-    queryFn: () => searchContacts(user?.id!, searchValue),
+    queryFn: () => searchContacts(user!.id, searchValue),
     enabled: !!user && searchValue.length >= 2,
     staleTime: 5 * 60 * 1000,
   });
@@ -109,7 +109,8 @@ export function UnifiedMusicianSearch({
                           contact.id,
                           contact.contact_name,
                           contact.default_roles?.[0] || "Musician",
-                          contact.default_fee
+                          contact.default_fee,
+                          contact.linked_user_id
                         );
                         setOpen(false);
                         setSearchValue("");
@@ -210,7 +211,7 @@ export function UnifiedMusicianSearch({
                     className="flex items-center gap-3 py-2"
                   >
                     <Mail className="h-4 w-4" />
-                    <span>Invite "{searchValue}" by email...</span>
+                    <span>Invite &quot;{searchValue}&quot; by email...</span>
                   </CommandItem>
                   <CommandItem
                     onSelect={() => {
@@ -221,7 +222,7 @@ export function UnifiedMusicianSearch({
                     className="flex items-center gap-3 py-2"
                   >
                     <MessageSquare className="h-4 w-4" />
-                    <span>Invite "{searchValue}" by WhatsApp...</span>
+                    <span>Invite &quot;{searchValue}&quot; by WhatsApp...</span>
                   </CommandItem>
                 </CommandGroup>
               </>

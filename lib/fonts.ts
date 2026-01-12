@@ -1,13 +1,39 @@
 import localFont from "next/font/local";
+import { Bebas_Neue, Manrope, JetBrains_Mono } from "next/font/google";
 
-// Primary UI font - Zalando Sans (preload for critical rendering)
-export const zalandoSansEn = localFont({
-  src: "../public/fonts/ZalandoSansSemiExpanded-VariableFont_wght.ttf",
-  weight: "100 900",
-  variable: "--font-zalando-en",
+// ==============================================================================
+// VINTAGE STAGE DESIGN SYSTEM - TYPOGRAPHY
+// Bold display fonts meet warm, readable body text
+// ==============================================================================
+
+// Display Font: Bebas Neue - Concert poster energy, bold and condensed
+export const bebasNeue = Bebas_Neue({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-bebas",
   display: "swap",
-  preload: true, // Only preload the primary UI font
+  preload: true,
+  fallback: ["Impact", "Arial Black", "sans-serif"],
+});
+
+// Body Font: Manrope - Warm, modern, highly readable
+export const manrope = Manrope({
+  weight: ["400", "500", "600", "700", "800"],
+  subsets: ["latin"],
+  variable: "--font-manrope",
+  display: "swap",
+  preload: true,
   fallback: ["system-ui", "sans-serif"],
+});
+
+// Monospace: JetBrains Mono - For data, dates, numbers, code
+export const jetBrainsMono = JetBrains_Mono({
+  weight: ["400", "500", "600", "700"],
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+  preload: false,
+  fallback: ["Consolas", "Monaco", "monospace"],
 });
 
 // Secondary/Display fonts - Load on demand for setlist/print views
@@ -37,8 +63,4 @@ export const notoSansHebrew = localFont({
   display: "swap",
   preload: false, // Don't preload - used only for Hebrew content
 });
-
-// Aliases for backwards compatibility
-export const heebo = zalandoSansEn; // Heebo was duplicate of Zalando Sans
-export const antonSC = anton; // antonSC was duplicate of anton
 

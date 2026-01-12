@@ -79,39 +79,47 @@ function invalidateGigStatusQueries(
 
 /**
  * For gig save mutations (create/update)
- * SURGICAL: Only invalidates gig lists and specific gig detail
+ * SURGICAL: Only refreshes gig lists and specific gig detail
  *
  * NOT invalidated (optimistic update handles these, or not affected):
  * - my-earnings: gig creation doesn't change payment status
  * - player-money-summary: not affected by gig save
  * - recent-past-gigs/all-past-gigs: new gigs are future, edits rarely move to past
+ *
+ * NOTE: We use refetchQueries instead of invalidateQueries to force immediate
+ * data refresh. invalidateQueries only marks cache as stale and waits for next
+ * opportunity to refetch, which doesn't work when editing from a Sheet overlay
+ * (the background query becomes "inactive").
  */
-function invalidateGigSaveQueries(
+async function invalidateGigSaveQueries(
   queryClient: ReturnType<typeof useQueryClient>,
   userId?: string,
   gigId?: string,
   isEditing?: boolean
 ) {
-  // Refresh gig lists - optimistic update showed preview, now get real data
-  queryClient.invalidateQueries({
-    queryKey: ["dashboard-gigs", userId],
-    refetchType: 'active'
-  });
+  // Force immediate refresh of gig lists (not just mark stale)
+  await Promise.all([
+    queryClient.refetchQueries({
+      queryKey: ["dashboard-gigs", userId],
+      type: 'active',
+    }),
+    queryClient.refetchQueries({
+      queryKey: ["all-gigs", userId],
+      type: 'active',
+    }),
+  ]);
 
-  queryClient.invalidateQueries({
-    queryKey: ["all-gigs", userId],
-    refetchType: 'active'
-  });
-
-  // For edits: refresh the specific gig detail view and pack view
+  // For edits: refresh the specific gig detail view, pack view, and editor cache
   if (isEditing && gigId) {
     queryClient.invalidateQueries({
       queryKey: ["gig", gigId],
-      refetchType: 'active'
     });
     queryClient.invalidateQueries({
       queryKey: ["gig-pack-full", gigId],
-      refetchType: 'active'
+    });
+    // Also invalidate the gig-editor cache used by /gigs page sheet
+    queryClient.invalidateQueries({
+      queryKey: ["gig-editor", gigId],
     });
   }
 
@@ -119,7 +127,6 @@ function invalidateGigSaveQueries(
   if (!isEditing) {
     queryClient.invalidateQueries({
       queryKey: ["dashboard-kpis", userId],
-      refetchType: 'active'
     });
   }
 }

@@ -309,11 +309,12 @@ export function MyEarningsTable({ gigs }: { gigs: MyEarningsGig[] }) {
           aValue = a.feeAmount || 0;
           bValue = b.feeAmount || 0;
           break;
-        case 'status':
+        case 'status': {
           const statusOrder = { pending: 0, partial: 1, paid: 2, overdue: 3 };
           aValue = statusOrder[a.paymentStatus] || 0;
           bValue = statusOrder[b.paymentStatus] || 0;
           break;
+        }
         case 'paidAmount':
           aValue = a.paidAmount || 0;
           bValue = b.paidAmount || 0;

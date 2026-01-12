@@ -11,6 +11,16 @@ export interface LineupMember {
   role: string;
   name?: string;
   notes?: string;
+  /** System user ID if this is a registered Ensemble user */
+  userId?: string;
+  /** Linked user ID from contact (if contact is linked to a user) */
+  linkedUserId?: string | null;
+  /** Contact ID from My Circle */
+  contactId?: string;
+  /** Invitation status for this lineup member (pending, invited, accepted, declined, etc.) */
+  invitationStatus?: string;
+  /** Gig role ID from the database (for tracking existing roles) */
+  gigRoleId?: string;
 }
 
 // Structured Setlist Types (Setlist v2)

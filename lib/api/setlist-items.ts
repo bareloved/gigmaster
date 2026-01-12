@@ -20,7 +20,7 @@ export async function addSetlistItem(
   const supabase = createClient();
 
   // If sort_order is not provided, assign the next sort_order
-  let insertData = { ...data };
+  const insertData = { ...data };
   if (!insertData.sort_order) {
     // Get the max sort_order for this section
     const { data: existingItems } = await supabase

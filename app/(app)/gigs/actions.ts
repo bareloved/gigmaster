@@ -645,7 +645,7 @@ async function saveGigPackRPC(
     };
 
     // Single RPC call - everything happens server-side in one transaction
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const { data: result, error } = await supabase.rpc('save_gig_pack', {
       p_gig: gigPayload,
       p_schedule: data.schedule || [],

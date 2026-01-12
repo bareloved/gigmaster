@@ -56,9 +56,8 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
         .from('avatars')
         .remove(filesToDelete);
     }
-  } catch (error) {
+  } catch {
     // Ignore errors if no old avatar exists
-    console.log('No old avatar to delete or error deleting:', error);
   }
 
   // Upload new avatar
@@ -125,15 +124,22 @@ export function getAvatarUrl(path: string): string {
 
 /**
  * Get user initials from name for avatar fallback
+ * @param name - User's name
+ * @param email - Optional email as fallback if name is empty
  */
-export function getUserInitials(name: string | null): string {
-  if (!name) return '?';
-  
-  const parts = name.trim().split(' ');
-  if (parts.length === 1) {
-    return parts[0].charAt(0).toUpperCase();
+export function getUserInitials(name?: string | null, email?: string | null): string {
+  if (name) {
+    const parts = name.trim().split(' ');
+    if (parts.length === 1) {
+      return parts[0].charAt(0).toUpperCase();
+    }
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   }
-  
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+
+  if (email) {
+    return email.charAt(0).toUpperCase();
+  }
+
+  return '?';
 }
 

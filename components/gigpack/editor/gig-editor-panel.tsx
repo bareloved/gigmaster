@@ -44,7 +44,7 @@ import { GigPack, LineupMember, SetlistSection, PackingChecklistItem, GigPackThe
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { generateSlug } from "@/lib/gigpack/utils";
-import { uploadImage, deleteImage, getPathFromUrl, validateImageFile } from "@/lib/gigpack/image-upload";
+import { uploadImage, deleteImage, getPathFromUrl, validateImageFile } from "@/lib/utils/image-upload";
 import { updateGig } from "@/lib/api/gigs";
 import { useSaveGigPack } from "@/hooks/use-gig-mutations";
 import { Calendar } from "@/components/ui/calendar";
@@ -585,16 +585,32 @@ export function GigEditorPanel({
   };
 
   // Add member from search (My Circle or System Users)
-  const addLineupMemberFromSearch = (member: { name: string; role: string }) => {
+  const addLineupMemberFromSearch = (member: {
+    name: string;
+    role: string;
+    userId?: string;
+    linkedUserId?: string | null;
+    contactId?: string;
+  }) => {
+    // Build the lineup member with user/contact IDs for proper notification handling
+    const newMember: LineupMember = {
+      role: member.role,
+      name: member.name,
+      notes: "",
+      userId: member.userId,
+      linkedUserId: member.linkedUserId,
+      contactId: member.contactId,
+    };
+
     // Check if we have an empty row to fill first
     const emptyRowIndex = lineup.findIndex(m => !m.name && !m.role);
     if (emptyRowIndex !== -1) {
       const newLineup = [...lineup];
-      newLineup[emptyRowIndex] = { ...member, notes: "" };
+      newLineup[emptyRowIndex] = newMember;
       setLineup(newLineup);
     } else {
       // Add new row
-      setLineup([...lineup, { ...member, notes: "" }]);
+      setLineup([...lineup, newMember]);
     }
   };
 
@@ -1281,6 +1297,7 @@ export function GigEditorPanel({
                   name={member.name || ""}
                   role={member.role}
                   notes={member.notes || ""}
+                  invitationStatus={member.invitationStatus}
                   onNameChange={(name) => updateLineupMember(index, "name", name)}
                   onRoleChange={(role) => updateLineupMember(index, "role", role)}
                   onNotesChange={(notes) => updateLineupMember(index, "notes", notes)}

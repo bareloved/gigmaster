@@ -41,7 +41,8 @@ import {
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/providers/user-provider";
-import { getInitials, getUserDisplayName } from "@/lib/utils";
+import { getUserDisplayName } from "@/lib/utils";
+import { getUserInitials } from "@/lib/utils/avatar";
 
 // Menu items (non-projects, non-dashboard, non-my-circle)
 // Order: All Gigs, Money, Calendar, History
@@ -183,7 +184,7 @@ export function AppSidebar() {
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={profile?.avatar_url || undefined} alt={user?.email || "User"} />
                     <AvatarFallback>
-                      {getInitials(profile?.name || user?.user_metadata?.name, user?.email)}
+                      {getUserInitials(profile?.name || user?.user_metadata?.name, user?.email)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col gap-0.5 leading-none">

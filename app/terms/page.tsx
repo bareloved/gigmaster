@@ -24,7 +24,7 @@ export default function TermsPage() {
           <CardContent className="prose prose-sm max-w-none dark:prose-invert">
             <h2>1. Acceptance of Terms</h2>
             <p>
-              By accessing and using Ensemble ("the Service"), you accept and agree to be bound by the terms and provision of this agreement.
+              By accessing and using Ensemble (&quot;the Service&quot;), you accept and agree to be bound by the terms and provision of this agreement.
             </p>
 
             <h2>2. Description of Service</h2>
@@ -54,7 +54,7 @@ export default function TermsPage() {
 
             <h2>7. Limitation of Liability</h2>
             <p>
-              The Service is provided "as is" without warranties of any kind. In no event shall Ensemble be liable for any damages arising out of the use or inability to use the Service.
+              The Service is provided &quot;as is&quot; without warranties of any kind. In no event shall Ensemble be liable for any damages arising out of the use or inability to use the Service.
             </p>
 
             <h2>8. Changes to Terms</h2>

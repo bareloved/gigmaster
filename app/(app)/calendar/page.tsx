@@ -109,7 +109,7 @@ export default function CalendarPage() {
       const gigDate = new Date(gig.date);
       
       // Parse start and end times
-      let start = new Date(gigDate);
+      const start = new Date(gigDate);
       let end = new Date(gigDate);
 
       if (gig.startTime) {

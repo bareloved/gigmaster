@@ -1,94 +1,73 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
-import { themes, type Theme } from "@/lib/themes";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 
-type ThemeProviderProps = {
-  children: React.ReactNode;
-};
-
-type ThemeProviderState = {
-  theme: string;
-  setTheme: (theme: string) => void;
+type ThemeContextType = {
   mode: "light" | "dark";
   setMode: (mode: "light" | "dark") => void;
   toggleMode: () => void;
-  themes: Theme[];
 };
 
-const ThemeProviderContext = createContext<ThemeProviderState | undefined>(
-  undefined
-);
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<string>("slate");
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<"light" | "dark">("light");
-  const [mounted, setMounted] = useState(false);
+  const initialized = useRef(false);
 
+  // Load saved preference and apply theme on mount
   useEffect(() => {
-    setMounted(true);
-    const storedTheme = localStorage.getItem("ensemble-theme");
-    const storedMode = localStorage.getItem("ensemble-mode") as "light" | "dark" | null;
-    
-    if (storedTheme) {
-      setThemeState(storedTheme);
+    const stored = localStorage.getItem("ensemble-mode") as "light" | "dark" | null;
+    const initialMode = stored || "light";
+
+    // Apply to DOM
+    const root = document.documentElement;
+    if (initialMode === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
     }
-    if (storedMode) {
-      setModeState(storedMode);
+
+    if (stored) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Standard hydration pattern
+      setModeState(stored);
     }
+    initialized.current = true;
   }, []);
 
+  // Apply dark class to document when mode changes (after initialization)
   useEffect(() => {
-    if (!mounted) return;
+    if (!initialized.current) return;
 
     const root = document.documentElement;
-    const themeConfig = themes.find((t) => t.name === theme);
 
-    if (themeConfig) {
-      // Apply theme variables based on current mode
-      const vars = mode === "dark" ? themeConfig.cssVars.dark : themeConfig.cssVars.light;
-      
-      Object.entries(vars).forEach(([key, value]) => {
-        root.style.setProperty(`--${key}`, value);
-      });
-
-      // Update class for dark mode
-      if (mode === "dark") {
-        root.classList.add("dark");
-      } else {
-        root.classList.remove("dark");
-      }
-
-      // Store preferences
-      localStorage.setItem("ensemble-theme", theme);
-      localStorage.setItem("ensemble-mode", mode);
+    if (mode === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
     }
-  }, [theme, mode, mounted]);
 
-  const setTheme = (newTheme: string) => {
-    setThemeState(newTheme);
+    localStorage.setItem("ensemble-mode", mode);
+  }, [mode]);
+
+  const toggleMode = () => {
+    setModeState((prev) => (prev === "light" ? "dark" : "light"));
   };
 
   const setMode = (newMode: "light" | "dark") => {
     setModeState(newMode);
   };
 
-  const toggleMode = () => {
-    setModeState((prev) => (prev === "light" ? "dark" : "light"));
-  };
-
   return (
-    <ThemeProviderContext.Provider value={{ theme, setTheme, mode, setMode, toggleMode, themes }}>
+    <ThemeContext.Provider value={{ mode, setMode, toggleMode }}>
       {children}
-    </ThemeProviderContext.Provider>
+    </ThemeContext.Provider>
   );
 }
 
 export function useTheme() {
-  const context = useContext(ThemeProviderContext);
+  const context = useContext(ThemeContext);
   if (!context) {
     throw new Error("useTheme must be used within ThemeProvider");
   }
   return context;
 }
-

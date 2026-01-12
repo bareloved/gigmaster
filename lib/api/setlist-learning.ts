@@ -273,9 +273,9 @@ export async function getPracticeItems(
 
   for (const item of setlistData) {
     // Navigate through the new nested structure
-    // @ts-ignore - Supabase nested types
+    // @ts-expect-error - Supabase nested types
     const section = item.setlist_sections;
-    // @ts-ignore
+    // @ts-expect-error - Supabase nested types
     const gig = section?.gigs;
     
     if (!gig) continue;

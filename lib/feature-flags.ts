@@ -81,34 +81,3 @@ export function isFeatureEnabled(flag: FeatureFlag): boolean {
 
   return true;
 }
-
-/**
- * Get all enabled features
- * @returns Array of enabled feature flag names
- */
-export function getEnabledFeatures(): FeatureFlag[] {
-  return (Object.keys(FEATURE_FLAGS) as FeatureFlag[]).filter((flag) =>
-    isFeatureEnabled(flag)
-  );
-}
-
-/**
- * Get feature flag configuration
- * @param flag - The feature flag to get config for
- * @returns Feature flag configuration or undefined
- */
-export function getFeatureConfig(
-  flag: FeatureFlag
-): FeatureFlagConfig | undefined {
-  return FEATURE_FLAGS[flag];
-}
-
-/**
- * Hook for using feature flags in React components
- * @param flag - The feature flag to check
- * @returns true if the feature is enabled, false otherwise
- */
-export function useFeatureFlag(flag: FeatureFlag): boolean {
-  return isFeatureEnabled(flag);
-}
-

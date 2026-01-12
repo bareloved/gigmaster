@@ -108,7 +108,7 @@ export async function fetchGoogleCalendarEvents(
   const expiresAt = new Date(connection.token_expires_at);
   const now = new Date();
   let accessToken = connection.access_token;
-  let refreshToken = connection.refresh_token;
+  const refreshToken = connection.refresh_token;
 
   if (expiresAt <= now) {
     // Refresh token

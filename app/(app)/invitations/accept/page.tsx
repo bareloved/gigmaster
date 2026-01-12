@@ -13,25 +13,14 @@ function AcceptInvitationContent() {
   const token = searchParams.get('token');
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [error, setError] = useState('');
-  
-  useEffect(() => {
-    if (!token) {
-      setStatus('error');
-      setError('Invalid invitation link - no token provided');
-      return;
-    }
-    
-    // Auto-accept on page load
-    handleAccept();
-  }, [token]);
-  
+
   const handleAccept = async () => {
     if (!token) return;
-    
+
     try {
       await acceptInvitation(token);
       setStatus('success');
-      
+
       // Redirect to dashboard after 2 seconds
       setTimeout(() => {
         router.push('/dashboard?view=player');
@@ -41,7 +30,19 @@ function AcceptInvitationContent() {
       setError(err.message || 'Failed to accept invitation');
     }
   };
-  
+
+  useEffect(() => {
+    if (!token) {
+      setStatus('error');
+      setError('Invalid invitation link - no token provided');
+      return;
+    }
+
+    // Auto-accept on page load
+    handleAccept();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
   if (status === 'loading') {
     return (
       <div className="flex items-center justify-center min-h-screen p-4">
@@ -72,7 +73,7 @@ function AcceptInvitationContent() {
               <CardTitle>Invitation Error</CardTitle>
             </div>
             <CardDescription>
-              We couldn't process your invitation
+              We couldn&apos;t process your invitation
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -119,7 +120,7 @@ function AcceptInvitationContent() {
             <CardTitle>Invitation Accepted!</CardTitle>
           </div>
           <CardDescription>
-            You've successfully joined this gig
+            You&apos;ve successfully joined this gig
           </CardDescription>
         </CardHeader>
         <CardContent>

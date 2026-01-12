@@ -26,9 +26,15 @@ import { Search, Plus, UserPlus } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/currency";
 
 /** Member data returned from search selection */
-interface SelectedMember {
+export interface SelectedMember {
   name: string;
   role: string;
+  /** System user ID if selecting from Ensemble Users */
+  userId?: string;
+  /** Linked user ID if contact is linked to a user account */
+  linkedUserId?: string | null;
+  /** Contact ID if selecting from My Circle */
+  contactId?: string;
 }
 
 interface LineupMemberSearchProps {
@@ -52,7 +58,7 @@ export function LineupMemberSearch({
   // Search My Circle
   const { data: circleResults = [] } = useQuery({
     queryKey: ["contacts-search", user?.id, searchValue],
-    queryFn: () => searchContacts(user?.id!, searchValue),
+    queryFn: () => searchContacts(user!.id, searchValue),
     enabled: !!user && searchValue.length >= 2,
     staleTime: 5 * 60 * 1000,
   });
@@ -78,6 +84,8 @@ export function LineupMemberSearch({
     onSelectMember({
       name: contact.contact_name,
       role: contact.default_roles?.[0] || contact.primary_instrument || "",
+      contactId: contact.id,
+      linkedUserId: contact.linked_user_id,
     });
     setOpen(false);
     setSearchValue("");
@@ -87,6 +95,7 @@ export function LineupMemberSearch({
     onSelectMember({
       name: systemUser.name || "Unknown",
       role: systemUser.main_instrument || "",
+      userId: systemUser.id,
     });
     setOpen(false);
     setSearchValue("");
@@ -138,7 +147,7 @@ export function LineupMemberSearch({
                   className="gap-2"
                 >
                   <UserPlus className="h-4 w-4" />
-                  Add "{searchValue}" as new member
+                  Add &quot;{searchValue}&quot; as new member
                 </Button>
               </div>
             ) : null}
@@ -244,7 +253,7 @@ export function LineupMemberSearch({
                     className="flex items-center gap-3 py-2 cursor-pointer"
                   >
                     <UserPlus className="h-4 w-4" />
-                    <span>Add "{searchValue}" as new member</span>
+                    <span>Add &quot;{searchValue}&quot; as new member</span>
                   </CommandItem>
                 </CommandGroup>
               </>

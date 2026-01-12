@@ -1010,6 +1010,20 @@ export type Database = {
           id: string
         }[]
       }
+      save_gig_pack: {
+        Args: {
+          p_gig: Json
+          p_gig_id?: string
+          p_is_editing?: boolean
+          p_materials?: Json
+          p_packing?: Json
+          p_roles?: Json
+          p_schedule?: Json
+          p_setlist?: Json
+          p_share_token?: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
