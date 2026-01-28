@@ -32,6 +32,8 @@ function VenueAutocompleteInner({
   const [predictions, setPredictions] = React.useState<google.maps.places.AutocompleteSuggestion[]>([])
   const [isOpen, setIsOpen] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
+  // Track when a selection was just made to prevent re-fetching
+  const justSelectedRef = React.useRef(false)
 
   const containerRef = React.useRef<HTMLDivElement>(null)
 
@@ -57,7 +59,10 @@ function VenueAutocompleteInner({
       return
     }
 
-    if (debouncedInput === value) return // Don't search if value hasn't changed from props
+    // Skip if a selection was just made
+    if (justSelectedRef.current) {
+      return
+    }
 
     const fetchSuggestions = async () => {
       setLoading(true)
@@ -79,7 +84,7 @@ function VenueAutocompleteInner({
     }
 
     fetchSuggestions()
-  }, [debouncedInput, places, sessionToken, value])
+  }, [debouncedInput, places, sessionToken])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
@@ -97,10 +102,17 @@ function VenueAutocompleteInner({
     const placePrediction = suggestion.placePrediction
     const mainText = placePrediction.mainText?.text || ""
 
+    // Mark that we just selected to prevent re-fetching
+    justSelectedRef.current = true
     setInputValue(mainText)
     onChange?.(mainText)
     setIsOpen(false)
     setPredictions([])
+
+    // Reset the flag after debounce delay + safety margin (500ms total)
+    setTimeout(() => {
+      justSelectedRef.current = false
+    }, 500)
 
     try {
       const place = placePrediction.toPlace() // Returns a Place object
@@ -151,6 +163,7 @@ function VenueAutocompleteInner({
           }}
           placeholder={placeholder}
           disabled={disabled}
+          autoComplete="off"
           className="pl-9"
         />
         {loading && (
@@ -209,6 +222,7 @@ export function VenueAutocomplete(props: VenueAutocompleteProps) {
           onChange={(e) => props.onChange?.(e.target.value)}
           placeholder={props.placeholder}
           disabled={props.disabled}
+          autoComplete="off"
           className={props.className}
         />
         <div className="absolute right-3 top-2.5 text-muted-foreground" title="Google Places API Key missing">

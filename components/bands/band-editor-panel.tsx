@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useTranslations } from "@/hooks/use-translations";
 import { Band, LineupMember, PosterSkin } from "@/lib/types/gigpack";
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -339,6 +339,9 @@ export function BandEditorPanel({
             <SheetTitle className="text-lg font-semibold">
               {isEditing ? t("editButton") : t("createButton")}
             </SheetTitle>
+            <SheetDescription className="sr-only">
+              {isEditing ? "Edit band details and settings" : "Create a new band"}
+            </SheetDescription>
             <Button
               type="button"
               variant="ghost"

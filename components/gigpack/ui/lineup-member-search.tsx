@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Search, Plus, UserPlus } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils/currency";
 
 /** Member data returned from search selection */
@@ -44,12 +45,15 @@ interface LineupMemberSearchProps {
   placeholder?: string;
   /** Whether the search is disabled */
   disabled?: boolean;
+  /** Additional class names */
+  className?: string;
 }
 
 export function LineupMemberSearch({
   onSelectMember,
   placeholder = "Search musicians...",
   disabled = false,
+  className,
 }: LineupMemberSearchProps) {
   const { user } = useUser();
   const [open, setOpen] = useState(false);
@@ -120,13 +124,16 @@ export function LineupMemberSearch({
           variant="outline"
           size="sm"
           disabled={disabled}
-          className="text-muted-foreground hover:text-foreground"
+          className={cn(
+            "text-muted-foreground hover:text-foreground justify-start",
+            className
+          )}
         >
           <Search className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
           {placeholder}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0" align="start">
+      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
         <Command shouldFilter={false}>
           <CommandInput
             placeholder="Search by name..."

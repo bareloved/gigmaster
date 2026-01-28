@@ -24,7 +24,7 @@
 - [x] 3.3 Convert server-safe UI components (Separator simplified)
 
 ### Pending
-- [ ] **Deploy SQL RPC functions** (list_dashboard_gigs, list_past_gigs) via Supabase Dashboard
+- [x] **Deploy SQL RPC functions** (list_dashboard_gigs, list_past_gigs) via Supabase Dashboard ✅
 - [ ] 3.2 Image optimization infrastructure (optional)
 - [ ] Re-run Lighthouse after SQL deployment
 

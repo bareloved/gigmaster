@@ -177,6 +177,7 @@ export function TimePicker({
             onKeyDown={handleInputKeyDown}
             placeholder={placeholder}
             disabled={disabled}
+            autoComplete="off"
             className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground cursor-text text-center"
           />
         </div>

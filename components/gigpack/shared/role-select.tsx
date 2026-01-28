@@ -11,6 +11,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface RoleSelectProps {
@@ -92,34 +94,42 @@ export function RoleSelect({ value, onChange, disabled, className }: RoleSelectP
     setCustomValue(newCustomValue)
     onChange(newCustomValue)
   }
-  
+
+  const handleClearCustom = () => {
+    setShowCustom(false)
+    setCustomValue("")
+    onChange("")
+  }
+
   if (showCustom) {
-    // Show custom input mode
+    // Show custom input mode - full-width input with clear button
     return (
-      <div className={cn("flex gap-2", className)}>
-        <Select value={CUSTOM_VALUE} onValueChange={handleSelectChange} disabled={disabled}>
-          <SelectTrigger className="w-[120px] h-8 text-xs" dir={locale === "he" ? "rtl" : "ltr"}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent dir={locale === "he" ? "rtl" : "ltr"}>
-            {PREDEFINED_ROLES.map((role) => (
-              <SelectItem key={role} value={role} className="text-sm">
-                {t(role)}
-              </SelectItem>
-            ))}
-            <SelectItem value={CUSTOM_VALUE} className="text-sm">
-              {tCommon("customRole")}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+      <div className={cn("relative", className)} dir={locale === "he" ? "rtl" : "ltr"}>
         <Input
           value={customValue}
           onChange={handleCustomInputChange}
           placeholder={tCommon("customRolePlaceholder")}
           disabled={disabled}
-          className="flex-1 h-8 text-sm"
+          className={cn(
+            "w-full h-8 text-sm",
+            locale === "he" ? "pl-8" : "pr-8"
+          )}
           autoFocus
         />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={handleClearCustom}
+          disabled={disabled}
+          className={cn(
+            "absolute top-0 h-8 w-8 text-muted-foreground hover:text-destructive",
+            locale === "he" ? "left-0" : "right-0"
+          )}
+          aria-label={tCommon("clearCustomRole")}
+        >
+          <X className="h-4 w-4" />
+        </Button>
       </div>
     )
   }
