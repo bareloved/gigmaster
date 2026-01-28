@@ -211,7 +211,7 @@ export function LineupMemberSearch({
 
             {/* System Users Results */}
             {filteredSystemUsers.length > 0 && (
-              <CommandGroup heading="Ensemble Users">
+              <CommandGroup heading="GigMaster Users">
                 {filteredSystemUsers.map((systemUser) => (
                   <CommandItem
                     key={systemUser.id}

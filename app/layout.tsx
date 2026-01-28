@@ -7,7 +7,7 @@ import { UserProvider } from "@/lib/providers/user-provider";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "Ensemble - Gig Brain",
+  title: "GigMaster - Gig Brain",
   description: "Operating system for gigging musicians",
 };
 

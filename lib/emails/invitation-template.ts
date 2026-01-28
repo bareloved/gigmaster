@@ -66,7 +66,7 @@ This link will expire in 7 days.
 Questions? Reply to this email or contact the project manager directly.
 
 Best,
-The Ensemble Team
+The GigMaster Team
   `.trim();
 
   return { subject, text };

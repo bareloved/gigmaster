@@ -187,7 +187,7 @@ function CalendarSettingsContent() {
       <div>
         <h1 className="text-3xl font-bold">Calendar Settings</h1>
         <p className="text-gray-600 mt-1">
-          Subscribe to your Ensemble gigs in Google Calendar, Apple Calendar, or any calendar app
+          Subscribe to your GigMaster gigs in Google Calendar, Apple Calendar, or any calendar app
         </p>
       </div>
 
@@ -253,7 +253,7 @@ function CalendarSettingsContent() {
                 </p>
                 <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
                   <li>Import existing calendar events as gigs</li>
-                  <li>Full conflict detection (checks both Ensemble and Google Calendar)</li>
+                  <li>Full conflict detection (checks both GigMaster and Google Calendar)</li>
                   <li>Read-only access (we never modify your calendar)</li>
                 </ul>
               </div>
@@ -407,7 +407,7 @@ function CalendarSettingsContent() {
               <li>Open Outlook Calendar</li>
               <li>Click &quot;Add calendar&quot; → &quot;Subscribe from web&quot;</li>
               <li>Paste your calendar subscription URL</li>
-              <li>Name your calendar (e.g., &quot;Ensemble Gigs&quot;)</li>
+              <li>Name your calendar (e.g., &quot;GigMaster Gigs&quot;)</li>
               <li>Click &quot;Import&quot;</li>
             </ol>
           </div>

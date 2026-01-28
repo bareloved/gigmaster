@@ -1,4 +1,4 @@
-# Ensemble - Gig Brain
+# GigMaster - Gig Brain
 
 A dedicated operating system for gigging musicians.
 

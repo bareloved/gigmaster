@@ -252,8 +252,8 @@ export async function GET(request: NextRequest) {
     // Split by lines and insert calendar metadata after BEGIN:VCALENDAR
     const lines = finalContent.split('\n');
     const calendarMetadata = [
-      'X-WR-CALNAME:Ensemble Gigs',
-      'X-WR-CALDESC:Your gigs from Ensemble',
+      'X-WR-CALNAME:GigMaster Gigs',
+      'X-WR-CALDESC:Your gigs from GigMaster',
       'X-WR-TIMEZONE:UTC'
     ];
     

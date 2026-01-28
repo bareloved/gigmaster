@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // Send email via Resend
     const { data, error } = await resend.emails.send({
-      from: 'Ensemble <onboarding@resend.dev>', // Test mode sender
+      from: 'GigMaster <onboarding@resend.dev>', // Test mode sender
       to: [to],
       subject,
       text,

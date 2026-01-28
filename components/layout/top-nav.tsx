@@ -120,12 +120,7 @@ export function TopNav() {
             <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <span className="text-xl">🎵</span>
             </div>
-            <div className="flex flex-col gap-0.5 leading-none">
-              <span className="font-semibold text-lg">Ensemble</span>
-              <span className="text-xs text-muted-foreground hidden sm:block">
-                Gig Brain
-              </span>
-            </div>
+            <span className="font-semibold text-lg">GigMaster</span>
           </Link>
 
           {/* Center - Main Navigation (Desktop) */}

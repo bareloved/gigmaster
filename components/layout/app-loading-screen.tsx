@@ -25,7 +25,7 @@ export function AppLoadingScreen({ className }: AppLoadingScreenProps) {
         </div>
 
         <div className="flex flex-col items-center gap-1">
-          <span className="text-xl font-semibold">Ensemble</span>
+          <span className="text-xl font-semibold">GigMaster</span>
           <span className="text-sm text-muted-foreground">Loading your gigs...</span>
         </div>
       </div>

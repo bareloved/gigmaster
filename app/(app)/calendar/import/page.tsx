@@ -293,7 +293,7 @@ export default function CalendarImportPage() {
             <h1 className="text-2xl font-bold">Import Calendar Events</h1>
           </div>
           <p className="text-gray-600 mt-1">
-            Import events from your Google Calendar as Ensemble gigs
+            Import events from your Google Calendar as GigMaster gigs
           </p>
         </div>
       </div>
