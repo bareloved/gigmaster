@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations, useLocale } from "@/lib/gigpack/i18n";
 import { format, parse } from "date-fns";
@@ -30,7 +30,6 @@ import {
   ExternalLink,
   Link as LinkIcon,
   FileText,
-  Sparkles,
   Shirt,
   ParkingCircle,
   Paperclip,
@@ -48,6 +47,7 @@ import { TimePicker } from "@/components/gigpack/ui/time-picker";
 import { VenueAutocomplete } from "@/components/gigpack/ui/venue-autocomplete";
 import { LineupMemberSearch } from "@/components/gigpack/ui/lineup-member-search";
 import { LineupMemberPill } from "@/components/gigpack/ui/lineup-member-pill";
+import { GigTypeSelect } from "@/components/gigpack/ui/gig-type-select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -66,12 +66,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PasteScheduleDialog } from "@/components/gigpack/dialogs/paste-schedule-dialog";
 import { GigPackTemplate, applyTemplateToFormDefaults } from "@/lib/gigpack/templates";
+import { useGigDraft, useGigDraftAutoSave, type GigDraftFormData } from "@/hooks/use-gig-draft";
 
 // ============================================================================
 // Types
@@ -267,6 +266,8 @@ export function GigEditorPanel({
   const t = useTranslations("gigpack");
   const tCommon = useTranslations("common");
   const tTemplates = useTranslations("templates");
+  const tDraft = useTranslations("gigpack.draft");
+  const tBands = useTranslations("bands");
   const locale = useLocale();
   const [, startTransition] = useTransition();
   const isEditing = isEditingProp ?? !!gigPack;
@@ -327,6 +328,21 @@ export function GigEditorPanel({
 
   // Paste Schedule dialog state
   const [pasteScheduleOpen, setPasteScheduleOpen] = useState(false);
+
+  // Draft persistence for new gigs
+  const {
+    hasDraft,
+    draftTimestamp: _draftTimestamp,
+    isLoaded: isDraftLoaded,
+    lastSavedAt,
+    loadDraft,
+    saveDraft,
+    clearDraft,
+  } = useGigDraft();
+  // Track if we've done the initial draft check (prevents re-restoring after auto-save)
+  const initialDraftCheckDone = useRef(false);
+  // Track if draft has been resumed (to disable the button after clicking)
+  const [draftResumed, setDraftResumed] = useState(false);
 
   // Form state
   const [title, setTitle] = useState(gigPack?.title || "");
@@ -485,14 +501,36 @@ export function GigEditorPanel({
     setShowInternalNotes(false);
   };
 
-  const handleStartBlank = () => {
-    resetFormToBlank();
 
-    toast({
-      title: tTemplates("startedBlank"),
-      duration: 2000,
-    });
+  // Build current form data for auto-save
+  const currentFormData: GigDraftFormData = {
+    title,
+    bandId,
+    bandName,
+    date,
+    callTime,
+    onStageTime,
+    venueName,
+    venueAddress,
+    venueMapsUrl,
+    lineup,
+    setlistText,
+    dressCode,
+    backlineNotes,
+    parkingNotes,
+    paymentNotes,
+    internalNotes,
+    gigType,
+    bandLogoUrl,
+    heroImageUrl,
+    accentColor,
+    packingChecklist,
+    materials,
+    schedule,
   };
+
+  // Auto-save draft for new gigs only (not when editing existing gigs)
+  useGigDraftAutoSave(currentFormData, saveDraft, !isEditing && open);
 
   // Fetch user's bands on mount
   useEffect(() => {
@@ -553,12 +591,57 @@ export function GigEditorPanel({
     }
   }, [gigPack]);
 
-  // When opening in "create" mode (no gigPack), ensure we don't show stale state
+  // When opening in "create" mode (no gigPack), always start with blank form
   useEffect(() => {
-    if (open && !gigPack) {
+    if (open && !gigPack && isDraftLoaded && !initialDraftCheckDone.current) {
+      initialDraftCheckDone.current = true;
       resetFormToBlank();
     }
-  }, [open, gigPack]);
+  }, [open, gigPack, isDraftLoaded]);
+
+  // Handler to load draft into the form (called when user clicks "Resume Draft" button)
+  const handleLoadDraft = () => {
+    const draft = loadDraft();
+    if (draft) {
+      setTitle(draft.title || "");
+      setBandId(draft.bandId || null);
+      setBandName(draft.bandName || "");
+      setDate(draft.date || "");
+      setCallTime(draft.callTime || "");
+      setOnStageTime(draft.onStageTime || "");
+      setVenueName(draft.venueName || "");
+      setVenueAddress(draft.venueAddress || "");
+      setVenueMapsUrl(draft.venueMapsUrl || "");
+      setLineup(draft.lineup?.length ? draft.lineup : [{ role: "", name: "", notes: "" }]);
+      setSetlistText(draft.setlistText || "");
+      setDressCode(draft.dressCode || "");
+      setBacklineNotes(draft.backlineNotes || "");
+      setParkingNotes(draft.parkingNotes || "");
+      setPaymentNotes(draft.paymentNotes || "");
+      setInternalNotes(draft.internalNotes || "");
+      setGigType(draft.gigType || null);
+      setBandLogoUrl(draft.bandLogoUrl || "");
+      setHeroImageUrl(draft.heroImageUrl || "");
+      setAccentColor(draft.accentColor || "");
+      setPackingChecklist(draft.packingChecklist || []);
+      setMaterials(draft.materials || []);
+      setSchedule(draft.schedule || []);
+      setShowDressCode(!!draft.dressCode);
+      setShowBackline(!!draft.backlineNotes);
+      setShowParking(!!draft.parkingNotes);
+      setShowInternalNotes(!!draft.internalNotes);
+      // Mark draft as resumed so button becomes disabled
+      setDraftResumed(true);
+    }
+  };
+
+  // Reset the initial check flag and draft resumed state when panel closes
+  useEffect(() => {
+    if (!open) {
+      initialDraftCheckDone.current = false;
+      setDraftResumed(false);
+    }
+  }, [open]);
 
   // Lineup handlers
   const addLineupMember = () => {
@@ -861,6 +944,9 @@ export function GigEditorPanel({
           });
         }
       } else {
+        // Clear draft on successful creation
+        clearDraft();
+
         if (onCreateSuccess && result) {
           // Construct new gigPack object
           const newGigPack: Partial<GigPack> = {
@@ -1002,7 +1088,14 @@ export function GigEditorPanel({
                 Top Icon Bar
                 ================================================================ */}
       <div className="flex items-center justify-between px-5 pt-4 pb-2">
-        <div className="flex-1" />
+        <div className="flex-1 flex items-center gap-3">
+          {/* Draft saved indicator - only for new gigs */}
+          {!isEditing && lastSavedAt && (
+            <span className="text-xs text-muted-foreground animate-in fade-in-0 duration-200">
+              {tDraft("draftSaved")}
+            </span>
+          )}
+        </div>
 
         <div className="flex items-center gap-1">
           {isEditing && gigPack && (
@@ -1030,62 +1123,32 @@ export function GigEditorPanel({
             </>
           )}
 
-          {/* More Options Menu with Templates */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <div dir={locale === "he" ? "rtl" : "ltr"}>
-                {/* Templates section - only show in create mode */}
-                {!isEditing && (
-                  <>
-                    <DropdownMenuLabel>
-                      {tTemplates("startFrom")}
-                    </DropdownMenuLabel>
-
-                    {/* Start Blank */}
-                    <DropdownMenuItem
-                      onClick={handleStartBlank}
-                      className="cursor-pointer"
-                    >
-                      <FileText className="h-4 w-4 rtl:ml-2 rtl:mr-0 ltr:mr-2" />
-                      {tTemplates("blankGigPack")}
-                    </DropdownMenuItem>
-
-                    {/* Templates Coming Soon */}
-                    <DropdownMenuItem disabled className="opacity-60">
-                      <Sparkles className="h-4 w-4 rtl:ml-2 rtl:mr-0 ltr:mr-2" />
-                      {tTemplates("comingSoon")}
-                    </DropdownMenuItem>
-
-                    <DropdownMenuSeparator />
-                  </>
-                )}
-
-                {/* Edit mode actions */}
-                {isEditing && gigPack && onDelete && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={handleDelete}
-                      className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      {tCommon("delete")}
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* More Options Menu - only show in edit mode when delete is available */}
+          {isEditing && gigPack && onDelete && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div dir={locale === "he" ? "rtl" : "ltr"}>
+                  <DropdownMenuItem
+                    onClick={handleDelete}
+                    className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    {tCommon("delete")}
+                  </DropdownMenuItem>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
 
           <Button
             type="button"
@@ -1129,7 +1192,7 @@ export function GigEditorPanel({
             <SelectTrigger className="w-full h-auto bg-accent/10 hover:bg-accent/15 border-none shadow-none px-2 py-1.5 text-base text-muted-foreground hover:text-foreground rounded-md transition-colors" dir={locale === "he" ? "rtl" : "ltr"}>
               <SelectValue placeholder={t("selectBandPlaceholder")} />
             </SelectTrigger>
-            <SelectContent className="max-h-[180px]" dir={locale === "he" ? "rtl" : "ltr"}>
+            <SelectContent className="max-h-[220px]" dir={locale === "he" ? "rtl" : "ltr"}>
               {bands.map((band) => (
                 <SelectItem key={band.id} value={band.id}>
                   {band.name}
@@ -1140,6 +1203,16 @@ export function GigEditorPanel({
                   No bands yet
                 </div>
               )}
+              <div className="border-t mt-1 pt-1">
+                <button
+                  type="button"
+                  onClick={() => router.push("/bands")}
+                  className="flex w-full items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground/70 hover:text-muted-foreground hover:bg-accent rounded-sm transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {tBands("createButton")}
+                </button>
+              </div>
             </SelectContent>
           </Select>
         </div>
@@ -1244,26 +1317,11 @@ export function GigEditorPanel({
 
           {/* Gig Type */}
           <MetadataRow label={t("gigTypeLabel")} inputId="gig-type">
-            <Select
-              name="gig_type"
-              value={gigType || ""}
-              onValueChange={(value) => setGigType(value || null)}
+            <GigTypeSelect
+              value={gigType}
+              onChange={setGigType}
               disabled={isLoading}
-            >
-              <SelectTrigger id="gig-type" className="h-8">
-                <SelectValue placeholder={t("selectGigType")} />
-              </SelectTrigger>
-              <SelectContent dir={locale === "he" ? "rtl" : "ltr"}>
-                <SelectItem value="wedding">{t("gigType.wedding")}</SelectItem>
-                <SelectItem value="club_show">{t("gigType.clubShow")}</SelectItem>
-                <SelectItem value="corporate">{t("gigType.corporate")}</SelectItem>
-                <SelectItem value="bar_gig">{t("gigType.barGig")}</SelectItem>
-                <SelectItem value="coffee_house">{t("gigType.coffeeHouse")}</SelectItem>
-                <SelectItem value="festival">{t("gigType.festival")}</SelectItem>
-                <SelectItem value="rehearsal">{t("gigType.rehearsal")}</SelectItem>
-                <SelectItem value="other">{t("gigType.other")}</SelectItem>
-              </SelectContent>
-            </Select>
+            />
           </MetadataRow>
 
         </div>
@@ -1294,26 +1352,16 @@ export function GigEditorPanel({
                   onNotesChange={(notes) => updateLineupMember(index, "notes", notes)}
                   onRemove={() => removeLineupMember(index)}
                   disabled={isLoading}
-                  showRemove={lineup.length > 1}
+                  showRemove={true}
                 />
               ))}
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="w-full">
                 <LineupMemberSearch
                   onSelectMember={addLineupMemberFromSearch}
                   placeholder={t("searchMusicians")}
                   disabled={isLoading}
+                  className="w-full"
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={addLineupMember}
-                  disabled={isLoading}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <Plus className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
-                  {t("addMember")}
-                </Button>
               </div>
             </div>
           )}
@@ -1765,8 +1813,7 @@ export function GigEditorPanel({
                 Bottom Action Bar
                 ================================================================ */}
       <div className="border-t border-border px-6 py-4 bg-background">
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          {/* Left side: Main actions */}
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Button
               type="submit"
@@ -1802,6 +1849,19 @@ export function GigEditorPanel({
             </Button>
           </div>
 
+          {/* Resume Draft button - only for new gigs when draft exists and not yet resumed */}
+          {!isEditing && hasDraft && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={handleLoadDraft}
+              disabled={isLoading || draftResumed}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              {tDraft("resumeButton")}
+            </Button>
+          )}
         </div>
       </div>
     </form>

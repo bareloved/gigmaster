@@ -212,6 +212,7 @@ const MESSAGES: MessageTree = {
     notesPlaceholder: "Notes (optional)",
     customRole: "Custom…",
     customRolePlaceholder: "Type custom role",
+    clearCustomRole: "Clear custom role",
     roles: {
       vocals: "Vocals",
       guitar: "Guitar",
@@ -297,6 +298,9 @@ const MESSAGES: MessageTree = {
       rehearsal: "Rehearsal",
       other: "Other"
     },
+    customGigType: "Custom...",
+    customGigTypePlaceholder: "Type of event (e.g., Birthday Party)",
+    clearCustomGigType: "Clear custom type",
     pickDate: "Pick a date",
     titleRequired: "Please enter a gig name",
     startedBlank: "Started fresh",
@@ -332,6 +336,15 @@ const MESSAGES: MessageTree = {
       unrecognized: "Unrecognized",
       duplicateWarning: "Similar item already exists",
       parsingHint: "Make sure the line starts with time in HH:MM format"
+    },
+    draft: {
+      resumeTitle: "Resume your draft?",
+      resumeDescription: "You have an unsaved gig from {timeAgo}.",
+      resumeButton: "Resume Draft",
+      startFreshButton: "Start Fresh",
+      draftSaved: "Draft saved",
+      restoredDraft: "Restored previous draft",
+      undoRestore: "Undo"
     }
   },
   public: {
