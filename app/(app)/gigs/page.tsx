@@ -61,7 +61,13 @@ export default function AllGigsPage() {
   const { user } = useUser();
   const router = useRouter();
 
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("gigs-view-mode");
+      if (saved === "list" || saved === "grid") return saved;
+    }
+    return "grid";
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
 
@@ -278,10 +284,30 @@ export default function AllGigsPage() {
 
       {/* Filters - Search and View Controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b">
-        {/* Search and View Controls */}
-        <div className="flex items-center gap-2 flex-1 w-full justify-end">
+        {/* View Mode Toggle and Search */}
+        <div className="flex items-center gap-2 flex-1 w-full">
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-1 border rounded-md p-1">
+            <Button
+              variant={viewMode === "list" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => { setViewMode("list"); localStorage.setItem("gigs-view-mode", "list"); }}
+              className="h-7 px-2"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "grid" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => { setViewMode("grid"); localStorage.setItem("gigs-view-mode", "grid"); }}
+              className="h-7 px-2"
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </Button>
+          </div>
+
           {/* Search */}
-          <div className="relative">
+          <div className="relative ml-auto">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
@@ -298,26 +324,6 @@ export default function AllGigsPage() {
                 <X className="h-4 w-4" />
               </button>
             )}
-          </div>
-
-          {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 border rounded-md p-1">
-            <Button
-              variant={viewMode === "list" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("list")}
-              className="h-7 px-2"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "grid" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("grid")}
-              className="h-7 px-2"
-            >
-              <Grid3x3 className="h-4 w-4" />
-            </Button>
           </div>
         </div>
       </div>

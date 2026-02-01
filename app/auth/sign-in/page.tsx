@@ -86,7 +86,7 @@ function SignInForm() {
   };
 
   // Magic Link View
-  const MagicLinkView = () => (
+  const magicLinkView = (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Left Side - Vintage Poster */}
       <div className="hidden lg:flex flex-col relative overflow-hidden bg-[#1a1a2e]">
@@ -301,7 +301,7 @@ function SignInForm() {
 
   // Show Magic Link View if active
   if (showMagicLinkView) {
-    return <MagicLinkView />;
+    return magicLinkView;
   }
 
   // Main Login View

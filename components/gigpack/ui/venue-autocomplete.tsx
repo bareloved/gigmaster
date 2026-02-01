@@ -34,6 +34,8 @@ function VenueAutocompleteInner({
   const [loading, setLoading] = React.useState(false)
   // Track when a selection was just made to prevent re-fetching
   const justSelectedRef = React.useRef(false)
+  // Track whether the user actually typed (vs value set from prop)
+  const userTypedRef = React.useRef(false)
 
   const containerRef = React.useRef<HTMLDivElement>(null)
 
@@ -59,8 +61,8 @@ function VenueAutocompleteInner({
       return
     }
 
-    // Skip if a selection was just made
-    if (justSelectedRef.current) {
+    // Skip if a selection was just made or value came from props (not user typing)
+    if (justSelectedRef.current || !userTypedRef.current) {
       return
     }
 
@@ -88,6 +90,7 @@ function VenueAutocompleteInner({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
+    userTypedRef.current = true
     setInputValue(val)
     onChange?.(val)
     if (!val) {
@@ -104,6 +107,7 @@ function VenueAutocompleteInner({
 
     // Mark that we just selected to prevent re-fetching
     justSelectedRef.current = true
+    userTypedRef.current = false
     setInputValue(mainText)
     onChange?.(mainText)
     setIsOpen(false)
@@ -174,7 +178,7 @@ function VenueAutocompleteInner({
       </div>
 
       {isOpen && predictions.length > 0 && (
-        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+        <div className="absolute z-[60] mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
           {predictions.map((suggestion) => {
             const prediction = suggestion.placePrediction
             if (!prediction) return null
