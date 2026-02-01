@@ -5,9 +5,8 @@
  * 
  * Real implementation using existing APIs.
  * Features that work now:
- * - Next Gig Hero with real data + Readiness tracking (interactive!)
+ * - Next Gig Hero with real data
  * - This Week on Stage list with filtering
- * - Practice Focus widget (shows songs to learn from upcoming gigs)
  * - Band & Changes activity feed (real-time activity log)
  * - Money Snapshot from player-money API
  * - Focus Mode (UI only)
@@ -37,29 +36,22 @@ import {
   FileText,
   Plus,
   CheckCircle2,
-  AlertTriangle,
-  Circle,
   ChevronDown,
-  ChevronUp,
-  Zap,
   Crown,
   Mail,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useUser } from "@/lib/providers/user-provider";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listDashboardGigs } from "@/lib/api/dashboard-gigs";
 import { getPlayerMoneySummary } from "@/lib/api/player-money";
-import { getGigReadiness, updateGigReadiness, calculateReadinessScore, getOrCreateGigReadiness } from "@/lib/api/gig-readiness";
-import type { ReadinessScore } from "@/lib/types/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import dynamic from "next/dynamic";
 import { GigStatusBadge } from "@/components/gigs/shared/status-badge";
-import { PracticeFocusWidget } from "@/components/dashboard/practice-widget";
 import { GigActivityWidget } from "@/components/dashboard/activity-widget";
 import { useFocusMode } from "@/hooks/use-focus-mode";
 import { useDashboardKeyboardShortcuts } from "@/hooks/use-dashboard-keyboard-shortcuts";
@@ -119,7 +111,6 @@ export default function DashboardPage() {
 
   // UI State - with localStorage persistence
   const [focusMode, setFocusMode] = useFocusMode(user?.id);
-  const [showReadinessBreakdown, setShowReadinessBreakdown] = useState(false);
 
   // Gig selector state
   const [selectedGigIndex, setSelectedGigIndex] = useState(0);
@@ -206,43 +197,6 @@ export default function DashboardPage() {
     return null;
   }, [todayGigs, upcomingGigs, allGigs, selectedGigIndex]);
 
-  // Fetch readiness for next gig
-  const {
-    data: readiness,
-    isLoading: isLoadingReadiness,
-  } = useQuery({
-    queryKey: ["gig-readiness", nextGig?.gigId, user?.id],
-    queryFn: () => getGigReadiness(nextGig!.gigId, user!.id),
-    enabled: !!nextGig && !!user,
-    staleTime: 1000 * 60 * 2, // 2 minutes
-  });
-
-  // Calculate readiness score
-  const readinessScore: ReadinessScore = useMemo(() => {
-    return calculateReadinessScore(readiness ?? null);
-  }, [readiness]);
-
-  // Mutation to update readiness
-  const updateReadinessMutation = useMutation({
-    mutationFn: async (updates: { field: string; value: boolean | number }) => {
-      if (!nextGig || !user) throw new Error("No gig or user");
-
-      // If no readiness exists yet, create it first
-      if (!readiness) {
-        await getOrCreateGigReadiness(nextGig.gigId, user.id, 0);
-      }
-
-      const updateData: Record<string, boolean | number> = {};
-      updateData[updates.field] = updates.value;
-
-      return updateGigReadiness(nextGig.gigId, user.id, updateData);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gig-readiness", nextGig?.gigId, user?.id] });
-    },
-  });
-
-
   // Keyboard shortcuts (G, P, S, F)
   useDashboardKeyboardShortcuts(nextGig?.gigId, !!nextGig);
 
@@ -323,8 +277,8 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Next Gig Hero Card */}
           {isLoadingGigs ? (
-            <Card className="overflow-hidden min-h-[600px]">
-              <CardContent className="p-6 space-y-4 min-h-[600px]">
+            <Card className="overflow-hidden">
+              <CardContent className="p-6 space-y-4">
                 <div className="flex items-start gap-4">
                   <Skeleton className="h-20 w-20 rounded-lg" />
                   <div className="flex-1 space-y-2">
@@ -342,8 +296,8 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           ) : nextGig ? (
-            <Card className="overflow-hidden shadow-stage-lg hover:shadow-glow-red transition-all duration-500 min-h-[600px] border-2 border-primary/20 animate-fade-in">
-              <CardContent className="p-8 relative min-h-[600px] poster-gradient-warm">
+            <Card className="overflow-hidden shadow-stage-lg hover:shadow-glow-red transition-all duration-500 border-2 border-primary/20 animate-fade-in">
+              <CardContent className="p-8 relative poster-gradient-warm">
                 {/* Gig Selector - Top Right Corner */}
                 {allGigs.length > 1 && (
                   <div className="absolute top-4 right-4">
@@ -581,217 +535,6 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                <Separator className="my-4" />
-
-                {/* Readiness Section - Enhanced */}
-                {isLoadingReadiness ? (
-                  <div className="space-y-3">
-                    <Skeleton className="h-6 w-48" />
-                    <Skeleton className="h-3 w-full" />
-                    <Skeleton className="h-20 w-full" />
-                  </div>
-                ) : (
-                  <div className="bg-card/60 backdrop-blur-sm rounded-xl p-5 border-2 border-accent/30">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-display text-2xl font-bold flex items-center gap-2 uppercase tracking-tight">
-                        <Zap className="h-6 w-6 text-secondary" />
-                        Prep Checklist
-                      </h3>
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-3xl font-bold text-primary">{readinessScore.overall}%</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0"
-                          onClick={() => setShowReadinessBreakdown(!showReadinessBreakdown)}
-                        >
-                          {showReadinessBreakdown ? (
-                            <ChevronUp className="h-4 w-4" />
-                          ) : (
-                            <ChevronDown className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Segmented Progress Bar */}
-                    <div className="relative mb-2">
-                      <div className="flex h-3 w-full overflow-hidden rounded-full bg-secondary">
-                        {/* Songs segment - 40% of total width */}
-                        <div
-                          className="bg-blue-500 transition-all duration-300"
-                          style={{ width: `${(readinessScore.songs / 100) * 40}%` }}
-                          title={`Songs: ${readinessScore.songs}%`}
-                        />
-                        {/* Charts segment - 15% of total width */}
-                        <div
-                          className="bg-green-500 transition-all duration-300"
-                          style={{ width: `${(readinessScore.charts / 100) * 15}%` }}
-                          title={`Charts: ${readinessScore.charts}%`}
-                        />
-                        {/* Sounds segment - 15% of total width */}
-                        <div
-                          className="bg-purple-500 transition-all duration-300"
-                          style={{ width: `${(readinessScore.sounds / 100) * 15}%` }}
-                          title={`Sounds: ${readinessScore.sounds}%`}
-                        />
-                        {/* Travel segment - 15% of total width */}
-                        <div
-                          className="bg-amber-500 transition-all duration-300"
-                          style={{ width: `${(readinessScore.travel / 100) * 15}%` }}
-                          title={`Travel: ${readinessScore.travel}%`}
-                        />
-                        {/* Gear segment - 15% of total width */}
-                        <div
-                          className="bg-emerald-500 transition-all duration-300"
-                          style={{ width: `${(readinessScore.gear / 100) * 15}%` }}
-                          title={`Gear: ${readinessScore.gear}%`}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Breakdown Legend (only when expanded) */}
-                    {showReadinessBreakdown && (
-                      <div className="mb-4 p-3 bg-muted/50 rounded-lg space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-                        <p className="text-xs font-semibold text-muted-foreground mb-2">Breakdown by Category:</p>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div className="flex items-center gap-2 transition-transform hover:scale-105">
-                            <div className="h-3 w-3 rounded-full bg-blue-500" />
-                            <span>Songs: {readinessScore.songs}%</span>
-                          </div>
-                          <div className="flex items-center gap-2 transition-transform hover:scale-105">
-                            <div className="h-3 w-3 rounded-full bg-green-500" />
-                            <span>Charts: {readinessScore.charts}%</span>
-                          </div>
-                          <div className="flex items-center gap-2 transition-transform hover:scale-105">
-                            <div className="h-3 w-3 rounded-full bg-purple-500" />
-                            <span>Sounds: {readinessScore.sounds}%</span>
-                          </div>
-                          <div className="flex items-center gap-2 transition-transform hover:scale-105">
-                            <div className="h-3 w-3 rounded-full bg-amber-500" />
-                            <span>Travel: {readinessScore.travel}%</span>
-                          </div>
-                          <div className="flex items-center gap-2 transition-transform hover:scale-105">
-                            <div className="h-3 w-3 rounded-full bg-emerald-500" />
-                            <span>Gear: {readinessScore.gear}%</span>
-                          </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2 pt-2 border-t">
-                          💡 Click items below to mark as complete
-                        </p>
-                      </div>
-                    )}
-
-                    <div className="space-y-2.5">
-                      {/* Songs */}
-                      <button
-                        onClick={() => {
-                          if (!readiness) {
-                            // Create initial readiness if it doesn't exist
-                            updateReadinessMutation.mutate({ field: 'songsLearned', value: 0 });
-                          }
-                        }}
-                        className="w-full flex items-center gap-2.5 text-left hover:bg-muted/50 rounded p-1.5 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
-                        disabled={updateReadinessMutation.isPending}
-                      >
-                        {readiness?.songsLearned === readiness?.songsTotal && (readiness?.songsTotal ?? 0) > 0 ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        ) : (
-                          <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
-                        )}
-                        <div className="flex-1 text-sm">
-                          Songs learned: <span className="font-medium">
-                            {readiness ? `${readiness.songsLearned} / ${readiness.songsTotal}` : '0 / 0'}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* Charts */}
-                      <button
-                        onClick={() => updateReadinessMutation.mutate({
-                          field: 'chartsReady',
-                          value: !readiness?.chartsReady
-                        })}
-                        className="w-full flex items-center gap-2.5 text-left hover:bg-muted/50 rounded p-1.5 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
-                        disabled={updateReadinessMutation.isPending}
-                      >
-                        {readiness?.chartsReady ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        ) : (
-                          <Circle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                        )}
-                        <div className="flex-1 text-sm">
-                          Charts attached: <span className="font-medium">
-                            {readiness?.chartsReady ? 'All songs' : 'Not ready'}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* Sounds */}
-                      <button
-                        onClick={() => updateReadinessMutation.mutate({
-                          field: 'soundsReady',
-                          value: !readiness?.soundsReady
-                        })}
-                        className="w-full flex items-center gap-2.5 text-left hover:bg-muted/50 rounded p-1.5 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
-                        disabled={updateReadinessMutation.isPending}
-                      >
-                        {readiness?.soundsReady ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        ) : (
-                          <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
-                        )}
-                        <div className="flex-1 text-sm">
-                          Sounds programmed in rig: <span className="font-medium">
-                            {readiness?.soundsReady ? 'Ready' : 'Not ready'}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* Travel */}
-                      <button
-                        onClick={() => updateReadinessMutation.mutate({
-                          field: 'travelChecked',
-                          value: !readiness?.travelChecked
-                        })}
-                        className="w-full flex items-center gap-2.5 text-left hover:bg-muted/50 rounded p-1.5 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
-                        disabled={updateReadinessMutation.isPending}
-                      >
-                        {readiness?.travelChecked ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        ) : (
-                          <Circle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                        )}
-                        <div className="flex-1 text-sm">
-                          Travel plan checked: <span className="font-medium">
-                            {readiness?.travelChecked ? 'Done' : 'Not yet'}
-                          </span>
-                        </div>
-                      </button>
-
-                      {/* Gear */}
-                      <button
-                        onClick={() => updateReadinessMutation.mutate({
-                          field: 'gearPacked',
-                          value: !readiness?.gearPacked
-                        })}
-                        className="w-full flex items-center gap-2.5 text-left hover:bg-muted/50 rounded p-1.5 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
-                        disabled={updateReadinessMutation.isPending}
-                      >
-                        {readiness?.gearPacked ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        ) : (
-                          <Circle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                        )}
-                        <div className="flex-1 text-sm">
-                          Gear checklist: <span className="font-medium">
-                            {readiness?.gearPacked ? 'Packed' : 'Not packed'}
-                          </span>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
           ) : (
@@ -918,9 +661,6 @@ export default function DashboardPage() {
                 showViewAll={true}
               />
             )}
-
-            {/* Practice Focus Widget */}
-            {user && <PracticeFocusWidget userId={user.id} limit={5} />}
 
             {/* Money Snapshot - Receipt Style */}
             <Card className="border-2 border-dashed border-border/50 shadow-stage bg-card animate-fade-in">
