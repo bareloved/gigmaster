@@ -19,6 +19,7 @@ interface GigTypeSelectProps {
   onChange: (value: string | null) => void
   disabled?: boolean
   className?: string
+  id?: string
 }
 
 // Predefined gig types - these match the database values and translation keys
@@ -54,7 +55,7 @@ const CUSTOM_VALUE = "__custom__"
  * - Automatically shows custom input if value doesn't match predefined types
  * - Stores plain string value (no schema changes needed)
  */
-export function GigTypeSelect({ value, onChange, disabled, className }: GigTypeSelectProps) {
+export function GigTypeSelect({ value, onChange, disabled, className, id }: GigTypeSelectProps) {
   const t = useTranslations("gigpack")
   const locale = useLocale()
 
@@ -113,6 +114,7 @@ export function GigTypeSelect({ value, onChange, disabled, className }: GigTypeS
     return (
       <div className={cn("relative", className)} dir={locale === "he" ? "rtl" : "ltr"}>
         <Input
+          id={id}
           value={customValue}
           onChange={handleCustomInputChange}
           placeholder={t("customGigTypePlaceholder")}
@@ -144,7 +146,7 @@ export function GigTypeSelect({ value, onChange, disabled, className }: GigTypeS
   // Show standard select mode
   return (
     <Select value={selectValue} onValueChange={handleSelectChange} disabled={disabled}>
-      <SelectTrigger className={cn("h-8 text-sm", className)} dir={locale === "he" ? "rtl" : "ltr"}>
+      <SelectTrigger id={id} className={cn("h-8 text-sm", className)} dir={locale === "he" ? "rtl" : "ltr"}>
         <SelectValue placeholder={t("selectGigType")} />
       </SelectTrigger>
       <SelectContent dir={locale === "he" ? "rtl" : "ltr"}>

@@ -356,7 +356,7 @@ export function GigEditorPanel({
   const [venueAddress, setVenueAddress] = useState(gigPack?.venue_address || "");
   const [venueMapsUrl, setVenueMapsUrl] = useState(gigPack?.venue_maps_url || "");
   const [lineup, setLineup] = useState<LineupMember[]>(
-    gigPack?.lineup || [{ role: "", name: "", notes: "" }]
+    gigPack?.lineup || []
   );
   // Simplified setlist: plain text instead of structured JSON
   const [setlistText, setSetlistText] = useState(gigPack?.setlist || "");
@@ -415,7 +415,7 @@ export function GigEditorPanel({
       setVenueName(gigPack.venue_name || "");
       setVenueAddress(gigPack.venue_address || "");
       setVenueMapsUrl(gigPack.venue_maps_url || "");
-      setLineup(gigPack.lineup || [{ role: "", name: "", notes: "" }]);
+      setLineup(gigPack.lineup || []);
       setSetlistText(gigPack.setlist || "");
       setDressCode(gigPack.dress_code || "");
       setBacklineNotes(gigPack.backline_notes || "");
@@ -477,7 +477,7 @@ export function GigEditorPanel({
     setVenueName("");
     setVenueAddress("");
     setVenueMapsUrl("");
-    setLineup([{ role: "", name: "", notes: "" }]);
+    setLineup([]);
     setSetlistText("");
     setDressCode("");
     setBacklineNotes("");
@@ -568,7 +568,7 @@ export function GigEditorPanel({
       setVenueName(gigPack.venue_name || "");
       setVenueAddress(gigPack.venue_address || "");
       setVenueMapsUrl(gigPack.venue_maps_url || "");
-      setLineup(gigPack.lineup || [{ role: "", name: "", notes: "" }]);
+      setLineup(gigPack.lineup || []);
       setSetlistText(gigPack.setlist || "");
       setDressCode(gigPack.dress_code || "");
       setBacklineNotes(gigPack.backline_notes || "");
@@ -612,7 +612,7 @@ export function GigEditorPanel({
       setVenueName(draft.venueName || "");
       setVenueAddress(draft.venueAddress || "");
       setVenueMapsUrl(draft.venueMapsUrl || "");
-      setLineup(draft.lineup?.length ? draft.lineup : [{ role: "", name: "", notes: "" }]);
+      setLineup(draft.lineup?.length ? draft.lineup : []);
       setSetlistText(draft.setlistText || "");
       setDressCode(draft.dressCode || "");
       setBacklineNotes(draft.backlineNotes || "");
@@ -1318,6 +1318,7 @@ export function GigEditorPanel({
           {/* Gig Type */}
           <MetadataRow label={t("gigTypeLabel")} inputId="gig-type">
             <GigTypeSelect
+              id="gig-type"
               value={gigType}
               onChange={setGigType}
               disabled={isLoading}
