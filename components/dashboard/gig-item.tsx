@@ -22,8 +22,6 @@ import { useUser } from "@/lib/providers/user-provider";
 import type { DashboardGig } from "@/lib/types/shared";
 // PERFORMANCE: Use optimistic update hooks for instant UI feedback
 import {
-  useMarkAsPaid,
-  useMarkAsUnpaid,
   useAcceptInvitation,
   useDeclineInvitation,
   useUpdateGigStatus,
@@ -136,15 +134,6 @@ const GigInnerContent = memo(function GigInnerContent({ gig, formattedDate }: { 
           </Badge>
         )}
 
-        {/* Payment Status */}
-        {gig.isPlayer && gig.paymentStatus && (
-          <Badge
-            variant={gig.paymentStatus === "paid" ? "default" : "outline"}
-            className={gig.paymentStatus === "unpaid" ? "border-yellow-500 text-yellow-700 dark:text-yellow-400" : ""}
-          >
-            {gig.paymentStatus === "paid" ? "Paid" : "Unpaid"}
-          </Badge>
-        )}
       </div>
     </>
   );
@@ -180,8 +169,6 @@ export function DashboardGigItem({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // PERFORMANCE: Use optimistic update hooks for instant UI feedback
-  const markPaidMutation = useMarkAsPaid();
-  const markUnpaidMutation = useMarkAsUnpaid();
   const acceptInvitationMutation = useAcceptInvitation();
   const declineInvitationMutation = useDeclineInvitation();
   const updateStatusMutation = useUpdateGigStatus();
@@ -256,7 +243,6 @@ export function DashboardGigItem({
 
   // Determine which actions to show
   const showPlayerActions = gig.isPlayer && gig.playerGigRoleId;
-  const showPaymentActions = showPlayerActions && gig.paymentStatus;
   const showInvitationActions = showPlayerActions && gig.invitationStatus === "invited" && !isPastGig;
   const showManagerActions = gig.isManager && !isPastGig;
 
@@ -340,24 +326,6 @@ export function DashboardGigItem({
                   <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
                     <DropdownMenuLabel>Quick Actions</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-
-                    {/* Player Actions */}
-                    {showPaymentActions && (
-                      <>
-                        {gig.paymentStatus === "unpaid" && (
-                          <DropdownMenuItem onClick={() => markPaidMutation.mutate(gig.playerGigRoleId!)}>
-                            <Check className="h-4 w-4 mr-2" />
-                            Mark as Paid
-                          </DropdownMenuItem>
-                        )}
-                        {gig.paymentStatus === "paid" && (
-                          <DropdownMenuItem onClick={() => markUnpaidMutation.mutate(gig.playerGigRoleId!)}>
-                            <X className="h-4 w-4 mr-2" />
-                            Mark as Unpaid
-                          </DropdownMenuItem>
-                        )}
-                      </>
-                    )}
 
                     {showInvitationActions && (
                       <>

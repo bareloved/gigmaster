@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   fetchGigActivity,
+  fetchRecentActivity,
   GigActivityLogEntry,
   getActivityIcon,
   getActivityColor,
@@ -16,8 +15,17 @@ import { formatDistanceToNow } from "date-fns";
 import { Activity, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+/** Activity types hidden from the widget */
+const HIDDEN_ACTIVITY_TYPES: Set<string> = new Set([
+  "gig_created",
+  "setlist_removed",
+  "file_removed",
+  "role_assigned",
+  "role_removed",
+]);
+
 interface GigActivityWidgetProps {
-  gigId: string;
+  gigId?: string;
   limit?: number;
   showViewAll?: boolean;
   className?: string;
@@ -37,8 +45,12 @@ export function GigActivityWidget({
     async function loadActivity() {
       try {
         setLoading(true);
-        const data = await fetchGigActivity(gigId, { limit });
-        setActivities(data);
+        const data = gigId
+          ? await fetchGigActivity(gigId, { limit })
+          : await fetchRecentActivity({ limit });
+        setActivities(
+          data.filter((a) => !HIDDEN_ACTIVITY_TYPES.has(a.activity_type))
+        );
       } catch (err) {
         console.error("Failed to fetch activity:", err);
         setError("Failed to load activity");
@@ -95,17 +107,10 @@ export function GigActivityWidget({
   return (
     <Card className={className}>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Activity className="h-5 w-5" />
-            Recent Activity
-          </CardTitle>
-          {activities.length > 0 && (
-            <Badge variant="secondary" className="ml-auto">
-              {activities.length}
-            </Badge>
-          )}
-        </div>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Activity className="h-5 w-5" />
+          Recent Activity
+        </CardTitle>
       </CardHeader>
       <CardContent>
         {activities.length === 0 ? (
@@ -121,7 +126,7 @@ export function GigActivityWidget({
             <ScrollArea className="h-[300px] pr-4">
               <div className="space-y-4">
                 {activities.map((activity) => (
-                  <ActivityItem key={activity.id} activity={activity} />
+                  <ActivityItem key={activity.id} activity={activity} showGigName={!gigId} />
                 ))}
               </div>
             </ScrollArea>
@@ -144,46 +149,59 @@ export function GigActivityWidget({
   );
 }
 
-function ActivityItem({ activity }: { activity: GigActivityLogEntry }) {
+/** Activity types where metadata lines replace the generic description */
+const METADATA_DETAIL_TYPES: Set<string> = new Set([
+  "gig_updated",
+  "gig_times_changed",
+  "gig_venue_changed",
+  "gig_fee_changed",
+  "gig_status_changed",
+  "role_status_changed",
+]);
+
+function ActivityItem({ activity, showGigName = false }: { activity: GigActivityLogEntry; showGigName?: boolean }) {
   const icon = getActivityIcon(activity.activity_type);
   const colorClass = getActivityColor(activity.activity_type);
-  const userName = activity.user?.name || "Someone";
-  const userInitials = userName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
 
   const timeAgo = formatDistanceToNow(new Date(activity.created_at), {
     addSuffix: true,
   });
 
+  const hasDetailMetadata =
+    METADATA_DETAIL_TYPES.has(activity.activity_type) &&
+    activity.metadata &&
+    Object.keys(activity.metadata).length > 0;
+
   return (
-    <div className="flex gap-3 items-start">
-      <Avatar className="h-8 w-8">
-        <AvatarImage src={activity.user?.avatar_url || undefined} />
-        <AvatarFallback className="text-xs">{userInitials}</AvatarFallback>
-      </Avatar>
+    <div className="flex items-start gap-2">
+      <span className={`text-lg leading-none ${colorClass}`}>{icon}</span>
       <div className="flex-1 min-w-0">
-        <div className="flex items-start gap-2">
-          <span className={`text-lg leading-none ${colorClass}`}>{icon}</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium leading-tight">
-              {activity.description}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">{timeAgo}</p>
-          </div>
-        </div>
+        {showGigName && activity.gig?.title && (
+          <p className="text-xs font-bold text-muted-foreground leading-tight">
+            {activity.gig.title}
+          </p>
+        )}
+        {!hasDetailMetadata && (
+          <p className="text-sm font-medium leading-tight">
+            {activity.description}
+          </p>
+        )}
         {activity.metadata && Object.keys(activity.metadata).length > 0 && (
           <ActivityMetadata
             activityType={activity.activity_type}
             metadata={activity.metadata}
           />
         )}
+        <p className="text-[10px] text-muted-foreground/50 mt-1">{timeAgo}</p>
       </div>
     </div>
   );
+}
+
+/** Strip seconds from time strings like "14:00:00" → "14:00" */
+function formatTime(value: unknown): string {
+  const str = String(value || "");
+  return str.replace(/^(\d{1,2}:\d{2}):\d{2}$/, "$1");
 }
 
 function ActivityMetadata({
@@ -205,7 +223,7 @@ function ActivityMetadata({
 
     if (changesList.length > 0) {
       return (
-        <p className="text-xs text-muted-foreground mt-1 ml-7">
+        <p className="text-xs text-muted-foreground mt-0.5">
           Changed: {changesList.join(", ")}
         </p>
       );
@@ -214,30 +232,102 @@ function ActivityMetadata({
 
   if (activityType === "gig_updated" && meta.changes) {
     const changes = meta.changes as Record<string, unknown>;
-    const changesList: string[] = [];
-    if (changes.title_changed) changesList.push("title");
-    if (changes.date_changed) changesList.push("date");
-    if (changes.location_changed) changesList.push("location");
+    const parts: string[] = [];
+    if (changes.title_changed && meta.title) {
+      parts.push(`Title changed: ${meta.title}`);
+    }
+    if (changes.date_changed && meta.date) {
+      parts.push(`Date changed: ${meta.date}`);
+    }
 
-    if (changesList.length > 0) {
+    if (parts.length > 0) {
       return (
-        <p className="text-xs text-muted-foreground mt-1 ml-7">
-          Updated: {changesList.join(", ")}
-        </p>
+        <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
+          {parts.map((p, i) => <p key={i}>{p}</p>)}
+        </div>
       );
     }
   }
 
   if (
     activityType === "role_status_changed" &&
-    meta.old_status &&
     meta.new_status
   ) {
     return (
-      <p className="text-xs text-muted-foreground mt-1 ml-7">
-        {String(meta.old_status)} &rarr; {String(meta.new_status)}
+      <p className="text-xs text-muted-foreground mt-0.5">
+        Status changed: {String(meta.new_status)}
       </p>
     );
+  }
+
+  if (activityType === "gig_status_changed" && meta.new_status) {
+    return (
+      <p className="text-xs text-muted-foreground mt-0.5">
+        Status changed: {String(meta.new_status)}
+      </p>
+    );
+  }
+
+  if (activityType === "gig_times_changed") {
+    const changes = meta.changes as Record<string, unknown> | undefined;
+    const parts: string[] = [];
+    if (changes?.call_time_changed && meta.new_call_time) {
+      parts.push(`Call time changed: ${formatTime(meta.new_call_time)}`);
+    }
+    if (changes?.on_stage_time_changed && meta.new_on_stage_time) {
+      parts.push(`On stage changed: ${formatTime(meta.new_on_stage_time)}`);
+    }
+    if (changes?.start_time_changed && meta.new_start_time) {
+      parts.push(`Start time changed: ${formatTime(meta.new_start_time)}`);
+    }
+    if (changes?.end_time_changed && meta.new_end_time) {
+      parts.push(`End time changed: ${formatTime(meta.new_end_time)}`);
+    }
+    if (parts.length > 0) {
+      return (
+        <div className="text-xs text-muted-foreground mt-0.5 space-y-0.5">
+          {parts.map((p, i) => <p key={i}>{p}</p>)}
+        </div>
+      );
+    }
+  }
+
+  if (activityType === "gig_venue_changed") {
+    const newVenue = String(meta.new_venue_name || "");
+    if (newVenue) {
+      return (
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Location changed: {newVenue}
+        </p>
+      );
+    }
+  }
+
+  if (activityType === "gig_fee_changed") {
+    const newFee = meta.new_fee != null ? String(meta.new_fee) : null;
+    const currency = String(meta.new_currency || meta.old_currency || "");
+    if (newFee) {
+      return (
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Fee changed: {currency} {newFee}
+        </p>
+      );
+    }
+  }
+
+  if (activityType === "gig_logistics_changed") {
+    const changes = meta.changes as Record<string, unknown> | undefined;
+    const parts: string[] = [];
+    if (changes?.dress_code_changed) parts.push("dress code");
+    if (changes?.backline_notes_changed) parts.push("gear/backline");
+    if (changes?.parking_notes_changed) parts.push("parking");
+    if (parts.length > 0) {
+      return (
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Updated: {parts.join(", ")}
+        </p>
+      );
+    }
   }
 
   return null;

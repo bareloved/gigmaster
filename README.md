@@ -1,25 +1,27 @@
-# GigMaster - Gig Brain
+# GigMaster
 
-A dedicated operating system for gigging musicians.
+A dedicated operating system for gigging musicians — manage gigs, lineups, setlists, finances, and calendars in one place.
 
 ## Tech Stack
 
-- **Frontend**: Next.js 15 (App Router) + React 19 + TypeScript
-- **Styling**: Tailwind CSS + shadcn/ui
-- **Backend**: Supabase (Postgres, Auth, Storage)
-- **Data Fetching**: TanStack Query (React Query)
-- **Future**: Expo React Native for mobile companion app
+- **Framework:** Next.js 15 (App Router) + React 19 + TypeScript
+- **Styling:** Tailwind CSS + shadcn/ui
+- **Backend:** Supabase (Postgres, Auth, Storage, Realtime)
+- **State:** TanStack Query v5 (React Query)
+- **Testing:** Vitest + React Testing Library + happy-dom
+- **Deployment:** Vercel
+- **Future:** Expo React Native mobile companion app
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js >= 24.0.0
 - npm
 
 ### Installation
 
-1. Clone the repository (if not already done)
+1. Clone the repository
 
 2. Install dependencies:
 ```bash
@@ -27,106 +29,130 @@ npm install
 ```
 
 3. Set up environment variables:
-   - Copy `.env.local.example` to `.env.local`
-   - Add your Supabase credentials (Step 1 of BUILD_STEPS.md)
+   - Create `.env.local` with your Supabase credentials
+   - See [ENVIRONMENT_VARIABLES.md](./ENVIRONMENT_VARIABLES.md) for all variables
 
 4. Run the development server:
 ```bash
 npm run dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser
-
-You should see the dashboard with sidebar navigation.
+5. Open [http://localhost:3000](http://localhost:3000)
 
 ## Project Structure
 
 ```
 /app
-  /(app)              # Authenticated app routes
-    /dashboard        # Main dashboard
-    /projects         # Projects management
-    /money            # Financial tracking
-    /profile          # User profile
-  /layout.tsx         # Root layout with providers
-  /page.tsx           # Root page (redirects to dashboard)
-  /globals.css        # Global styles with Tailwind
+  /(app)                # Authenticated routes
+    /bands              # Band/project management
+    /calendar           # Calendar view & Google import
+    /dashboard          # Main dashboard (player/manager views)
+    /gigs               # Gig editor, detail, and pack views
+    /history            # Past gigs archive
+    /invitations        # Invitation acceptance
+    /money              # Earnings & payouts
+    /my-circle          # Musician contacts
+    /profile            # User profile
+    /settings           # App settings (calendar, etc.)
+  /api                  # API routes (calendar, invitations, gigpack)
+  /auth                 # Authentication pages
 
 /components
-  /ui                 # shadcn/ui components
-  app-sidebar.tsx     # Main navigation sidebar
-  app-header.tsx      # Top header bar
+  /bands                # Band editor
+  /contacts             # Contact management dialogs
+  /dashboard            # Dashboard widgets & gig cards
+  /gigpack              # GigPack editor, layouts, setlists, sharing
+  /gigs                 # Gig-specific dialogs
+  /layout               # Top nav, sidebar, notifications, user menu
+  /money                # Earnings & payouts tables
+  /roles                # Role/lineup management
+  /setlists             # Setlist editor, bulk add, learning status
+  /shared               # Reusable components
+  /ui                   # shadcn/ui primitives
 
 /lib
-  /providers          # React providers (Query, etc.)
-  utils.ts            # Utility functions
+  /api                  # Data access layer (21 modules, mobile-ready)
+  /gigpack              # GigPack utilities, templates, i18n
+  /integrations         # Google Calendar OAuth
+  /providers            # React context (auth, query)
+  /supabase             # Supabase clients (browser + server)
+  /types                # TypeScript types (database, shared, gigpack)
+  /utils                # Pure utility functions
+  /emails               # Email templates
+
+/tests                  # Vitest test suite
+  /api                  # API function tests
+  /components           # Component tests
+  /fixtures             # Mock data
+  /mocks                # Supabase mock factory
 ```
-
-## What's Been Set Up (Step 0 ✅)
-
-- ✅ Next.js 15 with App Router
-- ✅ TypeScript configuration
-- ✅ Tailwind CSS
-- ✅ shadcn/ui with components:
-  - Button
-  - Card
-  - Avatar
-  - Tabs
-  - Scroll Area
-  - Sheet (mobile sidebar)
-- ✅ Supabase client library
-- ✅ TanStack Query
-- ✅ Basic app layout with:
-  - Responsive sidebar (desktop + mobile)
-  - Top header with user avatar
-  - Dashboard, Projects, Money, and Profile pages
-
-## Documentation
-
-### 📚 **Comprehensive Documentation**
-- [**📖 Documentation Hub**](./docs/README.md) - Start here for all docs
-- [**🤖 AI Agent Workflow Guide**](./docs/AI_AGENT_WORKFLOW_GUIDE.md) - How to work with AI agents effectively
-- [**🏗️ Build Steps**](./BUILD_STEPS.md) - Current project status (18 steps completed!)
-- [**🚀 Next Steps Roadmap**](./docs/future-enhancements/next-steps.md) - Planned features
-
-### 🎯 **Quick Links**
-- [Build Process Docs](./docs/build-process/) - How features were built
-- [Troubleshooting](./docs/troubleshooting/) - Common issues and solutions
-- [Setup Guides](./docs/setup/) - Configuration and integrations
-- [Architecture Rules](./.cursorrules) - Project principles and patterns
-
-## Current Status
-
-**Completed Features (Step 18):**
-- ✅ Authentication & profiles
-- ✅ Projects management
-- ✅ Gigs management (with optional projects)
-- ✅ Gig roles & lineup
-- ✅ Setlists & materials
-- ✅ Financial tracking (basic)
-- ✅ Calendar integration (ICS + Google Calendar OAuth)
-- ✅ "My Circle" musician contacts
-- ✅ Dashboard with filters & quick actions
-
-**Next Up:**
-- 🚧 Notifications system
-- 🚧 Advanced setlist features
-- 🚧 Manager money dashboard
-
-See [Next Steps Roadmap](./docs/future-enhancements/next-steps.md) for full plan.
 
 ## Available Scripts
 
-- `npm run dev` - Start development server with Turbopack
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start dev server with Turbopack |
+| `npm run build` | Production build |
+| `npm run start` | Start production server |
+| `npm run lint` | Run ESLint on app, lib, components |
+| `npm run check` | Lint + TypeScript type check (no emit) |
+| `npm run typecheck` | TypeScript check only |
+| `npm run test` | Run tests in watch mode |
+| `npm run test:run` | Run all tests once |
+| `npm run test:coverage` | Run tests with coverage report |
 
-## Working with AI Agents
+## Features
 
-This project has extensive documentation for working with AI agents. See [AI Agent Workflow Guide](./docs/AI_AGENT_WORKFLOW_GUIDE.md) for:
-- When to start a new agent
-- What context to provide
-- Templates for common scenarios
-- Best practices and tips
+### Core
+- Gig creation and management (standalone or within bands/projects)
+- GigPack — shareable, mobile-optimized gig info pages
+- Lineup management with role assignment and fee tracking
+- Setlist editor with drag-and-drop, bulk import, and section support
+- PDF setlist upload with inline preview
+- Gig drafts with auto-save
 
+### People
+- "My Circle" musician contacts with smart learning
+- Unified search (contacts, system users, invite fallback)
+- Email and WhatsApp invitations with magic links
+- Invitation acceptance/decline with conflict detection
+
+### Calendar
+- ICS feed export (subscribe from any calendar app)
+- Google Calendar OAuth import with smart schedule parsing
+- In-app calendar view (month/week/day) with role filtering
+- Conflict detection across Ensemble gigs and Google Calendar
+
+### Money
+- Player earnings view with year/month filtering
+- Manager payouts view with project filtering
+- Payment status tracking (pending, paid, partial, overdue)
+- Summary KPIs and one-click payment marking
+
+### Other
+- Real-time notifications (Supabase Realtime)
+- Dashboard with player/manager views, search, and filters
+- Profile avatars (upload + Google OAuth auto-import)
+- Dark mode
+- Passwordless authentication (magic link, Google OAuth)
+- Activity feed and gig history
+
+## Documentation
+
+- [CLAUDE.md](./CLAUDE.md) — AI agent instructions and architecture overview
+- [ENVIRONMENT_VARIABLES.md](./ENVIRONMENT_VARIABLES.md) — All environment variables
+- [BUILD_STEPS.md](./BUILD_STEPS.md) — Step-by-step build history
+- [CHANGELOG.md](./CHANGELOG.md) — Release history
+- [docs/CONTRIB.md](./docs/CONTRIB.md) — Contributing guide
+- [docs/RUNBOOK.md](./docs/RUNBOOK.md) — Operations runbook
+- [docs/APP_OVERVIEW.md](./docs/APP_OVERVIEW.md) — Full app overview
+- [docs/TESTING.md](./docs/TESTING.md) — Testing guide
+- [docs/agent-protocols/](./docs/agent-protocols/) — Database safety protocols
+- [docs/build-process/](./docs/build-process/) — Feature build documentation
+- [docs/future-enhancements/](./docs/future-enhancements/) — Roadmap and planned features
+
+## Current Status
+
+See [CHANGELOG.md](./CHANGELOG.md) for recent changes and [BUILD_STEPS.md](./BUILD_STEPS.md) for full build history.
+
+**Not yet production-ready.** Active development areas: invitation polish, calendar enhancements, payment tracking improvements, and mobile companion app.

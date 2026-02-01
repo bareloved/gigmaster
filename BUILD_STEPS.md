@@ -2365,3 +2365,67 @@ Implemented comprehensive Money View v1 with two perspectives for tracking payme
 *Marked "In Progress" in UI for ongoing refinements and future enhancements.*
 
 Full documentation: [step-22-money-view-v1.md](docs/build-process/step-22-money-view-v1.md)
+
+---
+
+## Post-Step-22: GigPack Editor Port & Ongoing Improvements
+
+The following work was done after the numbered build steps, primarily during the GigMaster rename and GigPack editor port from the original codebase.
+
+### GigPack Editor Port (Dec 2025)
+
+Ported the complete GigPack editor system from the original Ensemble codebase:
+
+- **Full GigPack editor panel** with multi-section form (details, lineup, schedule, setlist, materials, packing checklist)
+- **Templates system** for quick gig setup (concert, rehearsal, corporate, wedding, etc.)
+- **Theme system** with visual customization
+- **i18n support** via next-intl (English + Hebrew)
+- **Schedule parser** for pasting formatted schedules
+- **Venue autocomplete** with Google Places API integration
+- **Public sharing** with unique slug URLs and QR codes
+- **RPC-based save** (`save_gig_pack`) for single-call gig creation/editing
+
+### Performance Overhaul (Jan 2026)
+
+Three-phase performance optimization:
+
+- **Phase 1:** Parallel database operations in gig save
+- **Phase 2:** Smart merge strategy for related items (schedule, materials, etc.)
+- **Phase 3:** RPC function for single-call dashboard loading (`list_dashboard_gigs`, `list_past_gigs`)
+
+### App Rename: Ensemble to GigMaster (Jan 2026)
+
+- Renamed throughout codebase, UI, and documentation
+- Applied vintage GigMaster design to auth pages
+- Updated deployment configuration
+
+### Testing Framework (Jan 2026)
+
+- Added Vitest + React Testing Library + happy-dom
+- 112 initial tests covering API layer and key components
+- Chainable Supabase mock factory
+- Custom render with providers
+
+### Recent Features (Jan-Feb 2026)
+
+- **Gig drafts** with auto-save
+- **Dashboard RPC functions** for optimized loading
+- **PDF setlist upload** with drag-and-drop and inline preview
+- **Setlist PDF proxy** to hide Supabase storage URLs in public shares
+- **Passwordless auth** (magic link, Google OAuth)
+- **Optional role names** for gig roles
+- **Bands system** for project/act management with default lineups
+- **Activity feed** and gig activity logging
+- **Practice tracking** and setlist learning status
+- **Node.js 24** upgrade with modern ESLint flat config
+
+### Ongoing Cleanup (Feb 2026)
+
+- TypeScript type alignment with Supabase-generated schema
+- Dead code removal (unused imports, debug logs, performance timing)
+- Updated database types (`gig_drafts` table, `setlist_pdf_url`, dashboard RPCs)
+- Null safety fixes on setlist song fields
+
+---
+
+See [CHANGELOG.md](./CHANGELOG.md) for a date-by-date record of changes

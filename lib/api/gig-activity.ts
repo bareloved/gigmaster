@@ -20,6 +20,10 @@ export interface GigActivityLogEntry {
     name: string | null;
     avatar_url: string | null;
   };
+  gig?: {
+    title: string | null;
+    date: string | null;
+  };
 }
 
 export type ActivityType =
@@ -36,7 +40,12 @@ export type ActivityType =
   | "gig_updated"
   | "notes_updated"
   | "schedule_updated"
-  | "gig_created";
+  | "gig_created"
+  | "gig_status_changed"
+  | "gig_times_changed"
+  | "gig_venue_changed"
+  | "gig_fee_changed"
+  | "gig_logistics_changed";
 
 export interface FetchActivityOptions {
   limit?: number;
@@ -254,6 +263,11 @@ export function getActivityIcon(activityType: ActivityType): string {
     notes_updated: "📋",
     schedule_updated: "📅",
     gig_created: "✨",
+    gig_status_changed: "🔔",
+    gig_times_changed: "🕐",
+    gig_venue_changed: "📍",
+    gig_fee_changed: "💰",
+    gig_logistics_changed: "📦",
   };
 
   return iconMap[activityType] || "•";
@@ -278,6 +292,11 @@ export function getActivityColor(activityType: ActivityType): string {
     notes_updated: "text-gray-600 dark:text-gray-400",
     schedule_updated: "text-blue-600 dark:text-blue-400",
     gig_created: "text-green-600 dark:text-green-400",
+    gig_status_changed: "text-amber-600 dark:text-amber-400",
+    gig_times_changed: "text-orange-600 dark:text-orange-400",
+    gig_venue_changed: "text-purple-600 dark:text-purple-400",
+    gig_fee_changed: "text-green-600 dark:text-green-400",
+    gig_logistics_changed: "text-gray-600 dark:text-gray-400",
   };
 
   return colorMap[activityType] || "text-gray-600 dark:text-gray-400";
