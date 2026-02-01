@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import type { GigDraftFormData } from "@/hooks/use-gig-draft";
+import type { Json } from "@/lib/types/database";
 
 /**
  * Database representation of a gig draft
@@ -40,7 +41,7 @@ export async function saveGigDraft(
       .from("gig_drafts")
       .update({
         title,
-        form_data: formData,
+        form_data: formData as unknown as Json,
       })
       .eq("id", draftId)
       .eq("owner_id", user.id) // Ensure user owns the draft
@@ -48,7 +49,7 @@ export async function saveGigDraft(
       .single();
 
     if (error) throw new Error(error.message || "Failed to update draft");
-    return draft as GigDraft;
+    return draft as unknown as GigDraft;
   } else {
     // Create new draft
     const { data: draft, error } = await supabase
@@ -56,13 +57,13 @@ export async function saveGigDraft(
       .insert({
         owner_id: user.id,
         title,
-        form_data: formData,
+        form_data: formData as unknown as Json,
       })
       .select()
       .single();
 
     if (error) throw new Error(error.message || "Failed to save draft");
-    return draft as GigDraft;
+    return draft as unknown as GigDraft;
   }
 }
 
@@ -87,7 +88,7 @@ export async function listGigDrafts(): Promise<GigDraft[]> {
     .order("updated_at", { ascending: false });
 
   if (error) throw new Error(error.message || "Failed to list drafts");
-  return (drafts || []) as GigDraft[];
+  return (drafts || []) as unknown as GigDraft[];
 }
 
 /**
@@ -122,7 +123,7 @@ export async function getGigDraft(draftId: string): Promise<GigDraft | null> {
     throw new Error(error.message || "Failed to fetch draft");
   }
 
-  return draft as GigDraft;
+  return draft as unknown as GigDraft;
 }
 
 /**

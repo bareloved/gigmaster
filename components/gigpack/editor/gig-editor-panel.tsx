@@ -529,6 +529,7 @@ export function GigEditorPanel({
     gigType,
     bandLogoUrl,
     heroImageUrl,
+    accentColor: "",
     packingChecklist,
     materials,
     schedule,
@@ -649,10 +650,6 @@ export function GigEditorPanel({
   }, [open]);
 
   // Lineup handlers
-  const addLineupMember = () => {
-    setLineup([...lineup, { role: "", name: "", notes: "" }]);
-  };
-
   const removeLineupMember = (index: number) => {
     setLineup(lineup.filter((_, i) => i !== index));
   };

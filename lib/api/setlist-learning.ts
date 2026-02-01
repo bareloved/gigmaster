@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import type { SetlistLearningStatus, SetlistLearningStatusInsert, SetlistLearningStatusUpdate, PracticeItem } from '@/lib/types/shared';
+import type { Database } from '@/lib/types/database';
 
 // Type definition for learning status row
 interface LearningStatusRow {
@@ -68,7 +69,7 @@ export async function upsertLearningStatus(
 ): Promise<SetlistLearningStatus> {
   const supabase = createClient();
 
-  const dbData: Record<string, unknown> = {
+  const dbData: Database['public']['Tables']['setlist_learning_status']['Insert'] = {
     setlist_item_id: data.setlistItemId,
     musician_id: data.musicianId,
   };
@@ -283,9 +284,7 @@ export async function getPracticeItems(
 
   for (const item of setlistData) {
     // Navigate through the new nested structure
-    // @ts-expect-error - Supabase nested types
-    const section = item.setlist_sections;
-    // @ts-expect-error - Supabase nested types
+    const section = item.setlist_sections as { gig_id: string; gigs: { id: string; title: string; date: string; owner_id: string; owner: { name: string | null } | null } };
     const gig = section?.gigs;
     
     if (!gig) continue;

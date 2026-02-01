@@ -15,11 +15,11 @@ export interface LineupMember {
 export interface SetlistSong {
   id: string;
   title: string;
-  artist?: string;
-  key?: string;
-  tempo?: string; // Can be number like "120" or description like "ballad"
-  notes?: string; // Rehearsal notes, watch-outs, etc.
-  referenceUrl?: string; // For future use
+  artist?: string | null;
+  key?: string | null;
+  tempo?: string | null; // Can be number like "120" or description like "ballad"
+  notes?: string | null; // Rehearsal notes, watch-outs, etc.
+  referenceUrl?: string | null; // For future use
 }
 
 export interface SetlistSection {

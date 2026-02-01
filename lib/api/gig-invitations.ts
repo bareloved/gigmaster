@@ -24,7 +24,7 @@ interface GigRoleGigDetails {
   date: string | null;
   start_time: string | null;
   location_name?: string | null;
-  owner_id: string;
+  owner_id: string | null;
   owner: GigOwnerProfile | null;
 }
 

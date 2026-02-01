@@ -51,6 +51,7 @@ const DeleteGigDialog = dynamic(
 interface GigGridInnerContentProps {
   gig: DashboardGig;
   gigDate: Date;
+  formattedDate?: string;
   heroImage: string;
   index?: number;
 }

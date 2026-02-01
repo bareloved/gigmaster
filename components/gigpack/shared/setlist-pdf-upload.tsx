@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { FileUp, FileText, Trash2, ExternalLink, Loader2 } from "lucide-react";
+import { FileUp, Trash2, ExternalLink, Loader2 } from "lucide-react";
 import { validateSetlistPDF, uploadSetlistPDF, deleteSetlistPDF } from "@/lib/api/setlist-pdf";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";

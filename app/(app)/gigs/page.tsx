@@ -29,6 +29,7 @@ interface GigRoleRow {
   musician_id: string | null;
   invitation_status: string | null;
   payment_status: string | null;
+  role_name: string | null;
 }
 
 interface GigOwnerProfile {

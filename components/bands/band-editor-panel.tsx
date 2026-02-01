@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
-import type { Json } from "@/lib/types/database";
+import type { Json, Tables } from "@/lib/types/database";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
@@ -260,7 +260,7 @@ export function BandEditorPanel({
         default_lineup: defaultLineup as unknown as Json,
       };
 
-      let rawData: typeof bandData & { cover_image_url?: string | null };
+      let rawData: Tables<'bands'> & { cover_image_url?: string | null };
 
       if (isEditing) {
         // Update existing band
@@ -301,7 +301,7 @@ export function BandEditorPanel({
         description: isEditing ? "Band updated successfully" : "Band created successfully",
       });
 
-      onSaved(savedBand);
+      onSaved(savedBand as unknown as Band);
     } catch (error) {
       console.error("Error saving band:", error);
       toast({

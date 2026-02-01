@@ -24,7 +24,7 @@ export async function GET(
     return new NextResponse(null, { status: 404 });
   }
 
-  const pdfUrl = (share.gig as { setlist_pdf_url: string | null }).setlist_pdf_url;
+  const pdfUrl = (share.gig as unknown as { setlist_pdf_url: string | null }).setlist_pdf_url;
   if (!pdfUrl) {
     return new NextResponse(null, { status: 404 });
   }

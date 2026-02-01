@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { GigPack } from "@/lib/types/gigpack";
 import { revalidatePath } from "next/cache";
+import type { Database } from "@/lib/types/database";
 
 export async function saveGigPack(data: Partial<GigPack>, isEditing: boolean) {
   const supabase = await createClient();
@@ -14,6 +15,7 @@ export async function saveGigPack(data: Partial<GigPack>, isEditing: boolean) {
 
   // 1. Prepare Gig Payload
   // Map GigPack fields to Ensemble 'gigs' table columns
+  type GigsInsert = Database['public']['Tables']['gigs']['Insert'];
   const gigPayload: Record<string, unknown> = {
     title: data.title,
     project_id: data.band_id || null, // Map band_id -> project_id
@@ -52,13 +54,13 @@ export async function saveGigPack(data: Partial<GigPack>, isEditing: boolean) {
   if (isEditing && gigId) {
     const { error: updateError } = await supabase
       .from("gigs")
-      .update(gigPayload)
+      .update(gigPayload as GigsInsert)
       .eq("id", gigId);
     error = updateError;
   } else {
     const { data: newGig, error: insertError } = await supabase
       .from("gigs")
-      .insert(gigPayload)
+      .insert(gigPayload as GigsInsert)
       .select("id")
       .single();
     if (newGig) gigId = newGig.id;

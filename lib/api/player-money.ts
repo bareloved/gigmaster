@@ -13,6 +13,7 @@ interface GigPaymentRow {
   role_name: string;
   agreed_fee: number | null;
   payment_status: string | null;
+  paid_at: string | null;
   gigs: {
     id: string;
     title: string;

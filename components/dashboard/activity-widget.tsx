@@ -130,8 +130,7 @@ export function GigActivityWidget({
                 variant="ghost"
                 className="w-full mt-4 text-sm"
                 onClick={() => {
-                  // Navigate to full activity log or expand
-                  console.log("View all activity");
+                  // TODO: Navigate to full activity log or expand
                 }}
               >
                 View all activity
@@ -194,10 +193,12 @@ function ActivityMetadata({
   activityType: string;
   metadata: Record<string, unknown>;
 }) {
+  const meta = metadata as Record<string, Record<string, unknown> | string | undefined>;
+
   // Render specific metadata based on activity type
-  if (activityType === "setlist_updated" && metadata.changes) {
-    const changes = metadata.changes;
-    const changesList = [];
+  if (activityType === "setlist_updated" && meta.changes) {
+    const changes = meta.changes as Record<string, unknown>;
+    const changesList: string[] = [];
     if (changes.title_changed) changesList.push("title");
     if (changes.key_changed) changesList.push("key");
     if (changes.bpm_changed) changesList.push("tempo");
@@ -211,9 +212,9 @@ function ActivityMetadata({
     }
   }
 
-  if (activityType === "gig_updated" && metadata.changes) {
-    const changes = metadata.changes;
-    const changesList = [];
+  if (activityType === "gig_updated" && meta.changes) {
+    const changes = meta.changes as Record<string, unknown>;
+    const changesList: string[] = [];
     if (changes.title_changed) changesList.push("title");
     if (changes.date_changed) changesList.push("date");
     if (changes.location_changed) changesList.push("location");
@@ -229,12 +230,12 @@ function ActivityMetadata({
 
   if (
     activityType === "role_status_changed" &&
-    metadata.old_status &&
-    metadata.new_status
+    meta.old_status &&
+    meta.new_status
   ) {
     return (
       <p className="text-xs text-muted-foreground mt-1 ml-7">
-        {metadata.old_status} → {metadata.new_status}
+        {String(meta.old_status)} &rarr; {String(meta.new_status)}
       </p>
     );
   }
