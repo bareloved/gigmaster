@@ -572,6 +572,7 @@ export async function getGig(id: string): Promise<GigPack | null> {
       userId: r.musician_id || undefined,
     })) || [],
     setlist: gig.setlist,
+    setlist_pdf_url: gig.setlist_pdf_url || null,
     setlist_structured: (gig.setlist_sections as SetlistSectionRow[] | null)?.map((s) => ({
       id: s.id,
       name: s.name,
@@ -700,6 +701,7 @@ async function saveGigPackRPC(
       backline_notes: data.backline_notes || null,
       parking_notes: data.parking_notes || null,
       setlist: data.setlist || null,
+      setlist_pdf_url: data.setlist_pdf_url || null,
       internal_notes: data.internal_notes || null,
       payment_notes: data.payment_notes || null,
     };
@@ -832,6 +834,7 @@ async function saveGigPackLegacy(
       backline_notes: data.backline_notes || null,
       parking_notes: data.parking_notes || null,
       setlist: data.setlist || null,
+      setlist_pdf_url: data.setlist_pdf_url || null,
       internal_notes: data.internal_notes || null,
       payment_notes: data.payment_notes || null,
       owner_id: user.id,

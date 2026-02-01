@@ -73,6 +73,7 @@ BEGIN
         backline_notes = p_gig->>'backline_notes',
         parking_notes = p_gig->>'parking_notes',
         setlist = p_gig->>'setlist',
+        setlist_pdf_url = p_gig->>'setlist_pdf_url',
         internal_notes = p_gig->>'internal_notes',
         payment_notes = p_gig->>'payment_notes',
         updated_at = now()
@@ -88,7 +89,7 @@ BEGIN
         title, date, project_id, band_name, call_time, on_stage_time, start_time,
         location_name, venue_name, location_address, venue_address, venue_maps_url,
         hero_image_url, band_logo_url, gig_type, theme, poster_skin, accent_color,
-        dress_code, backline_notes, parking_notes, setlist, internal_notes, payment_notes,
+        dress_code, backline_notes, parking_notes, setlist, setlist_pdf_url, internal_notes, payment_notes,
         owner_id, created_at, updated_at
       ) VALUES (
         p_gig->>'title',
@@ -113,6 +114,7 @@ BEGIN
         p_gig->>'backline_notes',
         p_gig->>'parking_notes',
         p_gig->>'setlist',
+        p_gig->>'setlist_pdf_url',
         p_gig->>'internal_notes',
         p_gig->>'payment_notes',
         v_user_id,

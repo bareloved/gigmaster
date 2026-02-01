@@ -224,6 +224,7 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
     venue_maps_url: gig.venue_maps_url || null,
     lineup: lineup.length > 0 ? lineup : null,
     setlist: setlistText || null,
+    setlist_pdf_url: gig.setlist_pdf_url || null,
     setlist_structured: setlistStructured,
     dress_code: gig.dress_code || null,
     backline_notes: gig.backline_notes || null,

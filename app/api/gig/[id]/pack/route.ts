@@ -98,6 +98,7 @@ export async function GET(
       notes: r.notes
     })) || [],
     setlist: gig.setlist,
+    setlist_pdf_url: gig.setlist_pdf_url || null,
     setlist_structured: (gig.setlist_sections as SetlistSectionRow[] | null)?.map((s) => ({
       id: s.id,
       name: s.name,

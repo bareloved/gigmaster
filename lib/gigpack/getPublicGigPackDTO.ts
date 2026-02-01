@@ -133,6 +133,7 @@ export async function getPublicGigPackDTO(token: string): Promise<PublicGigPackD
       })),
 
     setlist: gig.setlist, // Flat text
+    setlist_pdf_url: gig.setlist_pdf_url || null,
 
     setlist_structured: ((gig.setlist_sections || []) as SetlistSectionRow[])
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))

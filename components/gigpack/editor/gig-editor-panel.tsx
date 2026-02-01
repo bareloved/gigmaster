@@ -30,6 +30,7 @@ import {
   ExternalLink,
   Link as LinkIcon,
   FileText,
+  FileUp,
   Shirt,
   ParkingCircle,
   Paperclip,
@@ -69,6 +70,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PasteScheduleDialog } from "@/components/gigpack/dialogs/paste-schedule-dialog";
+import { SetlistPDFUpload } from "@/components/gigpack/shared/setlist-pdf-upload";
 import { GigPackTemplate, applyTemplateToFormDefaults } from "@/lib/gigpack/templates";
 import { useGigDraft, useGigDraftAutoSave, type GigDraftFormData } from "@/hooks/use-gig-draft";
 
@@ -360,6 +362,10 @@ export function GigEditorPanel({
   );
   // Simplified setlist: plain text instead of structured JSON
   const [setlistText, setSetlistText] = useState(gigPack?.setlist || "");
+  const [setlistPdfUrl, setSetlistPdfUrl] = useState<string | null>(gigPack?.setlist_pdf_url || null);
+  const [setlistMode, setSetlistMode] = useState<"type" | "pdf">(
+    gigPack?.setlist_pdf_url ? "pdf" : "type"
+  );
   const [dressCode, setDressCode] = useState(gigPack?.dress_code || "");
   const [backlineNotes, setBacklineNotes] = useState(gigPack?.backline_notes || "");
   const [parkingNotes, setParkingNotes] = useState(gigPack?.parking_notes || "");
@@ -417,6 +423,8 @@ export function GigEditorPanel({
       setVenueMapsUrl(gigPack.venue_maps_url || "");
       setLineup(gigPack.lineup || []);
       setSetlistText(gigPack.setlist || "");
+      setSetlistPdfUrl(gigPack.setlist_pdf_url || null);
+      setSetlistMode(gigPack.setlist_pdf_url ? "pdf" : "type");
       setDressCode(gigPack.dress_code || "");
       setBacklineNotes(gigPack.backline_notes || "");
       setParkingNotes(gigPack.parking_notes || "");
@@ -479,6 +487,8 @@ export function GigEditorPanel({
     setVenueMapsUrl("");
     setLineup([]);
     setSetlistText("");
+    setSetlistPdfUrl(null);
+    setSetlistMode("type");
     setDressCode("");
     setBacklineNotes("");
     setParkingNotes("");
@@ -570,6 +580,8 @@ export function GigEditorPanel({
       setVenueMapsUrl(gigPack.venue_maps_url || "");
       setLineup(gigPack.lineup || []);
       setSetlistText(gigPack.setlist || "");
+      setSetlistPdfUrl(gigPack.setlist_pdf_url || null);
+      setSetlistMode(gigPack.setlist_pdf_url ? "pdf" : "type");
       setDressCode(gigPack.dress_code || "");
       setBacklineNotes(gigPack.backline_notes || "");
       setParkingNotes(gigPack.parking_notes || "");
@@ -820,6 +832,7 @@ export function GigEditorPanel({
         venue_maps_url: venueMapsUrl || null,
         lineup: lineup.filter((m) => m.role),
         setlist: setlistText || null,
+        setlist_pdf_url: setlistPdfUrl || null,
         dress_code: dressCode || null,
         backline_notes: backlineNotes || null,
         parking_notes: parkingNotes || null,
@@ -1369,22 +1382,63 @@ export function GigEditorPanel({
 
           {/* Setlist Tab */}
           {activeTab === "setlist" && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="text-xs uppercase tracking-wide text-muted-foreground">
                 {t("musicSetlist")}
               </label>
-              <p className="text-xs text-muted-foreground">
-                {t("setlistTip")}
-              </p>
-              <Textarea
-                name="setlist"
-                value={setlistText}
-                onChange={(e) => setSetlistText(e.target.value)}
-                rows={16}
-                placeholder={t("setlistPlaceholder")}
-                disabled={isLoading}
-                className="text-base font-semibold"
-              />
+
+              {/* Toggle: Type it / Upload PDF */}
+              <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+                <button
+                  type="button"
+                  onClick={() => setSetlistMode("type")}
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    setlistMode === "type"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <FileText className="inline-block mr-1.5 h-3.5 w-3.5" />
+                  Type it
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSetlistMode("pdf")}
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    setlistMode === "pdf"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <FileUp className="inline-block mr-1.5 h-3.5 w-3.5" />
+                  Upload PDF
+                </button>
+              </div>
+
+              {setlistMode === "type" ? (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    {t("setlistTip")}
+                  </p>
+                  <Textarea
+                    name="setlist"
+                    value={setlistText}
+                    onChange={(e) => setSetlistText(e.target.value)}
+                    rows={16}
+                    placeholder={t("setlistPlaceholder")}
+                    disabled={isLoading}
+                    className="text-base font-semibold"
+                  />
+                </div>
+              ) : (
+                <SetlistPDFUpload
+                  pdfUrl={setlistPdfUrl}
+                  onPdfUrlChange={setSetlistPdfUrl}
+                  disabled={isLoading}
+                />
+              )}
             </div>
           )}
 

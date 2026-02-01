@@ -112,6 +112,7 @@ export interface GigPack {
   venue_maps_url: string | null;
   lineup: LineupMember[] | null; // gig_roles
   setlist: string | null; // text column
+  setlist_pdf_url: string | null; // uploaded PDF URL
   setlist_structured: SetlistSection[] | null; // setlist_items + sections
   dress_code: string | null;
   backline_notes: string | null;

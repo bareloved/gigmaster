@@ -97,6 +97,7 @@ export interface GigPack {
   venue_maps_url: string | null;
   lineup: LineupMember[] | null;
   setlist: string | null;
+  setlist_pdf_url: string | null; // Uploaded PDF URL
   setlist_structured: SetlistSection[] | null; // Setlist v2
   dress_code: string | null;
   backline_notes: string | null;

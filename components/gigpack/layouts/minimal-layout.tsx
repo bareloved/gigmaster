@@ -7,7 +7,7 @@ import { GigPack } from "@/lib/gigpack/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, Paperclip, ExternalLink, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, Guitar, Drum, Piano, Volume2, Radio } from "lucide-react";
+import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, Paperclip, ExternalLink, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, Guitar, Drum, Piano, Volume2, Radio, FileText } from "lucide-react";
 import { classifyGigVisualTheme, pickFallbackImageForTheme } from "@/lib/gigpack/gig-visual-theme";
 
 interface MinimalLayoutProps {
@@ -509,6 +509,28 @@ export function MinimalLayout({ gigPack, openMaps }: MinimalLayoutProps) {
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+            {gigPack.setlist_pdf_url && (
+              <div className="bg-card border rounded-lg p-6 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <FileText className="h-5 w-5" style={{ color: accentColor }} />
+                  <h3 className="font-semibold text-lg">{t("setlist")} (PDF)</h3>
+                </div>
+                <iframe
+                  src={`${gigPack.setlist_pdf_url}#toolbar=0&navpanes=0`}
+                  title="Setlist PDF"
+                  className="w-full h-[500px] rounded-md border bg-white mb-3"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => window.open(gigPack.setlist_pdf_url!, "_blank", "noopener,noreferrer")}
+                >
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  {t("View Pdf") || "Open full PDF"}
+                </Button>
               </div>
             )}
             {gigPack.materials && gigPack.materials.length > 0 && (
