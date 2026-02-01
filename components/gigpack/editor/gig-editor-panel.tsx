@@ -378,7 +378,6 @@ export function GigEditorPanel({
   // Branding state
   const [bandLogoUrl, setBandLogoUrl] = useState(gigPack?.band_logo_url || "");
   const [heroImageUrl, setHeroImageUrl] = useState(gigPack?.hero_image_url || "");
-  const [accentColor, setAccentColor] = useState(gigPack?.accent_color || "");
   const [, setIsUploadingLogo] = useState(false);
   const [, setIsUploadingHero] = useState(false);
 
@@ -433,7 +432,6 @@ export function GigEditorPanel({
       setGigType(gigPack.gig_type ?? null);
       setBandLogoUrl(gigPack.band_logo_url || "");
       setHeroImageUrl(gigPack.hero_image_url || "");
-      setAccentColor(gigPack.accent_color || "");
       setPackingChecklist(gigPack.packing_checklist || []);
       setMaterials(gigPack.materials || []);
       setSchedule(gigPack.schedule || []);
@@ -453,7 +451,6 @@ export function GigEditorPanel({
     // Reset form with template values
     setTitle(values.title || "");
     setBandName(values.bandName || "");
-    setAccentColor(values.accentColor || "");
     setDressCode(values.dressCode || "");
     setBacklineNotes(values.backlineNotes || "");
     setParkingNotes(values.parkingNotes || "");
@@ -496,7 +493,6 @@ export function GigEditorPanel({
     setPaymentNotes("");
     setInternalNotes("");
     setGigType(null);
-    setAccentColor("");
     setBandLogoUrl("");
     setHeroImageUrl("");
     setPackingChecklist([]);
@@ -533,7 +529,6 @@ export function GigEditorPanel({
     gigType,
     bandLogoUrl,
     heroImageUrl,
-    accentColor,
     packingChecklist,
     materials,
     schedule,
@@ -589,7 +584,6 @@ export function GigEditorPanel({
       setInternalNotes(gigPack.internal_notes || "");
       setBandLogoUrl(gigPack.band_logo_url || "");
       setHeroImageUrl(gigPack.hero_image_url || "");
-      setAccentColor(gigPack.accent_color || "");
       setPackingChecklist(gigPack.packing_checklist || []);
       setMaterials(gigPack.materials || []);
       setSchedule(gigPack.schedule || []);
@@ -634,7 +628,6 @@ export function GigEditorPanel({
       setGigType(draft.gigType || null);
       setBandLogoUrl(draft.bandLogoUrl || "");
       setHeroImageUrl(draft.heroImageUrl || "");
-      setAccentColor(draft.accentColor || "");
       setPackingChecklist(draft.packingChecklist || []);
       setMaterials(draft.materials || []);
       setSchedule(draft.schedule || []);
@@ -712,8 +705,6 @@ export function GigEditorPanel({
       // Populate branding from band
       if (selectedBand.band_logo_url) setBandLogoUrl(selectedBand.band_logo_url);
       if (selectedBand.hero_image_url) setHeroImageUrl(selectedBand.hero_image_url);
-      if (selectedBand.accent_color) setAccentColor(selectedBand.accent_color);
-
       // Populate lineup from band defaults
       if (selectedBand.default_lineup && selectedBand.default_lineup.length > 0) {
         setLineup(selectedBand.default_lineup);
@@ -830,7 +821,7 @@ export function GigEditorPanel({
         venue_name: venueName || null,
         venue_address: venueAddress || null,
         venue_maps_url: venueMapsUrl || null,
-        lineup: lineup.filter((m) => m.role),
+        lineup: lineup.filter((m) => m.role || m.name),
         setlist: setlistText || null,
         setlist_pdf_url: setlistPdfUrl || null,
         dress_code: dressCode || null,
@@ -948,7 +939,6 @@ export function GigEditorPanel({
             ...gigPack,
             ...gigPackData,
             theme: "minimal" as const,
-            poster_skin: "clean" as const,
           };
           onUpdateSuccess(updatedGigPack as GigPack);
         } else {
@@ -966,7 +956,6 @@ export function GigEditorPanel({
             id: result.id,
             ...gigPackData,
             theme: "minimal" as const,
-            poster_skin: "clean" as const,
             public_slug: result.publicSlug || "",
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),

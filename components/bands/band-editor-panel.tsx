@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useTranslations } from "@/hooks/use-translations";
-import { Band, LineupMember, PosterSkin } from "@/lib/types/gigpack";
+import { Band, LineupMember } from "@/lib/types/gigpack";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,8 +43,6 @@ export function BandEditorPanel({
   const [description, setDescription] = useState("");
   const [bandLogoUrl, setBandLogoUrl] = useState("");
   const [heroImageUrl, setHeroImageUrl] = useState("");
-  const [accentColor, setAccentColor] = useState("#F97316");
-  const [posterSkin, setPosterSkin] = useState<PosterSkin>("paper");
   const [defaultLineup, setDefaultLineup] = useState<LineupMember[]>([]);
 
   // UI state
@@ -62,8 +60,6 @@ export function BandEditorPanel({
       setDescription(band.description || "");
       setBandLogoUrl(band.band_logo_url || "");
       setHeroImageUrl(band.hero_image_url || "");
-      setAccentColor(band.accent_color || "#F97316");
-      setPosterSkin(band.poster_skin || "paper");
       setDefaultLineup(band.default_lineup || []);
     } else {
       // Reset for new band
@@ -71,8 +67,6 @@ export function BandEditorPanel({
       setDescription("");
       setBandLogoUrl("");
       setHeroImageUrl("");
-      setAccentColor("#F97316");
-      setPosterSkin("paper");
       setDefaultLineup([]);
     }
   }, [band, open]);
@@ -263,8 +257,6 @@ export function BandEditorPanel({
         description: description.trim() || null,
         band_logo_url: bandLogoUrl || null,
         hero_image_url: heroImageUrl || null,
-        accent_color: accentColor || null,
-        poster_skin: posterSkin,
         default_lineup: defaultLineup as unknown as Json,
       };
 
@@ -495,57 +487,6 @@ export function BandEditorPanel({
                 onChange={handleHeroUpload}
                 disabled={isLoading || isUploadingHero}
               />
-            </div>
-
-            {/* Accent Color */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("accentColorLabel")}</label>
-              <div className="flex gap-3 items-center flex-wrap">
-                <div className="flex gap-2">
-                  {["#FDBA74", "#FB923C", "#F97316", "#FBBF24", "#60A5FA", "#8B5CF6"].map(
-                    (color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        onClick={() => setAccentColor(color)}
-                        className="w-7 h-7 rounded-full border-2 transition-all hover:scale-110"
-                        style={{
-                          backgroundColor: color,
-                          borderColor:
-                            accentColor === color ? "hsl(var(--foreground))" : "transparent",
-                        }}
-                        title={color}
-                      />
-                    )
-                  )}
-                </div>
-                <Input
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
-                  placeholder="#F97316"
-                  className="max-w-[100px] text-sm font-mono"
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            {/* Poster Skin */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("posterSkinLabel")}</label>
-              <div className="flex gap-2">
-                {(["clean", "paper", "grain"] as PosterSkin[]).map((skin) => (
-                  <Button
-                    key={skin}
-                    type="button"
-                    variant={posterSkin === skin ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setPosterSkin(skin)}
-                    disabled={isLoading}
-                  >
-                    {skin.charAt(0).toUpperCase() + skin.slice(1)}
-                  </Button>
-                ))}
-              </div>
             </div>
 
             {/* Default Lineup */}
