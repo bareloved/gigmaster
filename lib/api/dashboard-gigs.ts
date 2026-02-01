@@ -103,6 +103,8 @@ export async function listDashboardGigs(
         paymentStatus: row.payment_status as DashboardGig['paymentStatus'],
         hostId: row.host_id,
         hostName: row.host_name,
+        heroImageUrl: row.hero_image_url,
+        gigType: row.gig_type,
         roleStats: row.role_stats,
       }));
 
@@ -153,6 +155,8 @@ async function listDashboardGigsFallback(
       end_time,
       location_name,
       status,
+      hero_image_url,
+      gig_type,
       owner:profiles!gigs_owner_profiles_fkey(
         id,
         name
@@ -225,6 +229,8 @@ async function listDashboardGigsFallback(
         paymentStatus,
         hostId: gig.owner_id,
         hostName,
+        heroImageUrl: gig.hero_image_url,
+        gigType: gig.gig_type,
         roleStats,
       });
     }

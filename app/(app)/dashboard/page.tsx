@@ -57,6 +57,7 @@ import { useFocusMode } from "@/hooks/use-focus-mode";
 import { useDashboardKeyboardShortcuts } from "@/hooks/use-dashboard-keyboard-shortcuts";
 import { getGig } from "../gigs/actions";
 import { AppLoadingScreen } from "@/components/layout/app-loading-screen";
+import { getGigFallbackImage } from "@/lib/gigpack/gig-visual-theme";
 
 const GigEditorPanel = dynamic(
   () => import("@/components/gigpack/editor/gig-editor-panel").then((mod) => mod.GigEditorPanel),
@@ -297,7 +298,12 @@ export default function DashboardPage() {
             </Card>
           ) : nextGig ? (
             <Card className="overflow-hidden shadow-stage-lg hover:shadow-glow-red transition-all duration-500 border-2 border-primary/20 animate-fade-in">
-              <CardContent className="p-8 relative poster-gradient-warm">
+              <CardContent
+                className="p-8 relative bg-cover bg-center"
+                style={{
+                  backgroundImage: `linear-gradient(to bottom, hsl(var(--card) / 0.85), hsl(var(--card) / 0.92)), url('${nextGig.heroImageUrl || getGigFallbackImage({ title: nextGig.gigTitle, venue_name: nextGig.locationName, gig_type: nextGig.gigType }, nextGig.gigId)}')`,
+                }}
+              >
                 {/* Gig Selector - Top Right Corner */}
                 {allGigs.length > 1 && (
                   <div className="absolute top-4 right-4">
@@ -591,7 +597,12 @@ export default function DashboardPage() {
                         className="cursor-pointer animate-fade-in"
                       >
                         <Card className="ticket-card overflow-hidden hover:shadow-stage transition-all duration-300 hover:scale-[1.02] border-l-4">
-                          <CardContent className="p-5 relative">
+                          <CardContent
+                            className="p-5 relative bg-cover bg-center"
+                            style={{
+                              backgroundImage: `linear-gradient(to right, hsl(var(--card) / 0.92), hsl(var(--card) / 0.85)), url('${gig.heroImageUrl || getGigFallbackImage({ title: gig.gigTitle, venue_name: gig.locationName, gig_type: gig.gigType }, gig.gigId)}')`,
+                            }}
+                          >
                             {/* Gig Status Badge - Top Right */}
                             <div className="absolute top-3 right-3 scale-90 origin-top-right">
                               <GigStatusBadge status={gig.status ?? 'draft'} />
