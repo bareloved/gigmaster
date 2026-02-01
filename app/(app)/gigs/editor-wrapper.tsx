@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { GigPack } from "@/lib/gigpack/types";
 
 interface GigEditorWrapperProps {
+  mode?: string;
   gig?: GigPack | null;
 }
 

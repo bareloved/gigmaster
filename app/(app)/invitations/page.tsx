@@ -4,6 +4,18 @@ import { useUser } from "@/lib/providers/user-provider";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getMyPendingInvitations, getMyDeclinedInvitations, updateMyInvitationStatus } from "@/lib/api/gig-roles";
 import type { GigRole } from "@/lib/types/shared";
+
+interface GigRoleWithGig extends GigRole {
+  gigs: {
+    id: string;
+    title: string;
+    date: string;
+    start_time: string | null;
+    location_name: string | null;
+    owner_id: string | null;
+    status: string | null;
+  };
+}
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -256,7 +268,7 @@ export default function InvitationsPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {(pendingInvitations as GigRole[]).map((role) => {
+                  {(pendingInvitations as GigRoleWithGig[]).map((role) => {
                     const gig = role.gigs;
                     const { weekday, shortDate } = getWeekdayAndDate(gig.date);
                     
@@ -367,7 +379,7 @@ export default function InvitationsPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {(declinedInvitations as GigRole[]).map((role) => {
+                  {(declinedInvitations as GigRoleWithGig[]).map((role) => {
                     const gig = role.gigs;
                     const { weekday, shortDate } = getWeekdayAndDate(gig.date);
                     

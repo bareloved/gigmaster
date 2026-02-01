@@ -57,6 +57,7 @@ function VenueAutocompleteInner({
     
     // Also update the Google Places autocomplete input
     if (autocompleteRef.current) {
+      // @ts-expect-error - Google Places Autocomplete exposes DOM via querySelector at runtime
       const input = autocompleteRef.current.querySelector("input")
       if (input && input.value !== newValue) {
         input.value = newValue
@@ -218,6 +219,7 @@ function VenueAutocompleteInner({
   React.useEffect(() => {
     if (!isReady || !autocompleteRef.current || !inputValue) return
 
+    // @ts-expect-error - Google Places Autocomplete exposes DOM via querySelector at runtime
     const input = autocompleteRef.current.querySelector("input")
     if (input && input.value !== inputValue) {
       input.value = inputValue

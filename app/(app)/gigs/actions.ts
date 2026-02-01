@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { generateSlug } from "@/lib/gigpack/utils";
 import { GigPack, LineupMember, GigScheduleItem, GigMaterial, PackingChecklistItem, SetlistSection, GigPackTheme, PosterSkin } from "@/lib/gigpack/types";
+import type { Json } from "@/lib/types/database";
 // Note: createNotification from lib/api uses browser client, but we're on server
 // So we'll insert notifications directly using the server supabase client
 import { isArchivedStatus } from "@/lib/types/shared";
@@ -58,12 +59,12 @@ interface ScheduleItemRow {
 }
 
 interface RpcSaveParams {
-  p_gig: Record<string, unknown>;
-  p_schedule: GigScheduleItem[];
-  p_materials: GigMaterial[];
-  p_packing: PackingChecklistItem[];
-  p_setlist: SetlistSection[];
-  p_roles: LineupMember[];
+  p_gig: Json;
+  p_schedule: Json;
+  p_materials: Json;
+  p_packing: Json;
+  p_setlist: Json;
+  p_roles: Json;
   p_share_token: string | undefined;
   p_is_editing: boolean;
   p_gig_id: string | undefined;
@@ -650,8 +651,6 @@ async function saveGigPackRPC(
   isEditing: boolean,
   gigId?: string
 ): Promise<{ id: string; publicSlug: string }> {
-  const startTime = performance.now();
-
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -718,7 +717,7 @@ async function saveGigPackRPC(
       p_share_token: publicSlug || undefined,
       p_is_editing: isEditing,
       p_gig_id: gigId || undefined,
-    } as RpcSaveParams);
+    } as unknown as RpcSaveParams);
 
     if (error) {
       console.error('[GIG_SAVE_RPC] Error:', error);
@@ -749,14 +748,6 @@ async function saveGigPackRPC(
 
     revalidatePath("/gigs");
     revalidatePath(`/gigs/${finalGigId}`);
-
-    // Log timing information
-    const totalTime = performance.now() - startTime;
-    console.log(`[GIG_SAVE_RPC] ${isEditing ? 'Edit' : 'Create'} completed:`, {
-      gigId: finalGigId,
-      total: `${totalTime.toFixed(0)}ms`,
-      method: 'RPC (single call)',
-    });
 
     return { id: finalGigId, publicSlug: finalSlug };
 
@@ -887,15 +878,7 @@ async function saveGigPackLegacy(
     revalidatePath("/gigs");
     revalidatePath(`/gigs/${finalGigId}`);
 
-    // Log timing information
     timings.total = performance.now() - startTime;
-    console.log(`[GIG_SAVE_LEGACY] ${isEditing ? 'Edit' : 'Create'} completed:`, {
-      gigId: finalGigId,
-      gigUpsert: `${timings.gigUpsert?.toFixed(0)}ms`,
-      relatedItems: `${timings.relatedItems?.toFixed(0)}ms`,
-      total: `${timings.total.toFixed(0)}ms`,
-      method: 'Legacy (multi-call)',
-    });
 
     return { id: finalGigId, publicSlug };
 

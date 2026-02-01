@@ -150,9 +150,8 @@ export function GigPackShareDialog({
                         text: t("shareText", { title: gigPack.title }),
                         url: publicUrl,
                       });
-                    } catch (error) {
+                    } catch {
                       // User cancelled or error occurred
-                      console.log('Share cancelled or failed:', error);
                     }
                   } else {
                     // Fallback: copy link

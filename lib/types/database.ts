@@ -170,6 +170,33 @@ export type Database = {
           },
         ]
       }
+      gig_drafts: {
+        Row: {
+          created_at: string | null
+          form_data: Json
+          id: string
+          owner_id: string
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          form_data: Json
+          id?: string
+          owner_id: string
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          form_data?: Json
+          id?: string
+          owner_id?: string
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       gig_invitations: {
         Row: {
           accepted_at: string | null
@@ -544,6 +571,7 @@ export type Database = {
           poster_skin: string | null
           project_id: string | null
           setlist: string | null
+          setlist_pdf_url: string | null
           start_time: string | null
           status: string | null
           theme: string | null
@@ -580,6 +608,7 @@ export type Database = {
           poster_skin?: string | null
           project_id?: string | null
           setlist?: string | null
+          setlist_pdf_url?: string | null
           start_time?: string | null
           status?: string | null
           theme?: string | null
@@ -616,6 +645,7 @@ export type Database = {
           poster_skin?: string | null
           project_id?: string | null
           setlist?: string | null
+          setlist_pdf_url?: string | null
           start_time?: string | null
           status?: string | null
           theme?: string | null
@@ -1008,6 +1038,59 @@ export type Database = {
           activity_type: string
           created_at: string
           id: string
+        }[]
+      }
+      list_dashboard_gigs: {
+        Args: {
+          p_from_date: string
+          p_limit?: number
+          p_offset?: number
+          p_to_date: string
+          p_user_id: string
+        }
+        Returns: {
+          date: string
+          end_time: string
+          gig_id: string
+          gig_title: string
+          gig_type: string
+          hero_image_url: string
+          host_id: string
+          host_name: string
+          invitation_status: string
+          is_manager: boolean
+          is_player: boolean
+          location_name: string
+          payment_status: string
+          player_gig_role_id: string
+          player_role_name: string
+          role_stats: Json
+          start_time: string
+          status: string
+          total_count: number
+        }[]
+      }
+      list_past_gigs: {
+        Args: { p_limit?: number; p_offset?: number; p_user_id: string }
+        Returns: {
+          date: string
+          end_time: string
+          gig_id: string
+          gig_title: string
+          gig_type: string
+          hero_image_url: string
+          host_id: string
+          host_name: string
+          invitation_status: string
+          is_manager: boolean
+          is_player: boolean
+          location_name: string
+          payment_status: string
+          player_gig_role_id: string
+          player_role_name: string
+          start_time: string
+          status: string
+          total_count: number
         }[]
       }
       save_gig_pack: {

@@ -16,7 +16,6 @@ import { createNotification } from "./notifications";
 interface GigRoleWithGig {
   musician_name: string | null;
   role_name: string | null;
-  created_at: string;
   gigs: {
     owner_id: string;
   };
@@ -205,14 +204,12 @@ export async function searchMusicianNames(query: string = ""): Promise<MusicianS
     .select(`
       musician_name,
       role_name,
-      created_at,
       gigs!inner(
         owner_id
       )
     `)
     .eq("gigs.owner_id", user.id)
-    .not("musician_name", "is", null)
-    .order("created_at", { ascending: false });
+    .not("musician_name", "is", null);
 
   if (error) throw new Error(error.message || "Failed to fetch musician names");
 
@@ -232,16 +229,12 @@ export async function searchMusicianNames(query: string = ""): Promise<MusicianS
       if (role.role_name && !existing.roles.includes(role.role_name)) {
         existing.roles.push(role.role_name);
       }
-      // Update lastUsed if this role is more recent
-      if (new Date(role.created_at) > new Date(existing.lastUsed)) {
-        existing.lastUsed = role.created_at;
-      }
     } else {
       musicianMap.set(name, {
         name,
         count: 1,
         roles: role.role_name ? [role.role_name] : [],
-        lastUsed: role.created_at,
+        lastUsed: new Date().toISOString(),
       });
     }
   });
@@ -460,7 +453,7 @@ export async function getMyPendingInvitations(
     return dateA.localeCompare(dateB);
   });
 
-  return sorted as GigRole[];
+  return sorted as unknown as GigRole[];
 }
 
 /**
@@ -501,7 +494,7 @@ export async function getMyDeclinedInvitations(
     return dateA.localeCompare(dateB);
   });
 
-  return sorted as GigRole[];
+  return sorted as unknown as GigRole[];
 }
 
 /**

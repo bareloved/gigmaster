@@ -21,6 +21,7 @@ interface DashboardRpcRow {
   total_count: number;
   gig_type: string | null;
   hero_image_url: string | null;
+  role_stats?: { total: number; invited: number; accepted: number; declined: number; pending: number } | null;
 }
 
 /**
@@ -99,7 +100,7 @@ export async function listDashboardGigs(
         playerRoleName: row.player_role_name,
         playerGigRoleId: row.player_gig_role_id,
         invitationStatus: row.invitation_status,
-        paymentStatus: row.payment_status,
+        paymentStatus: row.payment_status as DashboardGig['paymentStatus'],
         hostId: row.host_id,
         hostName: row.host_name,
         roleStats: row.role_stats,
@@ -393,7 +394,7 @@ export async function listAllPastGigs(
         playerRoleName: row.player_role_name,
         playerGigRoleId: row.player_gig_role_id,
         invitationStatus: row.invitation_status,
-        paymentStatus: row.payment_status,
+        paymentStatus: row.payment_status as DashboardGig['paymentStatus'],
         hostId: row.host_id,
         hostName: row.host_name,
       }));

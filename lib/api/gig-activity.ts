@@ -6,6 +6,7 @@
  */
 
 import { createClient } from "@/lib/supabase/client";
+import type { Json } from "@/lib/types/database";
 
 export interface GigActivityLogEntry {
   id: string;
@@ -212,7 +213,7 @@ export async function logActivity(
   gigId: string,
   activityType: ActivityType,
   description: string,
-  metadata: Record<string, unknown> = {}
+  metadata: Json = {}
 ): Promise<void> {
   const supabase = createClient();
 

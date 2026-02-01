@@ -30,6 +30,7 @@ export const mockGig: Gig = {
   theme: null,
   dress_code: "Smart casual",
   setlist: null,
+  setlist_pdf_url: null,
   internal_notes: "Sound check at 18:00",
   backline_notes: "House piano available",
   parking_notes: "Street parking only",

@@ -107,7 +107,7 @@ export function PasteScheduleDialog({
   );
 
   const renderPreviewStep = () => {
-    const { items } = createScheduleItems(parsedItems, existingSchedule);
+    const { items, duplicates } = createScheduleItems(parsedItems, existingSchedule);
     const hasItems = items.length > 0;
     const hasErrors = parsingErrors.length > 0;
 
@@ -124,7 +124,7 @@ export function PasteScheduleDialog({
             </div>
             <div className="space-y-2">
               {parsedItems.map((item, index) => {
-                const isDuplicate = duplicates.some(d => d === item);
+                const isDuplicate = duplicates.some((d: ParsedScheduleItem) => d === item);
                 return (
                   <div
                     key={index}

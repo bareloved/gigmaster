@@ -72,6 +72,7 @@ export async function deleteGig(gigId: string) {
     .select(`
       title,
       gig_roles!inner (
+        id,
         musician_id,
         invitation_status
       )

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { listMyContacts } from '@/lib/api/musician-contacts';
-import type { MusicianContact } from '@/lib/types/shared';
+import type { MusicianContact, ContactStatus } from '@/lib/types/shared';
 import {
   Dialog,
   DialogContent,
@@ -204,7 +204,7 @@ export function AddFromCircleDialog({
                               </div>
                             )}
                           </div>
-                          <ContactStatusBadge status={contact.status} />
+                          <ContactStatusBadge status={contact.status as ContactStatus} />
                         </div>
                       </label>
                     </div>

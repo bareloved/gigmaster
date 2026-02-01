@@ -105,7 +105,7 @@ export function PasteScheduleDialog({
     );
 
   const renderPreviewStep = () => {
-    const { items } = createScheduleItems(parsedItems, existingSchedule);
+    const { items, duplicates } = createScheduleItems(parsedItems, existingSchedule);
     const hasItems = items.length > 0;
     const hasErrors = parsingErrors.length > 0;
 

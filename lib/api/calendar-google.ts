@@ -75,9 +75,6 @@ export async function fetchGoogleCalendarEvents(
   const supabase = await createClient();
 
   // Get connection
-  if (process.env.NODE_ENV === 'development') {
-    console.log("[Fetch Events] Looking for connection for user:", userId);
-  }
   const { data: connection, error: connError } = await supabase
     .from("calendar_connections")
     .select("access_token, refresh_token, token_expires_at")
@@ -98,10 +95,6 @@ export async function fetchGoogleCalendarEvents(
   if (!connection) {
     console.error("[Fetch Events] No connection found for user:", userId);
     throw new Error("Calendar not connected");
-  }
-
-  if (process.env.NODE_ENV === 'development') {
-    console.log("[Fetch Events] Connection found, token expires:", connection.token_expires_at);
   }
 
   // Check if token expired

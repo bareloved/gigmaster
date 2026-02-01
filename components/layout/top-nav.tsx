@@ -11,7 +11,6 @@ import {
   // Users, // FROZEN: My Circle page
   MoreHorizontal,
   History,
-  Plus,
   Menu,
   Mail,
   Guitar,
@@ -28,7 +27,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { NotificationsDropdown } from "@/components/layout/notifications-dropdown";
 import { DarkModeToggle } from "@/components/layout/dark-mode-toggle";
 import { UserMenu } from "@/components/layout/user-menu";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const mainNavItems = [
@@ -80,7 +78,6 @@ const moreNavItems = [
 
 export function TopNav() {
   const pathname = usePathname();
-  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // State for animated indicator

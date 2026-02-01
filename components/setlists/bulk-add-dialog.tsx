@@ -81,7 +81,7 @@ export function BulkAddSetlistDialog({
     setParsedSongs(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleUpdateSong = (index: number, field: keyof ParsedSong, value: string | undefined) => {
+  const handleUpdateSong = (index: number, field: keyof ParsedSong, value: string | number | null | undefined) => {
     setParsedSongs(prev =>
       prev.map((song, i) =>
         i === index ? { ...song, [field]: value } : song
