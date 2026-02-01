@@ -26,7 +26,7 @@ export default function RootLayout({
           <UserProvider>
             <QueryProvider>
               {children}
-              <Toaster richColors position="top-right" />
+              <Toaster richColors position="top-center" style={{ top: '6rem' }} />
             </QueryProvider>
           </UserProvider>
         </ThemeProvider>

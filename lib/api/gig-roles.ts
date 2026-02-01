@@ -138,21 +138,6 @@ async function linkContactToRole(userId: string, role: GigRole): Promise<void> {
 export async function updateRole(roleId: string, data: GigRoleUpdate): Promise<GigRole> {
   const supabase = createClient();
 
-  // Get current role to check if payment status changed
-  const { data: currentRole } = await supabase
-    .from("gig_roles")
-    .select(`
-      payment_status,
-      musician_id,
-      role_name,
-      gigs!inner (
-        id,
-        title
-      )
-    `)
-    .eq("id", roleId)
-    .single();
-
   const { data: role, error } = await supabase
     .from("gig_roles")
     .update(data)
@@ -161,22 +146,7 @@ export async function updateRole(roleId: string, data: GigRoleUpdate): Promise<G
     .single();
 
   if (error) throw new Error(error.message || "Failed to update role");
-  
-  // If payment status changed from unpaid to paid, notify the musician
-  if (currentRole && data.payment_status === 'paid' && currentRole.payment_status !== 'paid' && currentRole.musician_id) {
-    const gig = currentRole.gigs as { id: string; title: string };
 
-    await createNotification({
-      user_id: currentRole.musician_id,
-      type: 'payment_received',
-      title: 'Payment received',
-      message: `You've been paid for ${gig.title}`,
-      link: `/money`,
-      gig_id: gig.id,
-      gig_role_id: roleId,
-    });
-  }
-  
   return role;
 }
 

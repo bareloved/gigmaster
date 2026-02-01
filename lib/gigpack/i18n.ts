@@ -387,7 +387,10 @@ const MESSAGES: MessageTree = {
     gigTypeCoffeeHouse: "Coffee House",
     gigTypeFestival: "Festival",
     gigTypeRehearsal: "Rehearsal",
-    gigTypeOther: "Other"
+    gigTypeOther: "Other",
+    updates: "Updates",
+    updatesEmpty: "No updates yet",
+    showMoreUpdates: "Show more"
   },
   share: {
     title: "Share with the band",

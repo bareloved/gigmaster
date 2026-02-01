@@ -8,8 +8,6 @@
  * - Next Gig Hero with real data
  * - This Week on Stage list with filtering
  * - Band & Changes activity feed (real-time activity log)
- * - Money Snapshot from player-money API
- * - Focus Mode (UI only)
  * - Quick actions with keyboard shortcuts
  */
 
@@ -29,10 +27,7 @@ import {
   Clock,
   MapPin,
   Briefcase,
-  Euro,
   ChevronRight,
-  Eye,
-  EyeOff,
   FileText,
   Plus,
   CheckCircle2,
@@ -45,7 +40,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useUser } from "@/lib/providers/user-provider";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listDashboardGigs } from "@/lib/api/dashboard-gigs";
-import { getPlayerMoneySummary } from "@/lib/api/player-money";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -53,7 +47,6 @@ import { format, parseISO } from "date-fns";
 import dynamic from "next/dynamic";
 import { GigStatusBadge } from "@/components/gigs/shared/status-badge";
 import { GigActivityWidget } from "@/components/dashboard/activity-widget";
-import { useFocusMode } from "@/hooks/use-focus-mode";
 import { useDashboardKeyboardShortcuts } from "@/hooks/use-dashboard-keyboard-shortcuts";
 import { getGig } from "../gigs/actions";
 import { AppLoadingScreen } from "@/components/layout/app-loading-screen";
@@ -110,9 +103,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // UI State - with localStorage persistence
-  const [focusMode, setFocusMode] = useFocusMode(user?.id);
-
   // Gig selector state
   const [selectedGigIndex, setSelectedGigIndex] = useState(0);
   const [gigSelectorOpen, setGigSelectorOpen] = useState(false);
@@ -156,23 +146,6 @@ export default function DashboardPage() {
     staleTime: 1000 * 60 * 2, // 2 minutes
   });
 
-  // Fetch money summary for this month
-  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-  const {
-    data: moneySummary,
-    isLoading: isLoadingMoney,
-  } = useQuery({
-    queryKey: ["player-money-summary", user?.id, firstDayOfMonth.toISOString(), lastDayOfMonth.toISOString()],
-    queryFn: () => getPlayerMoneySummary(user!.id, {
-      from: format(firstDayOfMonth, "yyyy-MM-dd"),
-      to: format(lastDayOfMonth, "yyyy-MM-dd"),
-    }),
-    enabled: !!user,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-
   // Memoize allGigs to prevent dependency issues
   const allGigs = useMemo(() => gigsData?.gigs || [], [gigsData?.gigs]);
 
@@ -202,7 +175,7 @@ export default function DashboardPage() {
   useDashboardKeyboardShortcuts(nextGig?.gigId, !!nextGig);
 
   // Show loading screen until all critical data is ready
-  const isInitialLoading = isLoadingGigs || isLoadingMoney;
+  const isInitialLoading = isLoadingGigs;
 
   if (isInitialLoading) {
     return <AppLoadingScreen />;
@@ -210,7 +183,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header with Focus Mode Toggle - Concert Poster Energy */}
+      {/* Page Header - Concert Poster Energy */}
       <div className="flex items-start justify-between gap-4 pb-2 border-b-4 border-primary/20">
         <div>
           <h1 className="font-display text-6xl font-bold tracking-tighter uppercase text-foreground">
@@ -218,59 +191,7 @@ export default function DashboardPage() {
           </h1>
           <p className="text-muted-foreground mt-2 text-lg font-medium">Get ready for your next gigs.</p>
         </div>
-
-        {/* Focus Mode Toggle */}
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={focusMode ? "default" : "outline"}
-                size="sm"
-                onClick={() => setFocusMode(!focusMode)}
-                className="gap-2 transition-all duration-300 hover:scale-105"
-              >
-                {focusMode ? (
-                  <>
-                    <EyeOff className="h-4 w-4" />
-                    Exit Focus
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-4 w-4" />
-                    Focus Mode
-                  </>
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">Hide distractions - show only Next Gig</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
       </div>
-
-      {/* Focus Mode Active Indicator */}
-      {focusMode && (
-        <Card className="bg-primary/5 border-primary/20 animate-in fade-in slide-in-from-top-2 duration-300">
-          <CardContent className="py-3 px-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm">
-                <Eye className="h-4 w-4 text-primary animate-pulse" />
-                <span className="font-medium">Focus Mode Active</span>
-                <span className="text-muted-foreground">• Showing only Next Gig</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setFocusMode(false)}
-                className="h-7 text-xs hover:bg-primary/10 transition-colors"
-              >
-                Exit
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -529,16 +450,6 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2 mt-4">
                   <GigStatusBadge status={nextGig.status ?? 'draft'} />
                   {nextGig.invitationStatus && getInvitationStatusBadge(nextGig.invitationStatus)}
-                  {nextGig.paymentStatus === "paid" && (
-                    <Badge variant="default" className="bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500/20">
-                      Paid
-                    </Badge>
-                  )}
-                  {nextGig.paymentStatus === "unpaid" && (
-                    <Badge variant="outline" className="border-amber-500/30 text-amber-600 dark:text-amber-400">
-                      Unpaid
-                    </Badge>
-                  )}
                 </div>
 
               </CardContent>
@@ -561,9 +472,8 @@ export default function DashboardPage() {
             </Card>
           )}
 
-          {/* This Week on Stage - Hidden in Focus Mode - Ticket Style */}
-          {!focusMode && (
-            <Card className="min-h-[400px] shadow-stage border-2 animate-fade-in">
+          {/* This Week on Stage - Ticket Style */}
+          <Card className="min-h-[400px] shadow-stage border-2 animate-fade-in">
               <CardHeader className="border-b-2 border-dashed border-border/50">
                 <div className="flex items-center justify-between">
                   <CardTitle className="font-display text-3xl font-bold uppercase tracking-tight">
@@ -658,68 +568,17 @@ export default function DashboardPage() {
                 )}
               </CardContent>
             </Card>
-          )}
         </div>
 
-        {/* RIGHT COLUMN (Side - 1/3 width) - Hidden in Focus Mode */}
-        {!focusMode && (
-          <div className="space-y-6">
+        {/* RIGHT COLUMN (Side - 1/3 width) */}
+        <div className="space-y-6">
             {/* Band & Changes Activity Feed */}
-            {nextGig && (
-              <GigActivityWidget
-                gigId={nextGig.gigId}
-                limit={10}
-                showViewAll={true}
-              />
-            )}
+            <GigActivityWidget
+              limit={10}
+              showViewAll={true}
+            />
 
-            {/* Money Snapshot - Receipt Style */}
-            <Card className="border-2 border-dashed border-border/50 shadow-stage bg-card animate-fade-in">
-              <CardHeader className="pb-3 border-b-2 border-dashed border-border/50">
-                <CardTitle className="font-display text-xl font-bold flex items-center gap-2 uppercase tracking-tight">
-                  <Euro className="h-5 w-5 text-secondary" />
-                  Money
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4">
-                {isLoadingMoney ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-6 w-24" />
-                    <Skeleton className="h-4 w-32" />
-                  </div>
-                ) : moneySummary ? (
-                  <div className="space-y-3">
-                    <div className="font-mono text-xs font-bold text-muted-foreground uppercase tracking-wider">This month</div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="font-mono text-3xl font-bold text-primary">
-                        ₪{(moneySummary.totalEarned + moneySummary.totalUnpaid).toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                      </span>
-                    </div>
-                    <div className="font-mono text-sm text-muted-foreground">
-                      {moneySummary.gigCount} {moneySummary.gigCount === 1 ? 'gig' : 'gigs'}
-                    </div>
-                    {moneySummary.totalUnpaid > 0 && (
-                      <div className="flex items-center gap-2 pt-2 border-t border-dashed">
-                        <Badge variant="outline" className="font-mono text-xs font-bold border-amber-500/30 text-amber-600 dark:text-amber-400">
-                          ₪{moneySummary.totalUnpaid.toLocaleString('en-US', { maximumFractionDigits: 0 })} unpaid
-                        </Badge>
-                      </div>
-                    )}
-                    <Separator className="my-3 border-dashed" />
-                    <Link href="/money">
-                      <Button variant="ghost" size="sm" className="w-full justify-between font-medium hover:bg-primary/10 transition-colors">
-                        View All Earnings
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground">No financial data available</div>
-                )}
-              </CardContent>
-            </Card>
           </div>
-        )}
       </div>
 
       {/* Gig Editor Sliding Panel */}

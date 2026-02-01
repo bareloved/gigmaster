@@ -15,7 +15,6 @@ interface DashboardRpcRow {
   player_role_name: string | null;
   player_gig_role_id: string | null;
   invitation_status: string | null;
-  payment_status: string | null;
   host_name: string | null;
   host_id: string | null;
   total_count: number;
@@ -100,7 +99,6 @@ export async function listDashboardGigs(
         playerRoleName: row.player_role_name,
         playerGigRoleId: row.player_gig_role_id,
         invitationStatus: row.invitation_status,
-        paymentStatus: row.payment_status as DashboardGig['paymentStatus'],
         hostId: row.host_id,
         hostName: row.host_name,
         heroImageUrl: row.hero_image_url,
@@ -195,11 +193,6 @@ async function listDashboardGigsFallback(
 
       if (!isManager && !isPlayer) continue;
 
-      let paymentStatus: "paid" | "unpaid" | null = null;
-      if (isPlayer && userRole) {
-        paymentStatus = userRole.payment_status === 'paid' ? "paid" : "unpaid";
-      }
-
       const ownerData = Array.isArray(gig.owner) ? gig.owner[0] : gig.owner;
       const hostName = ownerData?.name || null;
 
@@ -226,7 +219,6 @@ async function listDashboardGigsFallback(
         playerRoleName: userRole?.role_name || null,
         playerGigRoleId: userRole?.id || null,
         invitationStatus: userRole?.invitation_status || null,
-        paymentStatus,
         hostId: gig.owner_id,
         hostName,
         heroImageUrl: gig.hero_image_url,
@@ -328,11 +320,6 @@ export async function listRecentPastGigs(
       // Skip if user has no connection to this gig
       if (!isManager && !isPlayer) continue;
 
-      let paymentStatus: "paid" | "unpaid" | null = null;
-      if (isPlayer && userRole) {
-        paymentStatus = userRole.payment_status === 'paid' ? "paid" : "unpaid";
-      }
-
       const ownerData = Array.isArray(gig.owner) ? gig.owner[0] : gig.owner;
       const hostName = ownerData?.name || null;
 
@@ -349,7 +336,6 @@ export async function listRecentPastGigs(
         playerRoleName: userRole?.role_name || null,
         playerGigRoleId: userRole?.id || null,
         invitationStatus: userRole?.invitation_status || null,
-        paymentStatus,
         hostId: gig.owner_id,
         hostName,
       });
@@ -400,7 +386,6 @@ export async function listAllPastGigs(
         playerRoleName: row.player_role_name,
         playerGigRoleId: row.player_gig_role_id,
         invitationStatus: row.invitation_status,
-        paymentStatus: row.payment_status as DashboardGig['paymentStatus'],
         hostId: row.host_id,
         hostName: row.host_name,
       }));
@@ -479,11 +464,6 @@ async function listAllPastGigsFallback(
 
       if (!isManager && !isPlayer) continue;
 
-      let paymentStatus: "paid" | "unpaid" | null = null;
-      if (isPlayer && userRole) {
-        paymentStatus = userRole.payment_status === 'paid' ? "paid" : "unpaid";
-      }
-
       const ownerData = Array.isArray(gig.owner) ? gig.owner[0] : gig.owner;
       const hostName = ownerData?.name || null;
 
@@ -500,7 +480,6 @@ async function listAllPastGigsFallback(
         playerRoleName: userRole?.role_name || null,
         playerGigRoleId: userRole?.id || null,
         invitationStatus: userRole?.invitation_status || null,
-        paymentStatus,
         hostId: gig.owner_id,
         hostName,
       });

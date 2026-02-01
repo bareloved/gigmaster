@@ -218,31 +218,6 @@ export interface PracticeItem {
 }
 
 /**
- * Player money summary statistics
- */
-export interface PlayerMoneySummary {
-  totalEarned: number;
-  totalUnpaid: number;
-  gigCount: number;
-  currency: string;
-}
-
-/**
- * Player money gig details
- */
-export interface PlayerMoneyGig {
-  id: string;
-  date: string;
-  gigTitle: string;
-  hostName: string | null;
-  roleName: string | null;
-  agreedFee: number | null;
-  isPaid: boolean;
-  paidAt: string | null;
-  currency: string;
-}
-
-/**
  * Gig Pack data structure (mobile-optimized view)
  * Contains all essential gig information in a single response
  */
@@ -322,7 +297,6 @@ export interface DashboardGig {
   playerRoleName?: string | null;
   playerGigRoleId?: string | null;
   invitationStatus?: string | null;
-  paymentStatus?: "paid" | "unpaid" | null;
   hostId: string | null;
   hostName: string | null;
   heroImageUrl?: string | null;
@@ -384,68 +358,3 @@ export interface SystemUser {
   created_at: string;
 }
 
-/**
- * Payment status for gig roles
- */
-export type PaymentStatus = 
-  | 'pending'    // Not yet paid
-  | 'paid'       // Fully paid
-  | 'partial'    // Partially paid
-  | 'overdue';   // Payment overdue
-
-/**
- * My Earnings - Single gig row for player
- */
-export interface MyEarningsGig {
-  gigRoleId: string;
-  gigId: string;
-  gigTitle: string;
-  hostName: string | null;
-  date: string;
-  roleName: string | null;
-  locationName: string | null;
-  feeAmount: number | null;
-  currency: string;
-  paymentStatus: PaymentStatus;
-  paidAmount: number | null;
-  paidDate: string | null;
-}
-
-/**
- * My Earnings Summary
- */
-export interface MyEarningsSummary {
-  unpaidGross: number;
-  paidGross: number;
-  thisMonthGross: number;
-  currency: string;
-}
-
-/**
- * Payouts - Single musician row for manager
- */
-export interface PayoutRow {
-  gigRoleId: string;
-  gigId: string;
-  gigTitle: string;
-  hostName: string | null;
-  date: string;
-  musicianId: string | null;
-  musicianName: string | null;
-  roleName: string | null;
-  feeAmount: number | null;
-  currency: string;
-  paymentStatus: PaymentStatus;
-  paidAmount: number | null;
-  paidDate: string | null;
-}
-
-/**
- * Payment status update request
- */
-export interface PaymentStatusUpdate {
-  gigRoleId: string;
-  paymentStatus: PaymentStatus;
-  paidAmount?: number | null;
-  paidDate?: string | null;
-}

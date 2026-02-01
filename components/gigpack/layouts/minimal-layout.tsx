@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, Paperclip, ExternalLink, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, Guitar, Drum, Piano, Volume2, Radio, FileText } from "lucide-react";
 import { classifyGigVisualTheme, pickFallbackImageForTheme } from "@/lib/gigpack/gig-visual-theme";
+import { GigActivityWidget } from "@/components/dashboard/activity-widget";
 
 interface MinimalLayoutProps {
   gigPack: Omit<GigPack, "internal_notes" | "owner_id">;
@@ -555,6 +556,8 @@ export function MinimalLayout({ gigPack, openMaps }: MinimalLayoutProps) {
             )}
           </div>
         </div>
+        {/* Updates / Activity Log — reuses the dashboard widget scoped to this gig */}
+        <GigActivityWidget gigId={gigPack.id} limit={10} showViewAll className="mt-8 shadow-sm" />
         <div className="mt-12 text-center text-xs text-muted-foreground/60">
           <p>
             Powered by <span className="font-semibold" style={{ color: accentColor }}>GigPack</span>

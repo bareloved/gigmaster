@@ -2,8 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useUser } from "@/lib/providers/user-provider";
 import {
-  markAsPaid,
-  markAsUnpaid,
   acceptInvitation,
   declineInvitation,
   updateGigStatus,
@@ -25,27 +23,6 @@ import type { GigPack } from "@/lib/gigpack/types";
 // ============================================
 // SURGICAL INVALIDATION FUNCTIONS
 // ============================================
-
-/**
- * For payment mutations (markAsPaid/markAsUnpaid)
- * Only refreshes earnings data - optimistic update handles dashboard UI
- */
-function invalidatePaymentQueries(
-  queryClient: ReturnType<typeof useQueryClient>,
-  userId?: string
-) {
-  // Only earnings data needs server refresh
-  queryClient.invalidateQueries({
-    queryKey: ["my-earnings", userId],
-    refetchType: 'active'
-  });
-
-  // Also refresh player money summary for Money page
-  queryClient.invalidateQueries({
-    queryKey: ["player-money-summary", userId],
-    refetchType: 'active'
-  });
-}
 
 /**
  * For invitation mutations (acceptInvitation/declineInvitation)
@@ -82,8 +59,6 @@ function invalidateGigStatusQueries(
  * SURGICAL: Only refreshes gig lists and specific gig detail
  *
  * NOT invalidated (optimistic update handles these, or not affected):
- * - my-earnings: gig creation doesn't change payment status
- * - player-money-summary: not affected by gig save
  * - recent-past-gigs/all-past-gigs: new gigs are future, edits rarely move to past
  *
  * NOTE: We use refetchQueries instead of invalidateQueries to force immediate
@@ -134,116 +109,6 @@ async function invalidateGigSaveQueries(
 // ============================================
 // MUTATION HOOKS
 // ============================================
-
-/**
- * Hook for marking a gig role as paid
- * Includes optimistic update for instant UI feedback
- */
-export function useMarkAsPaid() {
-  const queryClient = useQueryClient();
-  const { user } = useUser();
-
-  return useMutation({
-    mutationFn: markAsPaid,
-    onMutate: async (gigRoleId) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["dashboard-gigs", user?.id] });
-
-      // Snapshot previous value
-      const previousGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
-        ["dashboard-gigs", user?.id]
-      );
-
-      // Optimistically update to paid
-      if (previousGigs) {
-        queryClient.setQueryData(
-          ["dashboard-gigs", user?.id],
-          {
-            ...previousGigs,
-            pages: previousGigs.pages.map(page => ({
-              ...page,
-              gigs: page.gigs.map(gig =>
-                gig.playerGigRoleId === gigRoleId
-                  ? { ...gig, paymentStatus: "paid" as const }
-                  : gig
-              ),
-            })),
-          }
-        );
-      }
-
-      return { previousGigs };
-    },
-    onSuccess: () => {
-      // SURGICAL: Only refresh earnings data
-      invalidatePaymentQueries(queryClient, user?.id);
-      toast.success("Marked as paid");
-    },
-    onError: (error: Error, variables, context) => {
-      // Rollback on error
-      if (context?.previousGigs) {
-        queryClient.setQueryData(
-          ["dashboard-gigs", user?.id],
-          context.previousGigs
-        );
-      }
-      toast.error(`Failed to mark as paid: ${error.message}`);
-    },
-  });
-}
-
-/**
- * Hook for marking a gig role as unpaid
- * Includes optimistic update for instant UI feedback
- */
-export function useMarkAsUnpaid() {
-  const queryClient = useQueryClient();
-  const { user } = useUser();
-
-  return useMutation({
-    mutationFn: markAsUnpaid,
-    onMutate: async (gigRoleId) => {
-      await queryClient.cancelQueries({ queryKey: ["dashboard-gigs", user?.id] });
-
-      const previousGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
-        ["dashboard-gigs", user?.id]
-      );
-
-      if (previousGigs) {
-        queryClient.setQueryData(
-          ["dashboard-gigs", user?.id],
-          {
-            ...previousGigs,
-            pages: previousGigs.pages.map(page => ({
-              ...page,
-              gigs: page.gigs.map(gig =>
-                gig.playerGigRoleId === gigRoleId
-                  ? { ...gig, paymentStatus: "unpaid" as const }
-                  : gig
-              ),
-            })),
-          }
-        );
-      }
-
-      return { previousGigs };
-    },
-    onSuccess: () => {
-      // SURGICAL: Only refresh earnings data
-      invalidatePaymentQueries(queryClient, user?.id);
-      toast.success("Marked as unpaid");
-    },
-    onError: (error: Error, variables, context) => {
-      if (context?.previousGigs) {
-        queryClient.setQueryData(
-          ["dashboard-gigs", user?.id],
-          context.previousGigs
-        );
-      }
-      toast.error(`Failed to mark as unpaid: ${error.message}`);
-    },
-  });
-}
 
 /**
  * Hook for accepting a gig invitation
@@ -570,15 +435,6 @@ function invalidateDeleteQueries(
   // Refresh KPIs (gig count changed)
   queryClient.invalidateQueries({
     queryKey: ["dashboard-kpis", userId],
-    refetchType: 'active'
-  });
-  // Refresh earnings if user was also a player
-  queryClient.invalidateQueries({
-    queryKey: ["my-earnings", userId],
-    refetchType: 'active'
-  });
-  queryClient.invalidateQueries({
-    queryKey: ["player-money-summary", userId],
     refetchType: 'active'
   });
 }

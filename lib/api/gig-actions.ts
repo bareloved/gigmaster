@@ -4,57 +4,14 @@ import type { InvitationStatus, GigStatus } from "@/lib/types/shared";
 
 /**
  * Gig Actions API
- * 
+ *
  * Quick actions for updating gig data from the dashboard:
- * - Mark payments as paid/unpaid
  * - Accept/decline invitations
  * - Update gig status (for managers)
  */
 
 // Re-export types for convenience
 export type { InvitationStatus, GigStatus };
-
-// ============================================================================
-// PAYMENT ACTIONS
-// ============================================================================
-
-/**
- * Mark a gig role as paid
- */
-export async function markAsPaid(gigRoleId: string): Promise<void> {
-  const supabase = createClient();
-
-  const { error } = await supabase
-    .from("gig_roles")
-    .update({
-      payment_status: 'paid',
-      paid_at: new Date().toISOString(),
-    })
-    .eq("id", gigRoleId);
-
-  if (error) {
-    throw new Error(`Failed to mark as paid: ${error.message}`);
-  }
-}
-
-/**
- * Mark a gig role as unpaid
- */
-export async function markAsUnpaid(gigRoleId: string): Promise<void> {
-  const supabase = createClient();
-
-  const { error } = await supabase
-    .from("gig_roles")
-    .update({
-      payment_status: 'pending',
-      paid_at: null,
-    })
-    .eq("id", gigRoleId);
-
-  if (error) {
-    throw new Error(`Failed to mark as unpaid: ${error.message}`);
-  }
-}
 
 // ============================================================================
 // INVITATION ACTIONS
