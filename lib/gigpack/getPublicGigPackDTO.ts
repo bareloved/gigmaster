@@ -11,7 +11,7 @@ interface ScheduleItemRow {
 }
 
 interface RoleRow {
-  role_name: string;
+  role_name: string | null;
   musician_name: string | null;
   notes: string | null;
   sort_order: number | null;
@@ -127,7 +127,7 @@ export async function getPublicGigPackDTO(token: string): Promise<PublicGigPackD
     lineup: ((gig.roles || []) as RoleRow[])
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
       .map((r) => ({
-        role: r.role_name,
+        role: r.role_name || undefined,
         name: r.musician_name || undefined,
         notes: r.notes || undefined,
       })),

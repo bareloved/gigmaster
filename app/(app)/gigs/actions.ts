@@ -16,7 +16,7 @@ interface GigOwnerProfile {
 
 interface GigRoleRow {
   id: string;
-  role_name: string;
+  role_name: string | null;
   musician_name: string | null;
   notes: string | null;
   invitation_status: string | null;
@@ -304,12 +304,12 @@ async function handleGigRoles(
 
     // Create set of existing role+name combinations for quick lookup
     const existingSet = new Set(
-      (existingRoles || []).map(r => `${r.role_name}::${r.musician_name || ''}`)
+      (existingRoles || []).map(r => `${r.role_name || ''}::${r.musician_name || ''}`)
     );
 
-    // Filter to only new roles that don't exist yet
+    // Filter to only new roles that don't exist yet (keep members with a role OR a name)
     const newRoles = lineup.filter(member =>
-      member.role && !existingSet.has(`${member.role}::${member.name || ''}`)
+      (member.role || member.name) && !existingSet.has(`${member.role || ''}::${member.name || ''}`)
     );
 
     if (newRoles.length > 0) {
@@ -317,7 +317,7 @@ async function handleGigRoles(
         const effectiveUserId = getEffectiveUserId(member);
         return {
           gig_id: gigId,
-          role_name: member.role,
+          role_name: member.role || null,
           musician_name: member.name || null,
           musician_id: effectiveUserId,
           contact_id: member.contactId || null,
@@ -343,7 +343,7 @@ async function handleGigRoles(
             user_id: role.musician_id!,
             type: 'invitation_received',
             title: `Invitation: ${gigTitle || 'New Gig'}`,
-            message: `You've been invited as ${role.role_name}`,
+            message: `You've been invited as ${role.role_name || 'a team member'}`,
             link: `/gigs/${gigId}/pack`,
             gig_id: gigId,
             gig_role_id: role.id,
@@ -365,7 +365,7 @@ async function handleGigRoles(
       const effectiveUserId = getEffectiveUserId(member);
       return {
         gig_id: gigId,
-        role_name: member.role,
+        role_name: member.role || null,
         musician_name: member.name || null,
         musician_id: effectiveUserId,
         contact_id: member.contactId || null,
@@ -390,7 +390,7 @@ async function handleGigRoles(
           user_id: role.musician_id!,
           type: 'invitation_received',
           title: `Invitation: ${gigTitle || 'New Gig'}`,
-          message: `You've been invited as ${role.role_name}`,
+          message: `You've been invited as ${role.role_name || 'a team member'}`,
           link: `/gigs/${gigId}/pack`,
           gig_id: gigId,
           gig_role_id: role.id,
@@ -565,8 +565,8 @@ export async function getGig(id: string): Promise<GigPack | null> {
     venue_maps_url: gig.venue_maps_url,
     lineup: (gig.gig_roles as GigRoleRow[] | null)?.map((r) => ({
       role: r.role_name,
-      name: r.musician_name,
-      notes: r.notes,
+      name: r.musician_name || undefined,
+      notes: r.notes || undefined,
       invitationStatus: r.invitation_status || undefined,
       gigRoleId: r.id,
       userId: r.musician_id || undefined,

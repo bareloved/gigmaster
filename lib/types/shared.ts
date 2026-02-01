@@ -235,7 +235,7 @@ export interface PlayerMoneyGig {
   date: string;
   gigTitle: string;
   hostName: string | null;
-  roleName: string;
+  roleName: string | null;
   agreedFee: number | null;
   isPaid: boolean;
   paidAt: string | null;
@@ -286,7 +286,7 @@ export interface GigPackData {
   // People (lineup)
   people: {
     id: string;
-    roleName: string;
+    roleName: string | null;
     musicianName: string | null;
     invitationStatus: string;
   }[];
@@ -294,7 +294,7 @@ export interface GigPackData {
   // Current user's role and money info (if they're playing)
   userRole: {
     roleId: string;
-    roleName: string;
+    roleName: string | null;
     invitationStatus: string;
     agreedFee: number | null;
     isPaid: boolean;
@@ -402,7 +402,7 @@ export interface MyEarningsGig {
   gigTitle: string;
   hostName: string | null;
   date: string;
-  roleName: string;
+  roleName: string | null;
   locationName: string | null;
   feeAmount: number | null;
   currency: string;
@@ -432,7 +432,7 @@ export interface PayoutRow {
   date: string;
   musicianId: string | null;
   musicianName: string | null;
-  roleName: string;
+  roleName: string | null;
   feeAmount: number | null;
   currency: string;
   paymentStatus: PaymentStatus;

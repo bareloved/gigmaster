@@ -8,7 +8,7 @@ export interface Profile {
 }
 
 export interface LineupMember {
-  role: string;
+  role?: string | null;
   name?: string;
   notes?: string;
   /** System user ID if this is a registered Ensemble user */

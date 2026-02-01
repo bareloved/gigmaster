@@ -15,7 +15,7 @@ import { createNotification } from "./notifications";
 // Type definitions for database join results
 interface GigRoleWithGig {
   musician_name: string | null;
-  role_name: string;
+  role_name: string | null;
   created_at: string;
   gigs: {
     owner_id: string;
@@ -45,7 +45,7 @@ interface GigConflictRole {
 
 interface BulkAcceptRole {
   id: string;
-  role_name: string;
+  role_name: string | null;
   gigs: {
     id: string;
     title: string;
@@ -131,7 +131,7 @@ async function linkContactToRole(userId: string, role: GigRole): Promise<void> {
   }
 
   // Increment usage stats for the contact
-  if (contactId) {
+  if (contactId && role.role_name) {
     await incrementContactUsage(contactId, role.role_name, role.agreed_fee);
   }
 }
@@ -229,7 +229,7 @@ export async function searchMusicianNames(query: string = ""): Promise<MusicianS
     if (musicianMap.has(name)) {
       const existing = musicianMap.get(name)!;
       existing.count++;
-      if (!existing.roles.includes(role.role_name)) {
+      if (role.role_name && !existing.roles.includes(role.role_name)) {
         existing.roles.push(role.role_name);
       }
       // Update lastUsed if this role is more recent
@@ -240,7 +240,7 @@ export async function searchMusicianNames(query: string = ""): Promise<MusicianS
       musicianMap.set(name, {
         name,
         count: 1,
-        roles: [role.role_name],
+        roles: role.role_name ? [role.role_name] : [],
         lastUsed: role.created_at,
       });
     }
@@ -326,7 +326,7 @@ export async function updateMyInvitationStatus(
   // These don't block the user response
   notifyManagerAsync(supabase, {
     roleId,
-    roleName: role.role_name,
+    roleName: role.role_name || 'team member',
     gig,
     userId: user.id,
     oldStatus,
@@ -570,7 +570,7 @@ export async function acceptMultipleInvitations(
           if (!managerNotifications.has(managerId)) {
             managerNotifications.set(managerId, { gig, roles: [] });
           }
-          managerNotifications.get(managerId)!.roles.push(role.role_name);
+          managerNotifications.get(managerId)!.roles.push(role.role_name || 'team member');
         }
       }
 
@@ -780,7 +780,7 @@ export async function inviteAllMusicians(gigId: string): Promise<{ count: number
         user_id: role.musician_id!,
         type: 'invitation_received',
         title: `Invitation: ${gig.title}`,
-        message: `You've been invited as ${role.role_name}`,
+        message: `You've been invited as ${role.role_name || 'a team member'}`,
         link: `/gigs/${gig.id}/pack`,
         gig_id: gig.id,
         gig_role_id: role.id,
@@ -863,7 +863,7 @@ export async function reinviteMusician(
       user_id: role.musician_id,
       type: 'invitation_received',
       title: `Re-invitation: ${gig.title}`,
-      message: `You've been re-invited as ${role.role_name}. The host would like you to reconsider!`,
+      message: `You've been re-invited as ${role.role_name || 'a team member'}. The host would like you to reconsider!`,
       link: `/gigs/${gig.id}/pack`,
       gig_id: gig.id,
       gig_role_id: roleId,

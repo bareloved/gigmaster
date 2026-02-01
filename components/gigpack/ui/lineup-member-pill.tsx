@@ -25,7 +25,8 @@ import {
 /**
  * Map role names to instrument icons
  */
-function getInstrumentIcon(role: string): LucideIcon | null {
+function getInstrumentIcon(role: string | null | undefined): LucideIcon | null {
+  if (!role) return null;
   const roleLower = role.toLowerCase();
 
   // Guitar family

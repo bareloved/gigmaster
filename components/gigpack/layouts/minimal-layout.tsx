@@ -78,7 +78,8 @@ export function MinimalLayout({ gigPack, openMaps }: MinimalLayoutProps) {
     }
   };
 
-  const getInstrumentIcon = (role: string) => {
+  const getInstrumentIcon = (role: string | null | undefined) => {
+    if (!role) return null;
     const lowerRole = role.toLowerCase();
     if (lowerRole.includes('guitar') || lowerRole.includes('lead') || lowerRole.includes('rhythm')) {
       return <Guitar className="h-4 w-4" />;
@@ -392,42 +393,26 @@ export function MinimalLayout({ gigPack, openMaps }: MinimalLayoutProps) {
                   <h3 className="font-semibold text-lg">{t("whosPlaying")}</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {(() => {
-                    const maxVisible = 6;
-                    const visibleMembers = gigPack.lineup.slice(0, maxVisible);
-                    const remaining = gigPack.lineup.length - maxVisible;
-                    return (
-                      <>
-                        {visibleMembers.map((member, index) => (
-                          <div
-                            key={index}
-                            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/30 border border-border/60"
-                          >
-                            {member.name && (
-                              <span className="text-[13px] font-semibold leading-none">
-                                {member.name}
-                              </span>
-                            )}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="text-muted-foreground/80">{getInstrumentIcon(member.role)}</span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{member.role}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                        ))}
-                        {remaining > 0 && (
-                          <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/30 border border-border/60">
-                            <span className="text-[13px] font-semibold text-muted-foreground/80">
-                              +{remaining}
-                            </span>
-                          </div>
-                        )}
-                      </>
-                    );
-                  })()}
+                  {gigPack.lineup.map((member, index) => (
+                    <div
+                      key={index}
+                      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/30 border border-border/60"
+                    >
+                      {member.name && (
+                        <span className="text-[13px] font-semibold leading-none">
+                          {member.name}
+                        </span>
+                      )}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="text-muted-foreground/80">{getInstrumentIcon(member.role)}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{member.role}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

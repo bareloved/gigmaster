@@ -6,7 +6,7 @@ import { isArchivedStatus } from "@/lib/types/shared";
 // Type definitions for database join results
 interface GigRoleRow {
   id: string;
-  role_name: string;
+  role_name: string | null;
   musician_name: string | null;
   notes: string | null;
 }
@@ -94,8 +94,8 @@ export async function GET(
     venue_maps_url: gig.venue_maps_url,
     lineup: (gig.gig_roles as GigRoleRow[] | null)?.map((r) => ({
       role: r.role_name,
-      name: r.musician_name,
-      notes: r.notes
+      name: r.musician_name || undefined,
+      notes: r.notes || undefined,
     })) || [],
     setlist: gig.setlist,
     setlist_pdf_url: gig.setlist_pdf_url || null,

@@ -834,8 +834,6 @@ export function GigEditorPanel({
         // Use existing URLs (pending images will be uploaded in background)
         band_logo_url: bandLogoUrl || null,
         hero_image_url: heroImageUrl || null,
-        accent_color: accentColor || null,
-        poster_skin: "clean" as const,
         packing_checklist: packingChecklist.filter(item => item.label.trim()).length > 0
           ? packingChecklist.filter(item => item.label.trim())
           : null,
@@ -1347,7 +1345,7 @@ export function GigEditorPanel({
                 <LineupMemberPill
                   key={index}
                   name={member.name || ""}
-                  role={member.role}
+                  role={member.role || ""}
                   notes={member.notes || ""}
                   invitationStatus={member.invitationStatus}
                   onNameChange={(name) => updateLineupMember(index, "name", name)}

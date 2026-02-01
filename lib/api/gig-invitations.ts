@@ -31,7 +31,7 @@ interface GigRoleGigDetails {
 interface GigRoleWithGig {
   id: string;
   gig_id: string;
-  role_name: string;
+  role_name: string | null;
   contact_id?: string | null;
   invitation_status?: string | null;
   gigs: GigRoleGigDetails | GigRoleGigDetails[];
@@ -39,7 +39,7 @@ interface GigRoleWithGig {
 
 interface RoleWithGigForNotification {
   gig_id: string;
-  role_name: string;
+  role_name: string | null;
   gigs: {
     id: string;
     title: string;
@@ -49,7 +49,7 @@ interface RoleWithGigForNotification {
 
 interface InvitationEmailRole {
   gig_id: string;
-  role_name: string;
+  role_name: string | null;
   gigs: GigRoleGigDetails | GigRoleGigDetails[];
 }
 
@@ -156,7 +156,7 @@ export async function inviteMusicianByEmail(
       user_id: profile.id,
       type: 'invitation_received',
       title: `Invitation: ${gig.title}`,
-      message: `You've been invited to play ${role.role_name}${hostName ? ` for ${hostName}` : ''}`,
+      message: `You've been invited to play ${role.role_name || 'a role'}${hostName ? ` for ${hostName}` : ''}`,
       link: `/gigs/${gig.id}/pack`,
       gig_id: gig.id,
       gig_role_id: gigRoleId,
@@ -244,7 +244,7 @@ export async function inviteViaWhatsApp(
     phone,
     gig?.title || 'Gig',
     hostName || 'Host',
-    role.role_name,
+    role.role_name || 'team member',
     magicLink
   );
   
@@ -261,7 +261,7 @@ export async function inviteViaWhatsApp(
       user_id: profile.id,
       type: 'invitation_received',
       title: `Invitation: ${gig?.title}`,
-      message: `You've been invited to play ${role.role_name}${hostName ? ` by ${hostName}` : ''}`,
+      message: `You've been invited to play ${role.role_name || 'a role'}${hostName ? ` by ${hostName}` : ''}`,
       link: `/gigs/${gig?.id}/pack`,
       gig_id: gig?.id,
       gig_role_id: gigRoleId,
@@ -421,7 +421,7 @@ export async function acceptInvitation(token: string): Promise<void> {
           user_id: managerId,
           type: 'status_changed',
           title: `${userName} accepted`,
-          message: `${userName} accepted their role as ${roleData.role_name} in ${gig.title}`,
+          message: `${userName} accepted their role as ${roleData.role_name || 'team member'} in ${gig.title}`,
           link: `/gigs/${gig.id}`,
           gig_id: gig.id,
           gig_role_id: invitation.gig_role_id,
@@ -526,7 +526,7 @@ export async function declineInvitation(
           user_id: managerId,
           type: 'status_changed',
           title: `${userName} needs a sub`,
-          message: `${userName} declined their role as ${roleData.role_name} in ${gig.title}`,
+          message: `${userName} declined their role as ${roleData.role_name || 'team member'} in ${gig.title}`,
           link: `/gigs/${gig.id}`,
           gig_id: gig.id,
           gig_role_id: invitation.gig_role_id,
@@ -596,7 +596,7 @@ async function sendInvitationEmail(
         inviteLink,
         gigTitle: gig?.title,
         hostName,
-        roleName: role.role_name,
+        roleName: role.role_name || 'team member',
         gigDate: gig?.date,
         gigTime: gig?.start_time,
         locationName: gig?.location_name,

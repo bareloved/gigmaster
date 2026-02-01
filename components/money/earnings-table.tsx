@@ -298,8 +298,8 @@ export function MyEarningsTable({ gigs }: { gigs: MyEarningsGig[] }) {
           bValue = (b.hostName || '').toLowerCase();
           break;
         case 'role':
-          aValue = a.roleName.toLowerCase();
-          bValue = b.roleName.toLowerCase();
+          aValue = (a.roleName || '').toLowerCase();
+          bValue = (b.roleName || '').toLowerCase();
           break;
         case 'location':
           aValue = (a.locationName || '').toLowerCase();

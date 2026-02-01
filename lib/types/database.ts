@@ -384,7 +384,7 @@ export type Database = {
           paid_at: string | null
           payment_status: string | null
           player_notes: string | null
-          role_name: string
+          role_name: string | null
           sort_order: number | null
           status: string | null
           status_changed_at: string | null
@@ -406,7 +406,7 @@ export type Database = {
           paid_at?: string | null
           payment_status?: string | null
           player_notes?: string | null
-          role_name: string
+          role_name?: string | null
           sort_order?: number | null
           status?: string | null
           status_changed_at?: string | null
@@ -428,7 +428,7 @@ export type Database = {
           paid_at?: string | null
           payment_status?: string | null
           player_notes?: string | null
-          role_name?: string
+          role_name?: string | null
           sort_order?: number | null
           status?: string | null
           status_changed_at?: string | null
