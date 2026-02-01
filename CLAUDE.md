@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Ensemble** is a gig management platform for musicians. It tracks projects (bands/acts), gigs, lineups, setlists, files, payments, and invitations. Built with Next.js 15 (App Router), React 19, TypeScript, Supabase, and TanStack Query.
+**GigMaster** is a gig management platform for musicians. It tracks bands/acts, gigs, lineups, setlists, files, payments, and invitations. Built with Next.js 15 (App Router), React 19, TypeScript, Supabase, and TanStack Query.
 
-**Current Status:** Not yet production-ready, some of the features we're working on are: invitations, calendar integration, notifications, and payment tracking.
+**Current Status:** Not yet production-ready. Active areas: invitation polish, calendar enhancements, payment tracking improvements, and mobile companion app.
 
 ## Working With Me
 
@@ -367,6 +367,14 @@ All foreign keys have indexes. Key performance indexes:
 
 ## Common Tasks & Workflows
 
+### Updating the Changelog
+
+**MANDATORY:** Every time changes are committed and pushed to `main`, update `CHANGELOG.md`:
+
+1. Add entries under `## [Unreleased]` using these categories: `Added`, `Changed`, `Fixed`, `Removed`
+2. Keep entries concise (one line each)
+3. When a release is tagged or a PR is merged, move `[Unreleased]` entries under a dated heading (`## YYYY-MM-DD`)
+
 ### Adding a New Feature
 
 1. **Plan first** - Review `docs/future-enhancements/next-steps.md`
@@ -378,6 +386,7 @@ All foreign keys have indexes. Key performance indexes:
 7. **Page integration** - Wire up to existing pages
 8. **Test** - Run `npm run test:run` + manual browser testing
 9. **Document** - Add to `docs/build-process/`
+10. **Update changelog** - Add entry to `CHANGELOG.md` under `[Unreleased]`
 
 ### Modifying Database Schema
 
