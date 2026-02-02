@@ -344,12 +344,12 @@ export default function DashboardPage() {
 
                 {/* Times & Role */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 bg-card/50 backdrop-blur-sm rounded-xl p-4 border border-border/50">
-                  {nextGig.startTime && (
+                  {nextGig.callTime && (
                     <div className="flex items-center gap-3">
                       <Clock className="h-5 w-5 text-secondary" />
                       <div>
-                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Start</div>
-                        <div className="font-mono text-lg font-bold">{formatTime(nextGig.startTime)}</div>
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Arrival</div>
+                        <div className="font-mono text-lg font-bold">{formatTime(nextGig.callTime)}</div>
                       </div>
                     </div>
                   )}
@@ -519,8 +519,8 @@ export default function DashboardPage() {
                                   ) : null}
                                 </div>
                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                  {gig.startTime && <span><span className="text-muted-foreground/70">Start:</span> <span className="font-mono font-medium">{formatTime(gig.startTime)}</span></span>}
-                                  {gig.startTime && gig.locationName && <span>·</span>}
+                                  {gig.callTime && <span><span className="text-muted-foreground/70">Arrival:</span> <span className="font-mono font-medium">{formatTime(gig.callTime)}</span></span>}
+                                  {gig.callTime && gig.locationName && <span>·</span>}
                                   {gig.locationName && <span className="truncate">{gig.locationName}</span>}
                                   {gig.playerRoleName && <span>·</span>}
                                   {gig.playerRoleName && <span className="font-medium whitespace-nowrap">{gig.playerRoleName}</span>}

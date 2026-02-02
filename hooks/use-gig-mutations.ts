@@ -309,6 +309,7 @@ export function useSaveGigPack() {
         date: data.date || new Date().toISOString().split("T")[0],
         startTime: data.on_stage_time || data.call_time || null,
         endTime: null,
+        callTime: data.call_time || null,
         locationName: data.venue_name || null,
         status: data.status || "draft",
         isManager: true,

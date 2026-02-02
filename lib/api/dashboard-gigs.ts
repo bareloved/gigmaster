@@ -8,6 +8,7 @@ interface DashboardRpcRow {
   date: string;
   start_time: string | null;
   end_time: string | null;
+  call_time: string | null;
   location_name: string | null;
   status: string | null;
   is_manager: boolean;
@@ -92,6 +93,7 @@ export async function listDashboardGigs(
         date: row.date,
         startTime: row.start_time,
         endTime: row.end_time,
+        callTime: row.call_time,
         locationName: row.location_name,
         status: row.status,
         isManager: row.is_manager,
@@ -151,6 +153,7 @@ async function listDashboardGigsFallback(
       date,
       start_time,
       end_time,
+      call_time,
       location_name,
       status,
       hero_image_url,
@@ -212,6 +215,7 @@ async function listDashboardGigsFallback(
         date: gig.date,
         startTime: gig.start_time,
         endTime: gig.end_time,
+        callTime: gig.call_time,
         locationName: gig.location_name,
         status: gig.status,
         isManager,
@@ -281,6 +285,7 @@ export async function listRecentPastGigs(
       date,
       start_time,
       end_time,
+      call_time,
       location_name,
       status,
       owner:profiles!gigs_owner_profiles_fkey(
@@ -329,6 +334,7 @@ export async function listRecentPastGigs(
         date: gig.date,
         startTime: gig.start_time,
         endTime: gig.end_time,
+        callTime: gig.call_time,
         locationName: gig.location_name,
         status: gig.status,
         isManager,
@@ -379,6 +385,7 @@ export async function listAllPastGigs(
         date: row.date,
         startTime: row.start_time,
         endTime: row.end_time,
+        callTime: row.call_time,
         locationName: row.location_name,
         status: row.status,
         isManager: row.is_manager,
@@ -429,6 +436,7 @@ async function listAllPastGigsFallback(
       date,
       start_time,
       end_time,
+      call_time,
       location_name,
       status,
       owner:profiles!gigs_owner_profiles_fkey(
@@ -473,6 +481,7 @@ async function listAllPastGigsFallback(
         date: gig.date,
         startTime: gig.start_time,
         endTime: gig.end_time,
+        callTime: gig.call_time,
         locationName: gig.location_name,
         status: gig.status,
         isManager,
