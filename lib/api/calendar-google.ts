@@ -105,21 +105,38 @@ export async function fetchGoogleCalendarEvents(
 
   if (expiresAt <= now) {
     // Refresh token
-    const googleClient = new GoogleCalendarClient();
-    const newTokens = await googleClient.refreshAccessToken(refreshToken);
+    try {
+      const googleClient = new GoogleCalendarClient();
+      const newTokens = await googleClient.refreshAccessToken(refreshToken);
 
-    // Update database
-    await supabase
-      .from("calendar_connections")
-      .update({
-        access_token: newTokens.access_token,
-        token_expires_at: new Date(newTokens.expiry_date).toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId)
-      .eq("provider", "google");
+      // Update database
+      await supabase
+        .from("calendar_connections")
+        .update({
+          access_token: newTokens.access_token,
+          token_expires_at: new Date(newTokens.expiry_date).toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", userId)
+        .eq("provider", "google");
 
-    accessToken = newTokens.access_token;
+      accessToken = newTokens.access_token;
+    } catch (refreshError) {
+      const msg = refreshError instanceof Error ? refreshError.message : "";
+      if (msg.includes("invalid_grant")) {
+        // Token was revoked or expired — remove the stale connection
+        await supabase
+          .from("calendar_connections")
+          .delete()
+          .eq("user_id", userId)
+          .eq("provider", "google");
+
+        throw new Error(
+          "Google Calendar session expired. Please reconnect your calendar."
+        );
+      }
+      throw refreshError;
+    }
   }
 
   // Fetch events
