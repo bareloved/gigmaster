@@ -129,14 +129,24 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
     .eq('gig_id', gigId)
     .order('sort_order', { ascending: true });
 
-  // Transform schedule items
-  const schedule: GigScheduleItem[] = ((gig.gig_schedule_items as GigScheduleItemRow[]) || [])
+  // Transform schedule items from gig_schedule_items table
+  let schedule: GigScheduleItem[] = ((gig.gig_schedule_items as GigScheduleItemRow[]) || [])
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
     .map((item) => ({
       id: item.id,
       time: item.time,
       label: item.label,
     }));
+
+  // Fallback: if no table schedule items but schedule_notes JSONB exists (external gigs),
+  // use those for display
+  if (schedule.length === 0 && gig.schedule_notes && Array.isArray(gig.schedule_notes)) {
+    schedule = (gig.schedule_notes as Array<{ time: string; label: string }>).map((item, i) => ({
+      id: `sn-${i}`,
+      time: item.time || null,
+      label: item.label,
+    }));
+  }
 
   // Transform lineup from gig_roles
   const lineup: LineupMember[] = ((gig.gig_roles as GigRoleRow[]) || [])
@@ -244,6 +254,9 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
     gig_type: gig.gig_type || null,
     materials: materials.length > 0 ? materials : null,
     schedule: schedule.length > 0 ? schedule : null,
+    is_external: gig.is_external ?? false,
+    external_event_url: gig.external_event_url ?? null,
+    schedule_notes: (gig.schedule_notes as Array<{ time: string; label: string; notes?: string }> | null) ?? null,
   };
 
   return gigPack;

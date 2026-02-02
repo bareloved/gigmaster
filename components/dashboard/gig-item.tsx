@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Calendar, MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Trash2 } from "lucide-react";
+import { Calendar, MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Trash2, CalendarSync } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUser } from "@/lib/providers/user-provider";
@@ -53,13 +53,20 @@ const GigInnerContent = memo(function GigInnerContent({ gig, formattedDate }: { 
           <h3 className="font-semibold truncate">{gig.gigTitle}</h3>
         </div>
         <div className="flex flex-col gap-2 items-end flex-shrink-0">
+          {/* External Gig Badge */}
+          {gig.isExternal && (
+            <Badge variant="outline" className="gap-1 text-xs bg-violet-50 border-violet-200 text-violet-700 dark:bg-violet-950 dark:border-violet-800 dark:text-violet-300">
+              <CalendarSync className="h-3 w-3" />
+              External
+            </Badge>
+          )}
           {/* Host Badge */}
           {gig.isManager ? (
             <Badge variant="outline" className="gap-1 text-xs bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-950 dark:border-orange-800 dark:text-orange-300">
               <Crown className="h-3 w-3" />
               You
             </Badge>
-          ) : gig.hostName ? (
+          ) : gig.hostName && !gig.isExternal ? (
             <Badge variant="outline" className="gap-1 text-xs bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300">
               <Mail className="h-3 w-3" />
               {gig.hostName}
@@ -246,8 +253,10 @@ export function DashboardGigItem({
   const showInvitationActions = showPlayerActions && gig.invitationStatus === "invited" && !isPastGig;
   const showManagerActions = gig.isManager && !isPastGig;
 
-  // Determine gig URL based on ownership - managers see full detail, players see pack
-  const gigUrl = gig.isManager ? `/gigs/${gig.gigId}?returnUrl=${returnUrl}` : `/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`;
+  // Determine gig URL: external gigs always go to pack, managers see full detail, players see pack
+  const gigUrl = gig.isManager && !gig.isExternal
+    ? `/gigs/${gig.gigId}?returnUrl=${returnUrl}`
+    : `/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`;
 
   return (
     <>
