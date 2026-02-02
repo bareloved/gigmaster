@@ -47,12 +47,14 @@ export default function GigDetailPage() {
   // Check ownership via gig.owner_id
   const isOwner = gig?.owner_id === user?.id;
 
-  // Redirect non-owners to the read-only gig pack view
+  // Redirect non-owners and external gig owners to the read-only gig pack view
+  // External gigs are managed in Google Calendar, not editable here
+  const isExternal = gig?.is_external ?? false;
   useEffect(() => {
-    if (gig && !isOwner) {
+    if (gig && (!isOwner || isExternal)) {
       router.replace(`/gigs/${gigId}/pack`);
     }
-  }, [gig, isOwner, gigId, router]);
+  }, [gig, isOwner, isExternal, gigId, router]);
 
   const handleDeleteGig = async () => {
     if (!gigId) return;
@@ -131,8 +133,8 @@ export default function GigDetailPage() {
     );
   }
 
-  // Non-owner loading (while redirect handles it)
-  if (gig && !isOwner) {
+  // Non-owner or external gig loading (while redirect handles it)
+  if (gig && (!isOwner || isExternal)) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-12 w-1/3" />

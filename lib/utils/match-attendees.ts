@@ -1,3 +1,15 @@
+/**
+ * Attendee Matching — DORMANT
+ *
+ * This module is NOT used in the current musician import flow.
+ * Musicians import calendar events where they are participants, not owners.
+ * Other attendees from the calendar event are ignored because they are
+ * likely not on the platform and the importer doesn't manage the gig.
+ *
+ * This module is preserved for a potential future band-leader import feature
+ * where the owner of a calendar event creates a gig and wants to match
+ * attendees to existing platform users.
+ */
 import { createClient } from "@/lib/supabase/server";
 
 export interface AttendeeMatch {
