@@ -19,8 +19,11 @@ import {
   Music,
   ImageIcon,
   Users,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { uploadImage, deleteImage, getPathFromUrl } from "@/lib/utils/image-upload";
+import { ImageCropDialog } from "@/components/bands/image-crop-dialog";
 import { LineupMemberSearch } from "@/components/gigpack/ui/lineup-member-search";
 import { LineupMemberPill } from "@/components/gigpack/ui/lineup-member-pill";
 import type { SelectedMember } from "@/components/gigpack/ui/lineup-member-search";
@@ -54,6 +57,10 @@ export function BandEditorPanel({
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingHero, setIsUploadingHero] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+
+  // Crop dialog state
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [selectedImageSrc, setSelectedImageSrc] = useState("");
 
   const isEditing = !!band;
 
@@ -127,9 +134,26 @@ export function BandEditorPanel({
     }
   };
 
-  const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleHeroUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Create object URL and open crop dialog instead of uploading directly
+    const objectUrl = URL.createObjectURL(file);
+    setSelectedImageSrc(objectUrl);
+    setCropDialogOpen(true);
+
+    // Reset file input so the same file can be re-selected
+    e.target.value = "";
+  };
+
+  const handleCropComplete = async (blob: Blob) => {
+    // Close dialog and clean up object URL
+    setCropDialogOpen(false);
+    if (selectedImageSrc) {
+      URL.revokeObjectURL(selectedImageSrc);
+      setSelectedImageSrc("");
+    }
 
     setIsUploadingHero(true);
     try {
@@ -147,8 +171,10 @@ export function BandEditorPanel({
         return;
       }
 
+      // Wrap the cropped blob as a File for the existing upload function
+      const croppedFile = new File([blob], "cover.jpg", { type: "image/jpeg" });
       const oldPath = heroImageUrl ? getPathFromUrl(heroImageUrl) : undefined;
-      const result = await uploadImage(file, user.id, oldPath || undefined);
+      const result = await uploadImage(croppedFile, user.id, oldPath || undefined);
 
       if ("error" in result) {
         toast({
@@ -160,7 +186,7 @@ export function BandEditorPanel({
         setHeroImageUrl(result.url);
         toast({
           title: "Success",
-          description: "Hero image uploaded successfully",
+          description: "Cover image uploaded successfully",
           duration: 2000,
         });
       }
@@ -168,14 +194,20 @@ export function BandEditorPanel({
       console.error("Error uploading hero:", error);
       toast({
         title: tCommon("error"),
-        description: "Failed to upload hero image",
+        description: "Failed to upload cover image",
         variant: "destructive",
       });
     } finally {
       setIsUploadingHero(false);
-      // Reset file input
-      e.target.value = "";
     }
+  };
+
+  const handleCropDialogClose = (open: boolean) => {
+    if (!open && selectedImageSrc) {
+      URL.revokeObjectURL(selectedImageSrc);
+      setSelectedImageSrc("");
+    }
+    setCropDialogOpen(open);
   };
 
   const handleRemoveLogo = async () => {
@@ -396,112 +428,57 @@ export function BandEditorPanel({
                 <span className="text-sm font-semibold">Visuals</span>
               </div>
 
-              {/* Band Logo */}
-              <div className="space-y-1.5">
-                <label className="text-xs text-muted-foreground">{t("logoLabel")}</label>
-                {bandLogoUrl ? (
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-20 h-20 border border-border rounded-lg overflow-hidden bg-muted">
-                      <Image
-                        src={bandLogoUrl}
-                        alt="Band logo"
-                        fill
-                        className="object-contain"
-                        sizes="80px"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => document.getElementById("band-logo-upload")?.click()}
-                        disabled={isLoading || isUploadingLogo}
-                        className="text-muted-foreground hover:text-foreground"
-                      >
-                        {isUploadingLogo ? "Uploading..." : "Change"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleRemoveLogo}
-                        disabled={isLoading || isUploadingLogo}
-                        className="text-destructive hover:text-destructive/90"
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => document.getElementById("band-logo-upload")?.click()}
-                    disabled={isLoading || isUploadingLogo}
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    {isUploadingLogo ? "Uploading..." : "Upload logo"}
-                  </Button>
-                )}
-                <input
-                  id="band-logo-upload"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleLogoUpload}
-                  disabled={isLoading || isUploadingLogo}
-                />
-              </div>
-
-              {/* Hero Image */}
+              {/* Cover Image */}
               <div className="space-y-1.5">
                 <label className="text-xs text-muted-foreground">{t("heroImageLabel")}</label>
                 {heroImageUrl ? (
-                  <div className="flex items-start gap-4">
-                    <div className="relative w-40 h-24 border border-border rounded-lg overflow-hidden bg-muted">
-                      <Image
-                        src={heroImageUrl}
-                        alt="Hero image"
-                        fill
-                        className="object-cover"
-                        sizes="160px"
-                      />
-                    </div>
-                    <div className="flex gap-2">
+                  <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-muted border border-border">
+                    <Image
+                      src={heroImageUrl}
+                      alt="Cover image"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 672px) 100vw, 672px"
+                    />
+                    <div className="absolute bottom-2 right-2 flex gap-1">
                       <Button
                         type="button"
-                        variant="ghost"
-                        size="sm"
+                        variant="secondary"
+                        size="icon"
+                        className="h-7 w-7 rounded-full bg-black/50 hover:bg-black/70 text-white border-0"
                         onClick={() => document.getElementById("band-hero-upload")?.click()}
                         disabled={isLoading || isUploadingHero}
-                        className="text-muted-foreground hover:text-foreground"
                       >
-                        {isUploadingHero ? "Uploading..." : "Change"}
+                        <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       <Button
                         type="button"
-                        variant="ghost"
-                        size="sm"
+                        variant="secondary"
+                        size="icon"
+                        className="h-7 w-7 rounded-full bg-black/50 hover:bg-destructive text-white border-0"
                         onClick={handleRemoveHero}
                         disabled={isLoading || isUploadingHero}
-                        className="text-destructive hover:text-destructive/90"
                       >
-                        Remove
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
+                    {isUploadingHero && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <span className="text-white text-sm animate-pulse">Uploading...</span>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
+                    className="ml-2"
                     onClick={() => document.getElementById("band-hero-upload")?.click()}
                     disabled={isLoading || isUploadingHero}
                   >
                     <Upload className="mr-2 h-4 w-4" />
-                    {isUploadingHero ? "Uploading..." : "Upload hero image"}
+                    {isUploadingHero ? "Uploading..." : "Upload cover image"}
                   </Button>
                 )}
                 <input
@@ -593,6 +570,15 @@ export function BandEditorPanel({
             </div>
           </div>
         </form>
+
+        {selectedImageSrc && (
+          <ImageCropDialog
+            imageSrc={selectedImageSrc}
+            open={cropDialogOpen}
+            onOpenChange={handleCropDialogClose}
+            onCropComplete={handleCropComplete}
+          />
+        )}
       </SheetContent>
     </Sheet>
   );

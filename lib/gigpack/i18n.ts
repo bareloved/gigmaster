@@ -124,7 +124,7 @@ const MESSAGES: MessageTree = {
     descriptionLabel: "Description (optional)",
     descriptionPlaceholder: "A brief description of this band",
     logoLabel: "Band logo",
-    heroImageLabel: "Hero image",
+    heroImageLabel: "Cover image",
     accentColorLabel: "Accent color",
     posterSkinLabel: "Poster style",
     defaultLineupLabel: "Default lineup",
