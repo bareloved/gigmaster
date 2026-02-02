@@ -233,6 +233,11 @@ export interface GigPackData {
   status: string;
   notes: string | null;
   schedule: string | null;
+
+  // External gig info
+  isExternal: boolean;
+  externalEventUrl: string | null;
+  scheduleNotes: ScheduleNoteItem[] | null;
   
   // Host info (gig owner)
   host: {
@@ -295,6 +300,7 @@ export interface DashboardGig {
   status: string | null;
   isManager: boolean;
   isPlayer: boolean;
+  isExternal?: boolean;
   playerRoleName?: string | null;
   playerGigRoleId?: string | null;
   invitationStatus?: string | null;
@@ -345,6 +351,41 @@ export type NotificationType =
   | 'gig_updated'
   | 'gig_cancelled'
   | 'payment_received';
+
+// ============================================================================
+// EXTERNAL GIG & CALENDAR IMPORT TYPES
+// ============================================================================
+
+/**
+ * Schedule item for structured schedule display (stored as JSONB in schedule_notes)
+ */
+export interface ScheduleNoteItem {
+  time: string;      // e.g., "17:00" or "5:00 PM"
+  label: string;     // e.g., "Load-in", "Soundcheck"
+  notes?: string;    // Optional additional details
+}
+
+/**
+ * Personal earnings tracking (stored on gig_roles)
+ */
+export interface PersonalEarnings {
+  amount: number | null;
+  currency: string;
+  notes: string | null;
+  paidAt: string | null;
+}
+
+/**
+ * Calendar refresh diff - shows what changed since last import
+ */
+export interface CalendarRefreshDiff {
+  hasChanges: boolean;
+  changes: {
+    field: string;
+    oldValue: string | null;
+    newValue: string | null;
+  }[];
+}
 
 /**
  * System User - Public profile for user search

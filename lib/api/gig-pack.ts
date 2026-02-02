@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import type { GigPack, LineupMember, GigScheduleItem, GigMaterial, GigPackTheme, PosterSkin } from '@/lib/gigpack/types';
-import type { GigPackData } from '@/lib/types/shared';
+import type { GigPackData, ScheduleNoteItem } from '@/lib/types/shared';
 
 // Type definitions for database join results
 interface GigScheduleItemRow {
@@ -291,6 +291,9 @@ export async function getGigPack(
       hero_image_url,
       band_name,
       owner_id,
+      is_external,
+      external_event_url,
+      schedule_notes,
       owner:profiles!gigs_owner_profiles_fkey(
         id,
         name
@@ -458,6 +461,9 @@ export async function getGigPack(
     status: gig.status || 'draft',
     notes: gig.internal_notes,
     schedule: scheduleText,
+    isExternal: gig.is_external ?? false,
+    externalEventUrl: gig.external_event_url ?? null,
+    scheduleNotes: (gig.schedule_notes as ScheduleNoteItem[] | null) ?? null,
     host: gig.owner
       ? {
           id: (gig.owner as GigOwnerProfile).id,

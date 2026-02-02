@@ -410,6 +410,10 @@ export type Database = {
           paid_amount: number | null
           paid_at: string | null
           payment_status: string | null
+          personal_earnings_amount: number | null
+          personal_earnings_currency: string | null
+          personal_earnings_notes: string | null
+          personal_earnings_paid_at: string | null
           player_notes: string | null
           role_name: string | null
           sort_order: number | null
@@ -432,6 +436,10 @@ export type Database = {
           paid_amount?: number | null
           paid_at?: string | null
           payment_status?: string | null
+          personal_earnings_amount?: number | null
+          personal_earnings_currency?: string | null
+          personal_earnings_notes?: string | null
+          personal_earnings_paid_at?: string | null
           player_notes?: string | null
           role_name?: string | null
           sort_order?: number | null
@@ -454,6 +462,10 @@ export type Database = {
           paid_amount?: number | null
           paid_at?: string | null
           payment_status?: string | null
+          personal_earnings_amount?: number | null
+          personal_earnings_currency?: string | null
+          personal_earnings_notes?: string | null
+          personal_earnings_paid_at?: string | null
           player_notes?: string | null
           role_name?: string | null
           sort_order?: number | null
@@ -558,18 +570,26 @@ export type Database = {
           date: string
           dress_code: string | null
           end_time: string | null
+          external_calendar_event_id: string | null
+          external_calendar_provider: string | null
+          external_event_url: string | null
           gig_type: string | null
           hero_image_url: string | null
           id: string
+          imported_from_calendar: boolean
           internal_notes: string | null
+          is_external: boolean
           location_address: string | null
           location_name: string | null
+          notes: string | null
           on_stage_time: string | null
           owner_id: string | null
           parking_notes: string | null
           payment_notes: string | null
           poster_skin: string | null
           project_id: string | null
+          schedule: string | null
+          schedule_notes: Json | null
           setlist: string | null
           setlist_pdf_url: string | null
           start_time: string | null
@@ -595,18 +615,26 @@ export type Database = {
           date: string
           dress_code?: string | null
           end_time?: string | null
+          external_calendar_event_id?: string | null
+          external_calendar_provider?: string | null
+          external_event_url?: string | null
           gig_type?: string | null
           hero_image_url?: string | null
           id?: string
+          imported_from_calendar?: boolean
           internal_notes?: string | null
+          is_external?: boolean
           location_address?: string | null
           location_name?: string | null
+          notes?: string | null
           on_stage_time?: string | null
           owner_id?: string | null
           parking_notes?: string | null
           payment_notes?: string | null
           poster_skin?: string | null
           project_id?: string | null
+          schedule?: string | null
+          schedule_notes?: Json | null
           setlist?: string | null
           setlist_pdf_url?: string | null
           start_time?: string | null
@@ -632,18 +660,26 @@ export type Database = {
           date?: string
           dress_code?: string | null
           end_time?: string | null
+          external_calendar_event_id?: string | null
+          external_calendar_provider?: string | null
+          external_event_url?: string | null
           gig_type?: string | null
           hero_image_url?: string | null
           id?: string
+          imported_from_calendar?: boolean
           internal_notes?: string | null
+          is_external?: boolean
           location_address?: string | null
           location_name?: string | null
+          notes?: string | null
           on_stage_time?: string | null
           owner_id?: string | null
           parking_notes?: string | null
           payment_notes?: string | null
           poster_skin?: string | null
           project_id?: string | null
+          schedule?: string | null
+          schedule_notes?: Json | null
           setlist?: string | null
           setlist_pdf_url?: string | null
           start_time?: string | null

@@ -1,10 +1,9 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import type { DashboardGig } from "@/lib/types/shared";
+import type { DashboardGig, CalendarRefreshDiff } from "@/lib/types/shared";
 import { checkGigConflicts, timesOverlap } from "@/lib/api/calendar";
 import { GoogleCalendarClient, GoogleCalendarEvent, parseGoogleDateTime } from "@/lib/integrations/google-calendar";
-import { parseScheduleFromDescription } from "@/lib/utils/parse-schedule";
-import { matchAttendeesToUsers, mapResponseStatus } from "@/lib/utils/match-attendees";
+import { parseScheduleFromDescription, extractScheduleItemsAsJson } from "@/lib/utils/parse-schedule";
 
 /**
  * Google Calendar Integration Functions (Phase 1.5)
@@ -151,13 +150,30 @@ export async function fetchGoogleCalendarEvents(
 }
 
 /**
- * Import calendar event as gig
+ * Import calendar event as an external gig
+ *
+ * Creates a gig with is_external=true where the importer is a participant (not manager).
+ * Only one gig_role is created - for the importer themselves.
+ * Attendees from the calendar event are ignored (musician imports are personal).
+ * Returns the existing gig ID if the event was already imported (duplicate detection).
  */
 export async function importCalendarEventAsGig(
   userId: string,
   event: GoogleCalendarEvent
 ): Promise<string> {
   const supabase = await createClient();
+
+  // Check for duplicate import
+  const { data: existing } = await supabase
+    .from("gigs")
+    .select("id")
+    .eq("external_calendar_event_id", event.id)
+    .eq("owner_id", userId)
+    .maybeSingle();
+
+  if (existing) {
+    return existing.id;
+  }
 
   // Parse event date/time
   const { date, time: startTime } = parseGoogleDateTime(
@@ -171,8 +187,9 @@ export async function importCalendarEventAsGig(
 
   // Parse schedule from description
   const { schedule, remainingText } = parseScheduleFromDescription(event.description);
+  const scheduleNotes = extractScheduleItemsAsJson(schedule);
 
-  // Create gig with notes and schedule
+  // Create external gig
   const { data: gig, error: gigError } = await supabase
     .from("gigs")
     .insert({
@@ -184,9 +201,12 @@ export async function importCalendarEventAsGig(
       location_name: event.location || null,
       notes: remainingText || null,
       schedule: schedule || null,
-      status: "draft",
+      schedule_notes: scheduleNotes.length > 0 ? scheduleNotes : null,
+      status: "confirmed",
+      is_external: true,
       external_calendar_event_id: event.id,
       external_calendar_provider: "google",
+      external_event_url: event.htmlLink || null,
       imported_from_calendar: true,
     })
     .select("id")
@@ -196,33 +216,22 @@ export async function importCalendarEventAsGig(
     throw new Error(gigError?.message || "Failed to create gig");
   }
 
-  // Import attendees as GigRoles
-  if (event.attendees && event.attendees.length > 0) {
-    // Match attendees to existing Ensemble users
-    const matchedAttendees = await matchAttendeesToUsers(event.attendees);
-
-    // Create GigRoles for attendees
-    const roleInserts = matchedAttendees.map(attendee => ({
+  // Create a single gig_role for the importer
+  // Attendee matching is dormant for musician imports - see match-attendees.ts
+  const { error: roleError } = await supabase
+    .from("gig_roles")
+    .insert({
       gig_id: gig.id,
-      role_name: "Player", // Default role
-      musician_name: attendee.displayName || attendee.email,
-      musician_id: attendee.userId || null, // Link if user exists in Ensemble
-      invitation_status: mapResponseStatus(attendee.responseStatus),
-      // Note: NOT automatically adding to My Circle
-      // Users can manually add attendees to their circle later
-    }));
+      musician_id: userId,
+      role_name: "Musician",
+      invitation_status: "accepted",
+    });
 
-    const { error: rolesError } = await supabase
-      .from("gig_roles")
-      .insert(roleInserts);
-
-    if (rolesError) {
-      console.error("[Import Gig] Error creating gig roles:", rolesError);
-      // Don't fail the entire import if roles fail, just log it
-    }
+  if (roleError) {
+    console.error("[Import Gig] Error creating gig role:", roleError);
   }
 
-  // Get connection ID
+  // Log import
   const { data: connection } = await supabase
     .from("calendar_connections")
     .select("id")
@@ -231,7 +240,6 @@ export async function importCalendarEventAsGig(
     .single();
 
   if (connection) {
-    // Log import - map to existing schema fields
     await supabase.from("calendar_sync_log").insert({
       user_id: userId,
       provider: "google",
@@ -246,6 +254,129 @@ export async function importCalendarEventAsGig(
   }
 
   return gig.id;
+}
+
+/**
+ * Refresh an external gig from Google Calendar
+ *
+ * Fetches the latest event data and compares with the stored gig.
+ * Returns a diff of changed fields. If applyChanges=true, updates the gig.
+ * Preserves user data (personal earnings, setlists, player notes).
+ */
+export async function refreshExternalGig(
+  gigId: string,
+  userId: string,
+  applyChanges: boolean = false
+): Promise<CalendarRefreshDiff> {
+  const supabase = await createClient();
+
+  // Fetch the gig
+  const { data: gig, error: gigError } = await supabase
+    .from("gigs")
+    .select("*")
+    .eq("id", gigId)
+    .single();
+
+  if (gigError || !gig) {
+    throw new Error(gigError?.message || "Gig not found");
+  }
+
+  if (!gig.is_external) {
+    throw new Error("This is not an external gig");
+  }
+
+  // Verify user has access (either owner or has a role)
+  const { data: role } = await supabase
+    .from("gig_roles")
+    .select("id")
+    .eq("gig_id", gigId)
+    .eq("musician_id", userId)
+    .maybeSingle();
+
+  if (gig.owner_id !== userId && !role) {
+    throw new Error("You don't have access to this gig");
+  }
+
+  // Get Google Calendar credentials
+  const { data: connection, error: connError } = await supabase
+    .from("calendar_connections")
+    .select("access_token, refresh_token, token_expires_at")
+    .eq("user_id", userId)
+    .eq("provider", "google")
+    .single();
+
+  if (connError || !connection) {
+    throw new Error("Google Calendar not connected");
+  }
+
+  // Fetch the latest event from Google Calendar
+  const googleClient = new GoogleCalendarClient();
+  googleClient.setCredentials({
+    access_token: connection.access_token,
+    refresh_token: connection.refresh_token,
+    expiry_date: new Date(connection.token_expires_at).getTime(),
+  });
+
+  const event = await googleClient.getEvent(gig.external_calendar_event_id!);
+
+  // Parse the updated event
+  const { date: newDate, time: newStartTime } = parseGoogleDateTime(
+    event.start.dateTime,
+    event.start.date
+  );
+  const { time: newEndTime } = parseGoogleDateTime(
+    event.end.dateTime,
+    event.end.date
+  );
+  const { schedule: newSchedule, remainingText: newNotes } =
+    parseScheduleFromDescription(event.description);
+  const newScheduleNotes = extractScheduleItemsAsJson(newSchedule);
+
+  // Compare fields
+  const changes: CalendarRefreshDiff["changes"] = [];
+
+  const comparisons: Array<{ field: string; oldVal: string | null; newVal: string | null }> = [
+    { field: "title", oldVal: gig.title, newVal: event.summary || null },
+    { field: "date", oldVal: gig.date, newVal: newDate },
+    { field: "start_time", oldVal: gig.start_time, newVal: newStartTime },
+    { field: "end_time", oldVal: gig.end_time, newVal: newEndTime },
+    { field: "location_name", oldVal: gig.location_name, newVal: event.location || null },
+  ];
+
+  for (const { field, oldVal, newVal } of comparisons) {
+    if (oldVal !== newVal) {
+      changes.push({ field, oldValue: oldVal, newValue: newVal });
+    }
+  }
+
+  // Check if notes/schedule changed
+  if ((gig.notes || null) !== (newNotes || null)) {
+    changes.push({ field: "notes", oldValue: gig.notes, newValue: newNotes || null });
+  }
+  if ((gig.schedule || null) !== (newSchedule || null)) {
+    changes.push({ field: "schedule", oldValue: gig.schedule, newValue: newSchedule || null });
+  }
+
+  const diff: CalendarRefreshDiff = {
+    hasChanges: changes.length > 0,
+    changes,
+  };
+
+  // Apply changes if requested
+  if (applyChanges && diff.hasChanges) {
+    const updateData: Record<string, unknown> = {};
+    for (const change of changes) {
+      updateData[change.field] = change.newValue;
+    }
+    // Also update schedule_notes JSONB
+    if (changes.some(c => c.field === "schedule")) {
+      updateData.schedule_notes = newScheduleNotes.length > 0 ? newScheduleNotes : null;
+    }
+
+    await supabase.from("gigs").update(updateData).eq("id", gigId);
+  }
+
+  return diff;
 }
 
 /**

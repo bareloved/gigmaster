@@ -145,6 +145,22 @@ export interface ScheduleItem {
   rawLine: string; // Original line
 }
 
+/**
+ * Extract schedule items as JSONB-compatible array for schedule_notes column
+ * Uses ScheduleNoteItem format for structured storage
+ */
+export function extractScheduleItemsAsJson(
+  schedule: string | null
+): Array<{ time: string; label: string; notes?: string }> {
+  if (!schedule) return [];
+  const items = extractScheduleItems(schedule);
+  return items.map(item => ({
+    time: item.time,
+    label: item.term || item.rawLine,
+    notes: undefined,
+  }));
+}
+
 export function extractScheduleItems(schedule: string | null): ScheduleItem[] {
   if (!schedule) {
     return [];
