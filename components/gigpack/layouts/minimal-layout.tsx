@@ -7,9 +7,26 @@ import { GigPack } from "@/lib/gigpack/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, Paperclip, ExternalLink, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, Guitar, Drum, Piano, Volume2, Radio, FileText } from "lucide-react";
+import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, Paperclip, ExternalLink, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, Guitar, Drum, Piano, Volume2, Radio, FileText, CheckCircle2, XCircle, HelpCircle, MinusCircle, AlertCircle } from "lucide-react";
 import { classifyGigVisualTheme, pickFallbackImageForTheme } from "@/lib/gigpack/gig-visual-theme";
 import { GigActivityWidget } from "@/components/dashboard/activity-widget";
+
+function getStatusIcon(status?: string) {
+  switch (status) {
+    case "accepted":
+      return <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />;
+    case "declined":
+      return <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />;
+    case "tentative":
+      return <HelpCircle className="h-3.5 w-3.5 text-amber-500 shrink-0" />;
+    case "needs_sub":
+      return <AlertCircle className="h-3.5 w-3.5 text-orange-500 shrink-0" />;
+    case "replaced":
+      return <MinusCircle className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />;
+    default: // pending, invited, or undefined
+      return <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />;
+  }
+}
 
 interface MinimalLayoutProps {
   gigPack: Omit<GigPack, "internal_notes" | "owner_id">;
@@ -399,6 +416,18 @@ export function MinimalLayout({ gigPack, openMaps }: MinimalLayoutProps) {
                       key={index}
                       className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/30 border border-border/60"
                     >
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="flex items-center">
+                            {getStatusIcon(member.invitationStatus)}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="capitalize">
+                            {member.invitationStatus?.replace("_", " ") || "pending"}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
                       {member.name && (
                         <span className="text-[13px] font-semibold leading-none">
                           {member.name}

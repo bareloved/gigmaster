@@ -108,8 +108,12 @@ export async function clearAllNotifications(userId: string): Promise<void> {
 
 /**
  * Create a notification
- * Used by other API functions to trigger notifications
- * 
+ * Used by other API functions to trigger notifications.
+ *
+ * Uses a database function to handle the partial unique index on
+ * (user_id, gig_id, type) WHERE gig_id IS NOT NULL. When a duplicate exists,
+ * the notification is updated with the new title/message and marked unread.
+ *
  * Note: This function logs errors but doesn't throw them.
  * Notifications should never break primary workflows.
  */
@@ -117,14 +121,25 @@ export async function createNotification(
   data: NotificationInsert
 ): Promise<void> {
   const supabase = createClient();
-  
-  const { error } = await supabase
-    .from('notifications')
-    .insert(data);
-  
+
+  const { error } = await supabase.rpc('create_or_update_notification', {
+    p_user_id: data.user_id,
+    p_type: data.type,
+    p_title: data.title,
+    p_message: data.message ?? undefined,
+    p_link: data.link ?? undefined,
+    p_gig_id: data.gig_id ?? undefined,
+    p_gig_role_id: data.gig_role_id ?? undefined,
+    p_metadata: data.metadata ?? undefined,
+  });
+
   if (error) {
-    // Log error but don't throw - notifications shouldn't break primary flows
-    console.error('Failed to create notification:', error);
+    console.error('Failed to create notification:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+    });
   }
 }
 

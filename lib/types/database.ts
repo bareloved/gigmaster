@@ -1020,6 +1020,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_or_update_notification: {
+        Args: {
+          p_gig_id?: string
+          p_gig_role_id?: string
+          p_link?: string
+          p_message?: string
+          p_metadata?: Json
+          p_title: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       expire_old_invitations: { Args: never; Returns: undefined }
       fn_can_update_gig_role: {
         Args: {
