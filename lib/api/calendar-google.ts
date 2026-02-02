@@ -198,6 +198,7 @@ export async function importCalendarEventAsGig(
       date,
       start_time: startTime,
       end_time: endTime,
+      call_time: startTime || null,
       location_name: event.location || null,
       notes: remainingText || null,
       schedule: schedule || null,
@@ -340,6 +341,7 @@ export async function refreshExternalGig(
     { field: "date", oldVal: gig.date, newVal: newDate },
     { field: "start_time", oldVal: gig.start_time, newVal: newStartTime },
     { field: "end_time", oldVal: gig.end_time, newVal: newEndTime },
+    { field: "call_time", oldVal: gig.call_time, newVal: newStartTime },
     { field: "location_name", oldVal: gig.location_name, newVal: event.location || null },
   ];
 

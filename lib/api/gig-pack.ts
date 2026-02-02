@@ -148,6 +148,21 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
     }));
   }
 
+  // For external gigs: append end_time as a schedule entry if it exists
+  // and isn't already represented in the schedule
+  if (gig.is_external && gig.end_time) {
+    const endTimeStr = typeof gig.end_time === 'string'
+      ? gig.end_time.substring(0, 5)  // "HH:MM:SS" → "HH:MM"
+      : null;
+    if (endTimeStr && !schedule.some(item => item.time === endTimeStr)) {
+      schedule.push({
+        id: 'end-time',
+        time: endTimeStr,
+        label: 'End',
+      });
+    }
+  }
+
   // Transform lineup from gig_roles
   const lineup: LineupMember[] = ((gig.gig_roles as GigRoleRow[]) || [])
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
@@ -227,7 +242,7 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
     band_id: gig.project_id || null,
     band_name: gig.band_name || null,
     date: gig.date || new Date().toISOString(),
-    call_time: gig.call_time || null,
+    call_time: gig.call_time || (gig.start_time ? String(gig.start_time).substring(0, 5) : null),
     on_stage_time: gig.on_stage_time || null,
     venue_name: gig.venue_name || gig.location_name || null,
     venue_address: gig.venue_address || gig.location_address || null,
