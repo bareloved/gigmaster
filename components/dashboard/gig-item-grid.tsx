@@ -81,18 +81,18 @@ const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, he
         {/* Status overlay */}
         <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
           {gig.isManager ? (
-            <Badge variant="outline" className="gap-1 text-xs bg-orange-50/90 border-orange-200 text-orange-700 dark:bg-orange-950/90 dark:border-orange-800 dark:text-orange-300 backdrop-blur-sm">
-              <Crown className="h-3 w-3" />
+            <Badge variant="outline" className="gap-0.5 text-[10px] px-1.5 py-0 border font-semibold bg-orange-50/90 border-orange-200 text-orange-700 dark:bg-orange-950/90 dark:border-orange-800 dark:text-orange-300 backdrop-blur-sm">
+              <Crown className="h-2.5 w-2.5" />
               You
             </Badge>
           ) : gig.hostName ? (
-            <Badge variant="outline" className="gap-1 text-xs bg-blue-50/90 border-blue-200 text-blue-700 dark:bg-blue-950/90 dark:border-blue-800 dark:text-blue-300 backdrop-blur-sm">
-              <Mail className="h-3 w-3" />
+            <Badge variant="outline" className="gap-0.5 text-[10px] px-1.5 py-0 border font-semibold bg-blue-50/90 border-blue-200 text-blue-700 dark:bg-blue-950/90 dark:border-blue-800 dark:text-blue-300 backdrop-blur-sm">
+              <Mail className="h-2.5 w-2.5" />
               {gig.hostName}
             </Badge>
           ) : null}
           {gig.status && (
-            <GigStatusBadge status={gig.status} className="text-xs" />
+            <GigStatusBadge status={gig.status} className="text-[10px] px-1.5 py-0 border font-semibold" />
           )}
         </div>
       </div>
