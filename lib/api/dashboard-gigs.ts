@@ -158,6 +158,7 @@ async function listDashboardGigsFallback(
       status,
       hero_image_url,
       gig_type,
+      is_external,
       owner:profiles!gigs_owner_profiles_fkey(
         id,
         name
@@ -191,8 +192,10 @@ async function listDashboardGigsFallback(
         r?.invitation_status !== 'declined'
       );
 
-      const isManager = gig.owner_id === userId;
-      const isPlayer = !!userRole;
+      const isExternalGig = gig.is_external ?? false;
+      // External gigs: treat owner as player, not manager
+      const isManager = isExternalGig ? false : gig.owner_id === userId;
+      const isPlayer = isExternalGig ? true : !!userRole;
 
       if (!isManager && !isPlayer) continue;
 
@@ -220,6 +223,7 @@ async function listDashboardGigsFallback(
         status: gig.status,
         isManager,
         isPlayer,
+        isExternal: isExternalGig,
         playerRoleName: userRole?.role_name || null,
         playerGigRoleId: userRole?.id || null,
         invitationStatus: userRole?.invitation_status || null,
@@ -288,6 +292,7 @@ export async function listRecentPastGigs(
       call_time,
       location_name,
       status,
+      is_external,
       owner:profiles!gigs_owner_profiles_fkey(
         id,
         name
@@ -319,8 +324,9 @@ export async function listRecentPastGigs(
       // Only consider user a player if they have a role that's been invited (not pending)
       const userRole = roles.find(r => r?.musician_id === userId && r?.invitation_status !== 'pending');
 
-      const isManager = gig.owner_id === userId;
-      const isPlayer = !!userRole;
+      const isExternalGig = gig.is_external ?? false;
+      const isManager = isExternalGig ? false : gig.owner_id === userId;
+      const isPlayer = isExternalGig ? true : !!userRole;
 
       // Skip if user has no connection to this gig
       if (!isManager && !isPlayer) continue;
@@ -339,6 +345,7 @@ export async function listRecentPastGigs(
         status: gig.status,
         isManager,
         isPlayer,
+        isExternal: isExternalGig,
         playerRoleName: userRole?.role_name || null,
         playerGigRoleId: userRole?.id || null,
         invitationStatus: userRole?.invitation_status || null,
@@ -439,6 +446,7 @@ async function listAllPastGigsFallback(
       call_time,
       location_name,
       status,
+      is_external,
       owner:profiles!gigs_owner_profiles_fkey(
         id,
         name
@@ -467,8 +475,9 @@ async function listAllPastGigsFallback(
       const roles = Array.isArray(gig.gig_roles) ? gig.gig_roles : [gig.gig_roles];
       const userRole = roles.find(r => r?.musician_id === userId && r?.invitation_status !== 'pending');
 
-      const isManager = gig.owner_id === userId;
-      const isPlayer = !!userRole;
+      const isExternalGig = gig.is_external ?? false;
+      const isManager = isExternalGig ? false : gig.owner_id === userId;
+      const isPlayer = isExternalGig ? true : !!userRole;
 
       if (!isManager && !isPlayer) continue;
 
@@ -486,6 +495,7 @@ async function listAllPastGigsFallback(
         status: gig.status,
         isManager,
         isPlayer,
+        isExternal: isExternalGig,
         playerRoleName: userRole?.role_name || null,
         playerGigRoleId: userRole?.id || null,
         invitationStatus: userRole?.invitation_status || null,

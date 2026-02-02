@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, ArrowLeft, Edit, Share2, RefreshCw } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Edit, Share2, RefreshCw, ExternalLink, CalendarSync, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { getGigPackFull } from '@/lib/api/gig-pack';
@@ -13,7 +13,12 @@ import { MinimalLayout } from '@/components/gigpack/layouts/minimal-layout';
 import { GigPackShareDialog } from '@/components/gigpack/gigpack-share-dialog';
 import { InvitationBanner } from '@/components/gigpack/invitation-banner';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { GigPack } from '@/lib/gigpack/types';
+import type { CalendarRefreshDiff } from '@/lib/types/shared';
+import { PersonalEarningsForm } from '@/components/gigpack/personal-earnings-form';
+import { toast } from 'sonner';
 
 export default function GigPackPage() {
   const params = useParams();
@@ -25,7 +30,62 @@ export default function GigPackPage() {
   
   // Share dialog state
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  
+
+  // External gig refresh state
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshDiff, setRefreshDiff] = useState<CalendarRefreshDiff | null>(null);
+  const [refreshDialogOpen, setRefreshDialogOpen] = useState(false);
+  const [applying, setApplying] = useState(false);
+
+  const handleRefreshFromCalendar = async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch('/api/calendar/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gigId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to refresh');
+      }
+      const diff: CalendarRefreshDiff = await res.json();
+      if (diff.hasChanges) {
+        setRefreshDiff(diff);
+        setRefreshDialogOpen(true);
+      } else {
+        toast.success('Already up to date');
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to check for updates');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleApplyChanges = async () => {
+    setApplying(true);
+    try {
+      const res = await fetch('/api/calendar/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gigId, confirm: true }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to apply changes');
+      }
+      toast.success('Changes applied');
+      setRefreshDialogOpen(false);
+      setRefreshDiff(null);
+      queryClient.invalidateQueries({ queryKey: ['gig-pack-full', gigId] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to apply changes');
+    } finally {
+      setApplying(false);
+    }
+  };
+
   // Smart polling state
   const [isUserActive, setIsUserActive] = useState(true);
   const [isPolling, setIsPolling] = useState(false);
@@ -159,6 +219,8 @@ export default function GigPackPage() {
 
   // Check if user is the gig owner
   const isOwner = gigPack.owner_id === user?.id;
+  const isExternal = gigPack.is_external ?? false;
+  const externalEventUrl = gigPack.external_event_url ?? null;
 
   const openMaps = () => {
     if (gigPack.venue_maps_url) {
@@ -171,32 +233,67 @@ export default function GigPackPage() {
       {/* Top navigation bar - fixed on top */}
       <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b">
         <div className="container max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href={isOwner ? `/gigs/${gigId}?returnUrl=${encodeURIComponent(returnUrl)}` : returnUrl}>
-            <Button variant="ghost" size="sm" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              {isOwner ? 'Manage Gig' : 'Back'}
-            </Button>
-          </Link>
-          
-          {isOwner && (
-            <div className="flex items-center gap-2">
-              <Link href={`/gigs/${gigId}/edit`}>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Edit className="h-4 w-4" />
-                  Edit
-                </Button>
-              </Link>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-2"
-                onClick={() => setShareDialogOpen(true)}
-              >
-                <Share2 className="h-4 w-4" />
-                Share
+          <div className="flex items-center gap-2">
+            <Link href={isOwner && !isExternal ? `/gigs/${gigId}?returnUrl=${encodeURIComponent(returnUrl)}` : returnUrl}>
+              <Button variant="ghost" size="sm" className="gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                {isOwner && !isExternal ? 'Manage Gig' : 'Back'}
               </Button>
-            </div>
-          )}
+            </Link>
+            {isExternal && (
+              <Badge variant="secondary" className="gap-1 text-xs">
+                <CalendarSync className="h-3 w-3" />
+                External Gig
+              </Badge>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isExternal && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  disabled={refreshing}
+                  onClick={handleRefreshFromCalendar}
+                >
+                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  {refreshing ? 'Checking...' : 'Check for updates'}
+                </Button>
+                {externalEventUrl && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => window.open(externalEventUrl, '_blank', 'noopener,noreferrer')}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    <span className="hidden sm:inline">Google Calendar</span>
+                  </Button>
+                )}
+              </>
+            )}
+            {isOwner && !isExternal && (
+              <>
+                <Link href={`/gigs/${gigId}/edit`}>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => setShareDialogOpen(true)}
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -210,12 +307,21 @@ export default function GigPackPage() {
       )}
 
       {/* GigPack MinimalLayout */}
-      <MinimalLayout 
-        gigPack={gigPack as Omit<GigPack, "internal_notes" | "owner_id">} 
-        openMaps={openMaps} 
+      <MinimalLayout
+        gigPack={gigPack as Omit<GigPack, "internal_notes" | "owner_id">}
+        openMaps={openMaps}
         slug={gigPack.public_slug || gigId}
         locale="en"
       />
+
+      {/* Personal Earnings - shown for external gigs */}
+      {isExternal && (
+        <div className="container max-w-6xl mx-auto px-4 -mt-4 mb-8">
+          <div className="max-w-sm mx-auto lg:mx-0">
+            <PersonalEarningsForm gigId={gigId} />
+          </div>
+        </div>
+      )}
       
       {/* Live status indicator */}
       <div className="fixed bottom-4 right-4 z-50">
@@ -241,6 +347,52 @@ export default function GigPackPage() {
         </div>
       </div>
       
+      {/* Refresh Diff Dialog */}
+      <Dialog open={refreshDialogOpen} onOpenChange={setRefreshDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Updates from Google Calendar</DialogTitle>
+            <DialogDescription>
+              The following fields have changed since last sync.
+            </DialogDescription>
+          </DialogHeader>
+          {refreshDiff && (
+            <div className="space-y-3 max-h-[300px] overflow-y-auto">
+              {refreshDiff.changes.map((change) => (
+                <div key={change.field} className="rounded-lg border p-3">
+                  <div className="text-xs font-medium text-muted-foreground capitalize mb-1">
+                    {change.field.replace(/_/g, ' ')}
+                  </div>
+                  <div className="text-sm">
+                    <span className="line-through text-muted-foreground">{change.oldValue || '(empty)'}</span>
+                    <span className="mx-2 text-muted-foreground/50">&rarr;</span>
+                    <span className="font-medium">{change.newValue || '(empty)'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setRefreshDialogOpen(false)}>
+              Dismiss
+            </Button>
+            <Button onClick={handleApplyChanges} disabled={applying}>
+              {applying ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                  Applying...
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  Apply Changes
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Share Dialog */}
       <GigPackShareDialog
         open={shareDialogOpen}

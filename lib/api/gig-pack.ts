@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/client';
 import type { GigPack, LineupMember, GigScheduleItem, GigMaterial, GigPackTheme, PosterSkin } from '@/lib/gigpack/types';
-import type { GigPackData } from '@/lib/types/shared';
+import type { GigPackData, ScheduleNoteItem } from '@/lib/types/shared';
 
 // Type definitions for database join results
 interface GigScheduleItemRow {
@@ -129,14 +129,39 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
     .eq('gig_id', gigId)
     .order('sort_order', { ascending: true });
 
-  // Transform schedule items
-  const schedule: GigScheduleItem[] = ((gig.gig_schedule_items as GigScheduleItemRow[]) || [])
+  // Transform schedule items from gig_schedule_items table
+  let schedule: GigScheduleItem[] = ((gig.gig_schedule_items as GigScheduleItemRow[]) || [])
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
     .map((item) => ({
       id: item.id,
       time: item.time,
       label: item.label,
     }));
+
+  // Fallback: if no table schedule items but schedule_notes JSONB exists (external gigs),
+  // use those for display
+  if (schedule.length === 0 && gig.schedule_notes && Array.isArray(gig.schedule_notes)) {
+    schedule = (gig.schedule_notes as Array<{ time: string; label: string }>).map((item, i) => ({
+      id: `sn-${i}`,
+      time: item.time || null,
+      label: item.label,
+    }));
+  }
+
+  // For external gigs: append end_time as a schedule entry if it exists
+  // and isn't already represented in the schedule
+  if (gig.is_external && gig.end_time) {
+    const endTimeStr = typeof gig.end_time === 'string'
+      ? gig.end_time.substring(0, 5)  // "HH:MM:SS" → "HH:MM"
+      : null;
+    if (endTimeStr && !schedule.some(item => item.time === endTimeStr)) {
+      schedule.push({
+        id: 'end-time',
+        time: endTimeStr,
+        label: 'End',
+      });
+    }
+  }
 
   // Transform lineup from gig_roles
   const lineup: LineupMember[] = ((gig.gig_roles as GigRoleRow[]) || [])
@@ -217,7 +242,7 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
     band_id: gig.project_id || null,
     band_name: gig.band_name || null,
     date: gig.date || new Date().toISOString(),
-    call_time: gig.call_time || null,
+    call_time: gig.call_time || (gig.start_time ? String(gig.start_time).substring(0, 5) : null),
     on_stage_time: gig.on_stage_time || null,
     venue_name: gig.venue_name || gig.location_name || null,
     venue_address: gig.venue_address || gig.location_address || null,
@@ -244,6 +269,9 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
     gig_type: gig.gig_type || null,
     materials: materials.length > 0 ? materials : null,
     schedule: schedule.length > 0 ? schedule : null,
+    is_external: gig.is_external ?? false,
+    external_event_url: gig.external_event_url ?? null,
+    schedule_notes: (gig.schedule_notes as Array<{ time: string; label: string; notes?: string }> | null) ?? null,
   };
 
   return gigPack;
@@ -291,6 +319,9 @@ export async function getGigPack(
       hero_image_url,
       band_name,
       owner_id,
+      is_external,
+      external_event_url,
+      schedule_notes,
       owner:profiles!gigs_owner_profiles_fkey(
         id,
         name
@@ -458,6 +489,9 @@ export async function getGigPack(
     status: gig.status || 'draft',
     notes: gig.internal_notes,
     schedule: scheduleText,
+    isExternal: gig.is_external ?? false,
+    externalEventUrl: gig.external_event_url ?? null,
+    scheduleNotes: (gig.schedule_notes as ScheduleNoteItem[] | null) ?? null,
     host: gig.owner
       ? {
           id: (gig.owner as GigOwnerProfile).id,

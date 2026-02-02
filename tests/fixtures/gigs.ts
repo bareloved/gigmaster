@@ -37,6 +37,14 @@ export const mockGig: Gig = {
   payment_notes: null,
   client_fee: 2000,
   currency: "USD",
+  notes: null,
+  schedule: null,
+  schedule_notes: null,
+  external_calendar_event_id: null,
+  external_calendar_provider: null,
+  external_event_url: null,
+  imported_from_calendar: false,
+  is_external: false,
   created_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-01T00:00:00Z",
 };
@@ -73,6 +81,10 @@ export const mockGigRole: GigRole = {
   status: null,
   user_id: null,
   is_paid: false,
+  personal_earnings_amount: null,
+  personal_earnings_currency: "ILS",
+  personal_earnings_notes: null,
+  personal_earnings_paid_at: null,
 };
 
 /**

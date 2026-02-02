@@ -136,6 +136,10 @@ export interface GigPack {
   materials: GigMaterial[] | null;
   // Schedule - timeline for the day
   schedule: GigScheduleItem[] | null;
+  // External gig fields (imported from Google Calendar)
+  is_external?: boolean;
+  external_event_url?: string | null;
+  schedule_notes?: Array<{ time: string; label: string; notes?: string }> | null;
 }
 
 export type GigPackInsert = Omit<GigPack, "id" | "created_at" | "updated_at">;
