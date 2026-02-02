@@ -37,8 +37,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ events });
   } catch (error) {
     console.error("Error fetching calendar events:", error);
+    const message = error instanceof Error ? error.message : "Failed to fetch calendar events";
+    const needsReconnect = message.includes("expired") || message.includes("reconnect");
     return NextResponse.json(
-      { error: "Failed to fetch calendar events" },
+      { error: message, needsReconnect },
       { status: 500 }
     );
   }

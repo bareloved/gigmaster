@@ -290,6 +290,7 @@ export interface DashboardGig {
   date: string;
   startTime: string | null;
   endTime: string | null;
+  callTime: string | null;
   locationName: string | null;
   status: string | null;
   isManager: boolean;

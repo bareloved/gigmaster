@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -90,9 +91,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/dashboard">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <span className="text-xl">🎵</span>
-                </div>
+                <Image src="/gigmasterlogo.png" alt="GigMaster" width={88} height={70} />
                 <span className="font-semibold">GigMaster</span>
               </Link>
             </SidebarMenuButton>

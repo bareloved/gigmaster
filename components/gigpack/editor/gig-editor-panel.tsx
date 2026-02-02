@@ -562,41 +562,6 @@ export function GigEditorPanel({
     fetchBands();
   }, []);
 
-  // Reset form when gigPack changes (switching between edit targets)
-  useEffect(() => {
-    if (gigPack) {
-      setTitle(gigPack.title || "");
-      setBandId(gigPack.band_id || null);
-      setBandName(gigPack.band_name || "");
-      setDate(gigPack.date || "");
-      setCallTime(gigPack.call_time || "");
-      setOnStageTime(gigPack.on_stage_time || "");
-      setVenueName(gigPack.venue_name || "");
-      setVenueAddress(gigPack.venue_address || "");
-      setVenueMapsUrl(gigPack.venue_maps_url || "");
-      setLineup(gigPack.lineup || []);
-      setSetlistText(gigPack.setlist || "");
-      setSetlistPdfUrl(gigPack.setlist_pdf_url || null);
-      setSetlistMode(gigPack.setlist_pdf_url ? "pdf" : "type");
-      setDressCode(gigPack.dress_code || "");
-      setBacklineNotes(gigPack.backline_notes || "");
-      setParkingNotes(gigPack.parking_notes || "");
-      setPaymentNotes(gigPack.payment_notes || "");
-      setInternalNotes(gigPack.internal_notes || "");
-      setBandLogoUrl(gigPack.band_logo_url || "");
-      setHeroImageUrl(gigPack.hero_image_url || "");
-      setPackingChecklist(gigPack.packing_checklist || []);
-      setMaterials(gigPack.materials || []);
-      setSchedule(gigPack.schedule || []);
-      setGigType(gigPack.gig_type || null);
-
-      // Sync Info tab visibility flags
-      setShowDressCode(!!gigPack.dress_code);
-      setShowBackline(!!gigPack.backline_notes);
-      setShowParking(!!gigPack.parking_notes);
-      setShowInternalNotes(!!gigPack.internal_notes);
-    }
-  }, [gigPack]);
 
   // When opening in "create" mode (no gigPack), always start with blank form
   useEffect(() => {
@@ -1259,7 +1224,7 @@ export function GigEditorPanel({
             </Popover>
           </MetadataRow>
 
-          {/* Call Time */}
+          {/* Arrival Time */}
           <MetadataRow label={t("soundcheckTime")} inputId="call-time">
             <div className="flex items-center gap-2">
               <Clock3 className="h-4 w-4 text-muted-foreground" />
@@ -1275,7 +1240,7 @@ export function GigEditorPanel({
             </div>
           </MetadataRow>
 
-          {/* On Stage Time */}
+          {/* Soundcheck Time */}
           <MetadataRow label={t("onStageTime")} inputId="on-stage-time">
             <div className="flex items-center gap-2">
               <Clock3 className="h-4 w-4 text-muted-foreground" />

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface AppLoadingScreenProps {
@@ -19,8 +20,8 @@ export function AppLoadingScreen({ className }: AppLoadingScreenProps) {
         <div className="relative">
           {/* Pulsing ring animation */}
           <div className="absolute inset-0 rounded-xl bg-primary/20 animate-ping" />
-          <div className="relative rounded-xl bg-primary p-3">
-            <span className="text-3xl">🎵</span>
+          <div className="relative">
+            <Image src="/gigmasterlogo.png" alt="GigMaster" width={240} height={188} />
           </div>
         </div>
 

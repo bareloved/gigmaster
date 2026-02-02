@@ -42,6 +42,7 @@ interface GigWithRoles {
   date: string;
   start_time: string | null;
   end_time: string | null;
+  call_time: string | null;
   location_name: string | null;
   status: string | null;
   owner_id: string;
@@ -132,6 +133,7 @@ export default function AllGigsPage() {
           date,
           start_time,
           end_time,
+          call_time,
           location_name,
           status,
           hero_image_url,
@@ -201,6 +203,7 @@ export default function AllGigsPage() {
             date: gig.date,
             startTime: gig.start_time,
             endTime: gig.end_time,
+            callTime: gig.call_time,
             locationName: gig.location_name,
             status: gig.status,
             isManager,

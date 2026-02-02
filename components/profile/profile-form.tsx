@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RoleSelect } from "@/components/gigpack/ui/role-select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { COUNTRY_CODES } from "@/lib/utils/phone";
 import { uploadAvatar, getUserInitials } from "@/lib/utils/avatar";
@@ -184,14 +185,12 @@ export function ProfileForm({ profile, user }: ProfileFormProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="instrument">Main Instrument</Label>
-        <Input
-          id="instrument"
-          type="text"
+        <Label>Main Instrument</Label>
+        <RoleSelect
           value={instrument}
-          onChange={(e) => setInstrument(e.target.value)}
+          onChange={setInstrument}
           disabled={loading}
-          placeholder="e.g., Keys, Drums, Bass"
+          className="h-9"
         />
       </div>
 

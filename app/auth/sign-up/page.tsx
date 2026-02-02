@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -109,18 +110,10 @@ function SignUpForm() {
 
             {/* Main headline */}
             <h1 className="font-bold tracking-tight text-amber-50 leading-none">
-              <span className="block text-lg tracking-[0.2em] uppercase text-amber-400 mb-2">
+              <span className="block text-lg tracking-[0.2em] uppercase text-amber-400 mb-4">
                 Join the
               </span>
-              <span
-                className="block text-7xl"
-                style={{
-                  fontFamily: "Georgia, serif",
-                  fontStyle: "italic",
-                }}
-              >
-                Gigmaster
-              </span>
+              <Image src="/gigmasterlogo.png" alt="GigMaster" width={560} height={440} className="mx-auto" />
             </h1>
 
             {/* Tagline with decorative elements */}
@@ -191,13 +184,8 @@ function SignUpForm() {
           {/* Card */}
           <div className="bg-[#2a2a3e] rounded-2xl p-8 shadow-2xl">
             {/* Mobile Logo */}
-            <div className="lg:hidden text-center mb-6">
-              <h2
-                className="text-2xl font-bold text-amber-50"
-                style={{ fontFamily: "Georgia, serif", fontStyle: "italic" }}
-              >
-                Gigmaster
-              </h2>
+            <div className="lg:hidden flex justify-center mb-6">
+              <Image src="/gigmasterlogo.png" alt="GigMaster" width={320} height={252} />
             </div>
 
             {/* Header */}

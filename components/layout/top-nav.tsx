@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
@@ -111,13 +112,10 @@ export function TopNav() {
     <>
       <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         {/* Row 1 - Global App Bar */}
-        <div className="flex h-16 items-center px-6 gap-6">
+        <div className="flex h-24 items-center px-6 gap-6">
           {/* Logo + App Name */}
-          <Link href="/dashboard" className="flex items-center gap-3 min-w-fit">
-            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <span className="text-xl">🎵</span>
-            </div>
-            <span className="font-semibold text-lg">GigMaster</span>
+          <Link href="/dashboard" className="min-w-fit flex items-center">
+            <Image src="/gigmasterlogo.png" alt="GigMaster" width={170} height={134} className="object-contain mt-3" />
           </Link>
 
           {/* Center - Main Navigation (Desktop) */}

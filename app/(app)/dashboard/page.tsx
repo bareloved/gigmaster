@@ -34,6 +34,12 @@ import {
   ChevronDown,
   Crown,
   Mail,
+  Navigation,
+  Guitar,
+  Piano,
+  Mic2,
+  Drum,
+  Radio,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -61,24 +67,17 @@ const GigEditorPanel = dynamic(
 // HELPER FUNCTIONS
 // ========================================
 
-function getInvitationStatusBadge(status: string | null) {
-  if (!status) return null;
-
-  switch (status) {
-    case "accepted":
-      return <Badge variant="default" className="bg-green-500/10 text-green-700 dark:text-green-400 hover:bg-green-500/20">Accepted</Badge>;
-    case "invited":
-      return <Badge variant="secondary" className="bg-blue-500/10 text-blue-700 dark:text-blue-400">Invited</Badge>;
-    case "declined":
-      return <Badge variant="destructive">Declined</Badge>;
-    case "needs_sub":
-      return <Badge variant="destructive">Needs Sub</Badge>;
-    case "tentative":
-      return <Badge variant="secondary" className="bg-amber-500/10 text-amber-700 dark:text-amber-400">Tentative</Badge>;
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
+function getRoleIcon(role: string | null | undefined) {
+  if (!role) return Music;
+  const r = role.toLowerCase();
+  if (r.includes("guitar") || r.includes("bass")) return Guitar;
+  if (r.includes("key") || r.includes("piano") || r.includes("organ")) return Piano;
+  if (r.includes("vocal") || r.includes("singer") || r.includes("lead")) return Mic2;
+  if (r.includes("drum") || r.includes("percussion")) return Drum;
+  if (r.includes("dj") || r.includes("track")) return Radio;
+  return Music;
 }
+
 
 function formatTime(time: string | null): string {
   if (!time) return "";
@@ -171,8 +170,8 @@ export default function DashboardPage() {
     return null;
   }, [todayGigs, upcomingGigs, allGigs, selectedGigIndex]);
 
-  // Keyboard shortcuts (G, P, S, F)
-  useDashboardKeyboardShortcuts(nextGig?.gigId, !!nextGig);
+  // Keyboard shortcuts (G, P, S, F for managers; G only for members)
+  useDashboardKeyboardShortcuts(nextGig?.gigId, !!nextGig, nextGig?.isManager ?? false);
 
   // Show loading screen until all critical data is ready
   const isInitialLoading = isLoadingGigs;
@@ -299,16 +298,16 @@ export default function DashboardPage() {
 
                   {/* Gig Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 flex-wrap mb-3">
+                    <div className="flex items-start gap-3 flex-wrap mb-3">
                       <h2 className="font-display text-5xl font-bold tracking-tight leading-tight">{nextGig.gigTitle}</h2>
                       {/* Host/Invited Badge */}
                       {nextGig.isManager ? (
-                        <Badge variant="outline" className="bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-950 dark:border-orange-800 dark:text-orange-300">
+                        <Badge variant="outline" className="mt-2 px-2 py-0.5 text-[10px] border rounded-md bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-950 dark:border-orange-800 dark:text-orange-300">
                           <Crown className="h-3 w-3 mr-1" />
                           You
                         </Badge>
                       ) : nextGig.hostName ? (
-                        <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300">
+                        <Badge variant="outline" className="mt-2 px-2 py-0.5 text-[10px] border rounded-md bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300">
                           <Mail className="h-3 w-3 mr-1" />
                           {nextGig.hostName}
                         </Badge>
@@ -319,6 +318,24 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2">
                           <MapPin className="h-5 w-5 text-primary" />
                           <span className="text-foreground/90">{nextGig.locationName}</span>
+                          <a
+                            href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(nextGig.locationName)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-primary transition-colors"
+                            title="Google Maps directions"
+                          >
+                            <Navigation className="h-4 w-4" />
+                          </a>
+                          <a
+                            href={`https://waze.com/ul?q=${encodeURIComponent(nextGig.locationName)}&navigate=yes`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-primary transition-colors"
+                            title="Waze directions"
+                          >
+                            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.54 6.63A8.99 8.99 0 0 0 12.04 2c-2.4 0-4.6.9-6.28 2.52A8.58 8.58 0 0 0 3.04 11c0 1.42.36 2.78 1.02 4 .28.52.42 1.1.42 1.7v1.3c0 .55.45 1 1 1h1.2c.37 1.16 1.46 2 2.72 2s2.35-.84 2.72-2h1.76c.37 1.16 1.46 2 2.72 2s2.35-.84 2.72-2h1.2c.55 0 1-.45 1-1v-1.3c0-.6.14-1.18.42-1.7a7.94 7.94 0 0 0 1.02-4c0-2.2-.82-4.26-2.42-5.37ZM9.5 12a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z"/></svg>
+                          </a>
                         </div>
                       )}
                     </div>
@@ -327,12 +344,12 @@ export default function DashboardPage() {
 
                 {/* Times & Role */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6 bg-card/50 backdrop-blur-sm rounded-xl p-4 border border-border/50">
-                  {nextGig.startTime && (
+                  {nextGig.callTime && (
                     <div className="flex items-center gap-3">
                       <Clock className="h-5 w-5 text-secondary" />
                       <div>
-                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Start</div>
-                        <div className="font-mono text-lg font-bold">{formatTime(nextGig.startTime)}</div>
+                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Arrival</div>
+                        <div className="font-mono text-lg font-bold">{formatTime(nextGig.callTime)}</div>
                       </div>
                     </div>
                   )}
@@ -345,111 +362,72 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   )}
-                  {nextGig.playerRoleName && (
+                  {nextGig.playerRoleName && (() => {
+                    const RoleIcon = getRoleIcon(nextGig.playerRoleName);
+                    return (
                     <div className="flex items-center gap-3">
-                      <Music className="h-5 w-5 text-accent" />
+                      <RoleIcon className="h-5 w-5 text-accent" />
                       <div>
                         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Your Role</div>
-                        <Badge variant="secondary" className="mt-1 text-sm font-bold">{nextGig.playerRoleName}</Badge>
+                        <div className="font-mono text-lg font-bold">{nextGig.playerRoleName}</div>
                       </div>
                     </div>
-                  )}
+                    );
+                  })()}
                 </div>
 
-                <Separator className="my-6 border-t-2 border-dashed" />
+                <Separator className="my-4" />
 
-                {/* Quick Actions with Keyboard Shortcuts - Enhanced */}
-                <div className="flex flex-wrap gap-3 mb-4">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        {nextGig.isManager ? (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="gap-2 group relative"
-                            onClick={() => handleEditGig(nextGig.gigId)}
-                          >
-                            <FileText className="h-4 w-4" />
-                            Edit Gig Details
-                            <kbd className="hidden group-hover:inline-flex ml-2 pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                              G
-                            </kbd>
-                          </Button>
-                        ) : (
-                          <Link href={`/gigs/${nextGig.gigId}/pack`}>
-                            <Button variant="default" size="sm" className="gap-2 group relative">
+                {/* Footer: Actions + Status */}
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  {/* Left: Action buttons */}
+                  <div className="flex items-center gap-2">
+                    <TooltipProvider>
+                      {nextGig.isManager && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="gap-2 group relative"
+                              onClick={() => handleEditGig(nextGig.gigId)}
+                            >
                               <FileText className="h-4 w-4" />
-                              View Gig Details
+                              Edit Gig Details
                               <kbd className="hidden group-hover:inline-flex ml-2 pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
                                 G
                               </kbd>
                             </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs">Press <kbd className="px-1.5 py-0.5 text-xs font-semibold border rounded">G</kbd> to open</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link href={`/gigs/${nextGig.gigId}/pack`}>
+                            <Button variant={nextGig.isManager ? "outline" : "default"} size="sm" className="gap-2 group relative">
+                              <Briefcase className="h-4 w-4" />
+                              Open Gig Pack
+                              <kbd className="hidden group-hover:inline-flex ml-2 pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+                                P
+                              </kbd>
+                            </Button>
                           </Link>
-                        )}
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-xs">Press <kbd className="px-1.5 py-0.5 text-xs font-semibold border rounded">G</kbd> to open</p>
-                      </TooltipContent>
-                    </Tooltip>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">Press <kbd className="px-1.5 py-0.5 text-xs font-semibold border rounded">P</kbd> to open</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
 
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link href={`/gigs/${nextGig.gigId}/pack`}>
-                          <Button variant="outline" size="sm" className="gap-2 group relative">
-                            <Briefcase className="h-4 w-4" />
-                            Open Gig Pack
-                            <kbd className="hidden group-hover:inline-flex ml-2 pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                              P
-                            </kbd>
-                          </Button>
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-xs">Press <kbd className="px-1.5 py-0.5 text-xs font-semibold border rounded">P</kbd> to open</p>
-                      </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link href={`/gigs/${nextGig.gigId}?tab=setlist`}>
-                          <Button variant="outline" size="sm" className="gap-2 group relative">
-                            <Music className="h-4 w-4" />
-                            Open Setlist
-                            <kbd className="hidden group-hover:inline-flex ml-2 pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                              S
-                            </kbd>
-                          </Button>
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-xs">Press <kbd className="px-1.5 py-0.5 text-xs font-semibold border rounded">S</kbd> to open</p>
-                      </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link href={`/gigs/${nextGig.gigId}?tab=resources`}>
-                          <Button variant="outline" size="sm" className="gap-2 group relative">
-                            <FileText className="h-4 w-4" />
-                            Charts & Files
-                            <kbd className="hidden group-hover:inline-flex ml-2 pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                              F
-                            </kbd>
-                          </Button>
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-xs">Press <kbd className="px-1.5 py-0.5 text-xs font-semibold border rounded">F</kbd> to open</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-
-                {/* Status Badges */}
-                <div className="flex items-center gap-2 mt-4">
-                  <GigStatusBadge status={nextGig.status ?? 'draft'} />
-                  {nextGig.invitationStatus && getInvitationStatusBadge(nextGig.invitationStatus)}
+                  {/* Right: Status badges */}
+                  <div className="flex items-center gap-2 [&_div]:px-2 [&_div]:py-0.5 [&_div]:text-[10px] [&_div]:border [&_div]:rounded-md">
+                    <GigStatusBadge status={nextGig.status ?? 'draft'} />
+                  </div>
                 </div>
 
               </CardContent>
@@ -508,57 +486,52 @@ export default function DashboardPage() {
                       >
                         <Card className="ticket-card overflow-hidden hover:shadow-stage transition-all duration-300 hover:scale-[1.02] border-l-4">
                           <CardContent
-                            className="p-5 relative bg-cover bg-center"
+                            className="p-3 relative bg-cover bg-center"
                             style={{
                               backgroundImage: `linear-gradient(to right, hsl(var(--card) / 0.92), hsl(var(--card) / 0.85)), url('${gig.heroImageUrl || getGigFallbackImage({ title: gig.gigTitle, venue_name: gig.locationName, gig_type: gig.gigType }, gig.gigId)}')`,
                             }}
                           >
-                            {/* Gig Status Badge - Top Right */}
-                            <div className="absolute top-3 right-3 scale-90 origin-top-right">
-                              <GigStatusBadge status={gig.status ?? 'draft'} />
-                            </div>
-
-                            <div className="flex items-start gap-4">
-                              {/* Date badge - Enhanced */}
-                              <div className="flex-shrink-0 flex flex-col items-center justify-center bg-secondary/20 rounded-lg px-3 py-2 min-w-[60px] border-2 border-secondary/30">
-                                <div className="font-mono text-xs font-bold text-muted-foreground uppercase">
+                            <div className="flex items-center gap-3">
+                              {/* Date badge */}
+                              <div className="flex-shrink-0 flex flex-col items-center justify-center bg-secondary/20 rounded-lg px-2.5 py-1.5 min-w-[50px] border border-secondary/30">
+                                <div className="font-mono text-[10px] font-bold text-muted-foreground uppercase">
                                   {getWeekdayAndDate(gig.date).weekday}
                                 </div>
-                                <div className="font-display text-xl font-bold text-secondary">
+                                <div className="font-display text-lg font-bold text-secondary leading-tight">
                                   {getWeekdayAndDate(gig.date).shortDate.split(" ")[1]}
                                 </div>
                               </div>
 
                               {/* Gig Info */}
-                              <div className="flex-1 min-w-0 pr-16">
-                                <div className="flex items-center gap-2 flex-wrap mb-1">
-                                  <h4 className="font-bold text-lg">{gig.gigTitle}</h4>
-                                  {/* Host/Invited Badge */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <h4 className="font-bold text-base truncate">{gig.gigTitle}</h4>
                                   {gig.isManager ? (
-                                    <Badge variant="outline" className="gap-0.5 text-[10px] h-5 px-1.5 bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-950 dark:border-orange-800 dark:text-orange-300 whitespace-nowrap">
-                                      <Crown className="h-2.5 w-2.5" />
+                                    <Badge variant="outline" className="gap-0.5 text-[9px] h-4 px-1 py-0 border rounded bg-orange-500/10 border-orange-200/50 text-orange-600 dark:bg-orange-950 dark:border-orange-800/50 dark:text-orange-400 whitespace-nowrap shrink-0">
+                                      <Crown className="h-2 w-2" />
                                       You
                                     </Badge>
                                   ) : gig.hostName ? (
-                                    <Badge variant="outline" className="gap-0.5 text-[10px] h-5 px-1.5 bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300 whitespace-nowrap">
-                                      <Mail className="h-2.5 w-2.5" />
+                                    <Badge variant="outline" className="gap-0.5 text-[9px] h-4 px-1 py-0 border rounded bg-blue-500/10 border-blue-200/50 text-blue-600 dark:bg-blue-950 dark:border-blue-800/50 dark:text-blue-400 whitespace-nowrap shrink-0">
+                                      <Mail className="h-2 w-2" />
                                       {gig.hostName}
                                     </Badge>
                                   ) : null}
                                 </div>
-                                <div className="text-xs text-muted-foreground mb-2">
-                                  {gig.locationName}
-                                </div>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  {gig.playerRoleName && (
-                                    <Badge variant="outline" className="text-xs">{gig.playerRoleName}</Badge>
-                                  )}
-                                  {gig.invitationStatus && getInvitationStatusBadge(gig.invitationStatus)}
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  {gig.callTime && <span><span className="text-muted-foreground/70">Arrival:</span> <span className="font-mono font-medium">{formatTime(gig.callTime)}</span></span>}
+                                  {gig.callTime && gig.locationName && <span>·</span>}
+                                  {gig.locationName && <span className="truncate">{gig.locationName}</span>}
+                                  {gig.playerRoleName && <span>·</span>}
+                                  {gig.playerRoleName && <span className="font-medium whitespace-nowrap">{gig.playerRoleName}</span>}
                                 </div>
                               </div>
 
-                              {/* Arrow */}
-                              <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                              {/* Right side: status + arrow */}
+                              <div className="flex items-center gap-2 shrink-0 [&_div]:px-1.5 [&_div]:py-0 [&_div]:text-[9px] [&_div]:h-4 [&_div]:border [&_div]:rounded">
+                                <GigStatusBadge status={gig.status ?? 'draft'} />
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                              </div>
                             </div>
                           </CardContent>
                         </Card>

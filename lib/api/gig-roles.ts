@@ -296,7 +296,7 @@ export async function updateMyInvitationStatus(
     newStatus: status,
     notes,
   }).catch(err => {
-    console.error('Background notification failed:', err);
+    console.error('Background notification failed:', err?.message || err);
   });
 }
 
@@ -329,8 +329,8 @@ async function notifyManagerAsync(
 
   const userName = profileResult.data?.name || 'A musician';
 
-  // Only notify manager if they exist and status warrants it
-  if (!managerId) return;
+  // Only notify manager if they exist, status warrants it, and it's not a self-action
+  if (!managerId || managerId === userId) return;
 
   let notificationData: { title: string; message: string } | null = null;
 

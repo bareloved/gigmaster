@@ -138,9 +138,9 @@ export default function CalendarImportPage() {
       console.error("Error fetching events:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to fetch calendar events";
       
-      if (errorMessage.includes("not connected")) {
-        toast.error("Google Calendar not connected. Please connect it first.");
-        // Redirect to settings
+      if (errorMessage.includes("not connected") || errorMessage.includes("expired") || errorMessage.includes("reconnect")) {
+        setIsConnected(false);
+        toast.error("Google Calendar connection expired. Redirecting to reconnect...");
         setTimeout(() => {
           router.push("/settings/calendar");
         }, 2000);

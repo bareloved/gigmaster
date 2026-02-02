@@ -272,10 +272,10 @@ function ActivityMetadata({
     const changes = meta.changes as Record<string, unknown> | undefined;
     const parts: string[] = [];
     if (changes?.call_time_changed && meta.new_call_time) {
-      parts.push(`Call time changed: ${formatTime(meta.new_call_time)}`);
+      parts.push(`Arrival changed: ${formatTime(meta.new_call_time)}`);
     }
     if (changes?.on_stage_time_changed && meta.new_on_stage_time) {
-      parts.push(`On stage changed: ${formatTime(meta.new_on_stage_time)}`);
+      parts.push(`Soundcheck changed: ${formatTime(meta.new_on_stage_time)}`);
     }
     if (changes?.start_time_changed && meta.new_start_time) {
       parts.push(`Start time changed: ${formatTime(meta.new_start_time)}`);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,6 +11,7 @@ import { getGigPackFull } from '@/lib/api/gig-pack';
 import { useUser } from '@/lib/providers/user-provider';
 import { MinimalLayout } from '@/components/gigpack/layouts/minimal-layout';
 import { GigPackShareDialog } from '@/components/gigpack/gigpack-share-dialog';
+import { InvitationBanner } from '@/components/gigpack/invitation-banner';
 import { Card, CardContent } from '@/components/ui/card';
 import { GigPack } from '@/lib/gigpack/types';
 
@@ -106,6 +107,15 @@ export default function GigPackPage() {
     };
   }, [poll, isUserActive]);
 
+  // Check if user has a pending invitation for this gig
+  const pendingInvitationRole = useMemo(() => {
+    if (!gigPack?.lineup || !user?.id) return null;
+    return gigPack.lineup.find(
+      (m) => (m.userId === user.id || m.linkedUserId === user.id) &&
+        (m.invitationStatus === 'invited' || m.invitationStatus === 'pending')
+    ) ?? null;
+  }, [gigPack?.lineup, user?.id]);
+
   if (!user) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
@@ -189,6 +199,15 @@ export default function GigPackPage() {
           )}
         </div>
       </div>
+
+      {/* Invitation banner for invited players */}
+      {pendingInvitationRole?.gigRoleId && (
+        <InvitationBanner
+          roleId={pendingInvitationRole.gigRoleId}
+          gigId={gigId}
+          roleName={pendingInvitationRole.role ?? undefined}
+        />
+      )}
 
       {/* GigPack MinimalLayout */}
       <MinimalLayout 

@@ -16,10 +16,17 @@ import {
   X,
   Check,
   Upload,
-  Plus,
+  Music,
+  ImageIcon,
+  Users,
+  Pencil,
   Trash2,
 } from "lucide-react";
 import { uploadImage, deleteImage, getPathFromUrl } from "@/lib/utils/image-upload";
+import { ImageCropDialog } from "@/components/bands/image-crop-dialog";
+import { LineupMemberSearch } from "@/components/gigpack/ui/lineup-member-search";
+import { LineupMemberPill } from "@/components/gigpack/ui/lineup-member-pill";
+import type { SelectedMember } from "@/components/gigpack/ui/lineup-member-search";
 
 interface BandEditorPanelProps {
   open: boolean;
@@ -50,6 +57,10 @@ export function BandEditorPanel({
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingHero, setIsUploadingHero] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+
+  // Crop dialog state
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [selectedImageSrc, setSelectedImageSrc] = useState("");
 
   const isEditing = !!band;
 
@@ -123,9 +134,26 @@ export function BandEditorPanel({
     }
   };
 
-  const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleHeroUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Create object URL and open crop dialog instead of uploading directly
+    const objectUrl = URL.createObjectURL(file);
+    setSelectedImageSrc(objectUrl);
+    setCropDialogOpen(true);
+
+    // Reset file input so the same file can be re-selected
+    e.target.value = "";
+  };
+
+  const handleCropComplete = async (blob: Blob) => {
+    // Close dialog and clean up object URL
+    setCropDialogOpen(false);
+    if (selectedImageSrc) {
+      URL.revokeObjectURL(selectedImageSrc);
+      setSelectedImageSrc("");
+    }
 
     setIsUploadingHero(true);
     try {
@@ -143,8 +171,10 @@ export function BandEditorPanel({
         return;
       }
 
+      // Wrap the cropped blob as a File for the existing upload function
+      const croppedFile = new File([blob], "cover.jpg", { type: "image/jpeg" });
       const oldPath = heroImageUrl ? getPathFromUrl(heroImageUrl) : undefined;
-      const result = await uploadImage(file, user.id, oldPath || undefined);
+      const result = await uploadImage(croppedFile, user.id, oldPath || undefined);
 
       if ("error" in result) {
         toast({
@@ -156,7 +186,7 @@ export function BandEditorPanel({
         setHeroImageUrl(result.url);
         toast({
           title: "Success",
-          description: "Hero image uploaded successfully",
+          description: "Cover image uploaded successfully",
           duration: 2000,
         });
       }
@@ -164,14 +194,20 @@ export function BandEditorPanel({
       console.error("Error uploading hero:", error);
       toast({
         title: tCommon("error"),
-        description: "Failed to upload hero image",
+        description: "Failed to upload cover image",
         variant: "destructive",
       });
     } finally {
       setIsUploadingHero(false);
-      // Reset file input
-      e.target.value = "";
     }
+  };
+
+  const handleCropDialogClose = (open: boolean) => {
+    if (!open && selectedImageSrc) {
+      URL.revokeObjectURL(selectedImageSrc);
+      setSelectedImageSrc("");
+    }
+    setCropDialogOpen(open);
   };
 
   const handleRemoveLogo = async () => {
@@ -203,8 +239,13 @@ export function BandEditorPanel({
   };
 
   // Lineup handlers
-  const handleAddLineupMember = () => {
-    setDefaultLineup([...defaultLineup, { role: "", name: "", notes: "" }]);
+  const handleAddLineupMemberFromSearch = (member: SelectedMember) => {
+    const newMember: LineupMember = {
+      role: member.role,
+      name: member.name,
+      notes: "",
+    };
+    setDefaultLineup([...defaultLineup, newMember]);
   };
 
   const handleRemoveLineupMember = (index: number) => {
@@ -346,200 +387,148 @@ export function BandEditorPanel({
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-            {/* Band Name */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("nameLabel")}</label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={t("namePlaceholder")}
-                disabled={isLoading}
-                required
-              />
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("descriptionLabel")}</label>
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder={t("descriptionPlaceholder")}
-                disabled={isLoading}
-                rows={3}
-              />
-            </div>
-
-            {/* Band Logo */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("logoLabel")}</label>
-              {bandLogoUrl ? (
-                <div className="flex items-center gap-4">
-                  <div className="relative w-20 h-20 border border-border rounded-lg overflow-hidden bg-muted">
-                    <Image
-                      src={bandLogoUrl}
-                      alt="Band logo"
-                      fill
-                      className="object-contain"
-                      sizes="80px"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => document.getElementById("band-logo-upload")?.click()}
-                      disabled={isLoading || isUploadingLogo}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      {isUploadingLogo ? "Uploading..." : "Change"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleRemoveLogo}
-                      disabled={isLoading || isUploadingLogo}
-                      className="text-destructive hover:text-destructive/90"
-                    >
-                      Remove
-                    </Button>
-                  </div>
+          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
+            {/* Basics Card */}
+            <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="rounded-md bg-primary/10 p-1.5">
+                  <Music className="h-3.5 w-3.5 text-primary" />
                 </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => document.getElementById("band-logo-upload")?.click()}
-                  disabled={isLoading || isUploadingLogo}
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  {isUploadingLogo ? "Uploading..." : "Upload logo"}
-                </Button>
-              )}
-              <input
-                id="band-logo-upload"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleLogoUpload}
-                disabled={isLoading || isUploadingLogo}
-              />
+                <span className="text-sm font-semibold">{t("nameLabel")}</span>
+              </div>
+
+              <div className="space-y-1.5">
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={t("namePlaceholder")}
+                  disabled={isLoading}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">{t("descriptionLabel")}</label>
+                <Textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder={t("descriptionPlaceholder")}
+                  disabled={isLoading}
+                  rows={3}
+                />
+              </div>
             </div>
 
-            {/* Hero Image */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">{t("heroImageLabel")}</label>
-              {heroImageUrl ? (
-                <div className="flex items-start gap-4">
-                  <div className="relative w-40 h-24 border border-border rounded-lg overflow-hidden bg-muted">
+            {/* Visuals Card */}
+            <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="rounded-md bg-primary/10 p-1.5">
+                  <ImageIcon className="h-3.5 w-3.5 text-primary" />
+                </div>
+                <span className="text-sm font-semibold">Visuals</span>
+              </div>
+
+              {/* Cover Image */}
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">{t("heroImageLabel")}</label>
+                {heroImageUrl ? (
+                  <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-muted border border-border">
                     <Image
                       src={heroImageUrl}
-                      alt="Hero image"
+                      alt="Cover image"
                       fill
                       className="object-cover"
-                      sizes="160px"
+                      sizes="(max-width: 672px) 100vw, 672px"
                     />
+                    <div className="absolute bottom-2 right-2 flex gap-1">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="icon"
+                        className="h-7 w-7 rounded-full bg-black/50 hover:bg-black/70 text-white border-0"
+                        onClick={() => document.getElementById("band-hero-upload")?.click()}
+                        disabled={isLoading || isUploadingHero}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="icon"
+                        className="h-7 w-7 rounded-full bg-black/50 hover:bg-destructive text-white border-0"
+                        onClick={handleRemoveHero}
+                        disabled={isLoading || isUploadingHero}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    {isUploadingHero && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <span className="text-white text-sm animate-pulse">Uploading...</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => document.getElementById("band-hero-upload")?.click()}
-                      disabled={isLoading || isUploadingHero}
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      {isUploadingHero ? "Uploading..." : "Change"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleRemoveHero}
-                      disabled={isLoading || isUploadingHero}
-                      className="text-destructive hover:text-destructive/90"
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => document.getElementById("band-hero-upload")?.click()}
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="ml-2"
+                    onClick={() => document.getElementById("band-hero-upload")?.click()}
+                    disabled={isLoading || isUploadingHero}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    {isUploadingHero ? "Uploading..." : "Upload cover image"}
+                  </Button>
+                )}
+                <input
+                  id="band-hero-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleHeroUpload}
                   disabled={isLoading || isUploadingHero}
-                >
-                  <Upload className="mr-2 h-4 w-4" />
-                  {isUploadingHero ? "Uploading..." : "Upload hero image"}
-                </Button>
-              )}
-              <input
-                id="band-hero-upload"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleHeroUpload}
-                disabled={isLoading || isUploadingHero}
-              />
+                />
+              </div>
             </div>
 
-            {/* Default Lineup */}
-            <div className="space-y-3">
+            {/* Lineup Card */}
+            <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
               <div>
-                <label className="text-sm font-medium">{t("defaultLineupLabel")}</label>
-                <p className="text-xs text-muted-foreground mt-1">
+                <div className="flex items-center gap-2">
+                  <div className="rounded-md bg-primary/10 p-1.5">
+                    <Users className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <span className="text-sm font-semibold">{t("defaultLineupLabel")}</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1.5 ml-8">
                   {t("defaultLineupDescription")}
                 </p>
               </div>
 
               {defaultLineup.map((member, index) => (
-                <div
+                <LineupMemberPill
                   key={index}
-                  className="flex gap-2 items-start p-3 rounded-md border bg-muted/50"
-                >
-                  <div className="flex-1 space-y-2">
-                    <Input
-                      value={member.role}
-                      onChange={(e) => handleUpdateLineupMember(index, "role", e.target.value)}
-                      placeholder="Role (e.g. Guitar, Vocals)"
-                      disabled={isLoading}
-                    />
-                    <Input
-                      value={member.name || ""}
-                      onChange={(e) => handleUpdateLineupMember(index, "name", e.target.value)}
-                      placeholder="Name"
-                      disabled={isLoading}
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleRemoveLineupMember(index)}
-                    disabled={isLoading}
-                    className="text-destructive hover:text-destructive/90"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                  name={member.name || ""}
+                  role={member.role || ""}
+                  notes={member.notes || ""}
+                  onNameChange={(name) => handleUpdateLineupMember(index, "name", name)}
+                  onRoleChange={(role) => handleUpdateLineupMember(index, "role", role)}
+                  onNotesChange={(notes) => handleUpdateLineupMember(index, "notes", notes)}
+                  onRemove={() => handleRemoveLineupMember(index)}
+                  disabled={isLoading}
+                  showRemove={true}
+                />
               ))}
 
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAddLineupMember}
-                disabled={isLoading}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add member
-              </Button>
+              <div className="w-full">
+                <LineupMemberSearch
+                  onSelectMember={handleAddLineupMemberFromSearch}
+                  placeholder="Search musicians..."
+                  disabled={isLoading}
+                  className="w-full"
+                />
+              </div>
             </div>
           </div>
 
@@ -581,6 +570,15 @@ export function BandEditorPanel({
             </div>
           </div>
         </form>
+
+        {selectedImageSrc && (
+          <ImageCropDialog
+            imageSrc={selectedImageSrc}
+            open={cropDialogOpen}
+            onOpenChange={handleCropDialogClose}
+            onCropComplete={handleCropComplete}
+          />
+        )}
       </SheetContent>
     </Sheet>
   );
