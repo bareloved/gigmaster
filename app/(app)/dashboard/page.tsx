@@ -171,8 +171,8 @@ export default function DashboardPage() {
     return null;
   }, [todayGigs, upcomingGigs, allGigs, selectedGigIndex]);
 
-  // Keyboard shortcuts (G, P, S, F)
-  useDashboardKeyboardShortcuts(nextGig?.gigId, !!nextGig);
+  // Keyboard shortcuts (G, P, S, F for managers; G only for members)
+  useDashboardKeyboardShortcuts(nextGig?.gigId, !!nextGig, nextGig?.isManager ?? false);
 
   // Show loading screen until all critical data is ready
   const isInitialLoading = isLoadingGigs;
@@ -356,100 +356,59 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                <Separator className="my-6 border-t-2 border-dashed" />
+                <Separator className="my-4" />
 
-                {/* Quick Actions with Keyboard Shortcuts - Enhanced */}
-                <div className="flex flex-wrap gap-3 mb-4">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        {nextGig.isManager ? (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="gap-2 group relative"
-                            onClick={() => handleEditGig(nextGig.gigId)}
-                          >
-                            <FileText className="h-4 w-4" />
-                            Edit Gig Details
-                            <kbd className="hidden group-hover:inline-flex ml-2 pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                              G
-                            </kbd>
-                          </Button>
-                        ) : (
-                          <Link href={`/gigs/${nextGig.gigId}/pack`}>
-                            <Button variant="default" size="sm" className="gap-2 group relative">
+                {/* Footer: Actions + Status */}
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  {/* Left: Action buttons */}
+                  <div className="flex items-center gap-2">
+                    <TooltipProvider>
+                      {nextGig.isManager && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="gap-2 group relative"
+                              onClick={() => handleEditGig(nextGig.gigId)}
+                            >
                               <FileText className="h-4 w-4" />
-                              View Gig Details
+                              Edit Gig Details
                               <kbd className="hidden group-hover:inline-flex ml-2 pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
                                 G
                               </kbd>
                             </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs">Press <kbd className="px-1.5 py-0.5 text-xs font-semibold border rounded">G</kbd> to open</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link href={`/gigs/${nextGig.gigId}/pack`}>
+                            <Button variant={nextGig.isManager ? "outline" : "default"} size="sm" className="gap-2 group relative">
+                              <Briefcase className="h-4 w-4" />
+                              Open Gig Pack
+                              <kbd className="hidden group-hover:inline-flex ml-2 pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
+                                P
+                              </kbd>
+                            </Button>
                           </Link>
-                        )}
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-xs">Press <kbd className="px-1.5 py-0.5 text-xs font-semibold border rounded">G</kbd> to open</p>
-                      </TooltipContent>
-                    </Tooltip>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">Press <kbd className="px-1.5 py-0.5 text-xs font-semibold border rounded">P</kbd> to open</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
 
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link href={`/gigs/${nextGig.gigId}/pack`}>
-                          <Button variant="outline" size="sm" className="gap-2 group relative">
-                            <Briefcase className="h-4 w-4" />
-                            Open Gig Pack
-                            <kbd className="hidden group-hover:inline-flex ml-2 pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                              P
-                            </kbd>
-                          </Button>
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-xs">Press <kbd className="px-1.5 py-0.5 text-xs font-semibold border rounded">P</kbd> to open</p>
-                      </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link href={`/gigs/${nextGig.gigId}?tab=setlist`}>
-                          <Button variant="outline" size="sm" className="gap-2 group relative">
-                            <Music className="h-4 w-4" />
-                            Open Setlist
-                            <kbd className="hidden group-hover:inline-flex ml-2 pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                              S
-                            </kbd>
-                          </Button>
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-xs">Press <kbd className="px-1.5 py-0.5 text-xs font-semibold border rounded">S</kbd> to open</p>
-                      </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link href={`/gigs/${nextGig.gigId}?tab=resources`}>
-                          <Button variant="outline" size="sm" className="gap-2 group relative">
-                            <FileText className="h-4 w-4" />
-                            Charts & Files
-                            <kbd className="hidden group-hover:inline-flex ml-2 pointer-events-none h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100">
-                              F
-                            </kbd>
-                          </Button>
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-xs">Press <kbd className="px-1.5 py-0.5 text-xs font-semibold border rounded">F</kbd> to open</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-
-                {/* Status Badges */}
-                <div className="flex items-center gap-2 mt-4">
-                  <GigStatusBadge status={nextGig.status ?? 'draft'} />
-                  {nextGig.invitationStatus && getInvitationStatusBadge(nextGig.invitationStatus)}
+                  {/* Right: Status badges */}
+                  <div className="flex items-center gap-2">
+                    <GigStatusBadge status={nextGig.status ?? 'draft'} />
+                    {nextGig.invitationStatus && getInvitationStatusBadge(nextGig.invitationStatus)}
+                  </div>
                 </div>
 
               </CardContent>

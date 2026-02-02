@@ -5,21 +5,21 @@ import { useRouter } from "next/navigation";
 
 /**
  * Hook to enable keyboard shortcuts on the dashboard.
- * 
+ *
  * Shortcuts:
- * - G: Go to gig details
- * - P: Open gig pack
- * - S: Open setlist (gig details, setlist tab)
- * - F: Open files (gig details, resources tab)
- * 
+ * - G: Edit gig details (managers only)
+ * - P: Open gig pack (all users)
+ *
  * Only triggers when NOT typing in inputs/textareas and when a gig is available.
- * 
+ *
  * @param gigId - The gig ID to navigate to (typically the next gig)
  * @param enabled - Whether shortcuts should be active (default: true)
+ * @param isManager - Whether the user is the gig manager/host
  */
 export function useDashboardKeyboardShortcuts(
   gigId: string | undefined,
-  enabled: boolean = true
+  enabled: boolean = true,
+  isManager: boolean = false
 ) {
   const router = useRouter();
 
@@ -46,24 +46,14 @@ export function useDashboardKeyboardShortcuts(
 
       switch (key) {
         case "g":
-          // G key - Go to gig details
-          e.preventDefault();
-          router.push(`/gigs/${gigId}`);
+          if (isManager) {
+            e.preventDefault();
+            router.push(`/gigs/${gigId}`);
+          }
           break;
         case "p":
-          // P key - Open gig pack
           e.preventDefault();
           router.push(`/gigs/${gigId}/pack`);
-          break;
-        case "s":
-          // S key - Open setlist (gig details, setlist tab)
-          e.preventDefault();
-          router.push(`/gigs/${gigId}?tab=setlist`);
-          break;
-        case "f":
-          // F key - Open files/resources (gig details, resources tab)
-          e.preventDefault();
-          router.push(`/gigs/${gigId}?tab=resources`);
           break;
       }
     };
@@ -73,6 +63,5 @@ export function useDashboardKeyboardShortcuts(
     return () => {
       window.removeEventListener("keydown", handleKeyPress);
     };
-  }, [gigId, enabled, router]);
+  }, [gigId, enabled, isManager, router]);
 }
-
