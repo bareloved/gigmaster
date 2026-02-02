@@ -1,0 +1,18 @@
+-- RLS Policies for External Gigs
+--
+-- After reviewing current policies:
+--
+-- gigs table:
+--   "Users can access own gigs" (ALL where owner_id = auth.uid())
+--   "Users can view gigs involved in" (SELECT where user has a gig_role)
+--
+-- gig_roles table:
+--   "gig_roles_allow_authenticated" (ALL for any authenticated user)
+--
+-- External gigs work with existing policies because:
+-- 1. owner_id is set to the importer, so "Users can access own gigs" covers all operations
+-- 2. A gig_role is created for the importer, so "Users can view gigs involved in" also applies
+-- 3. gig_roles is fully permissive for authenticated users (personal_earnings updates work)
+--
+-- No new policies needed. This migration is intentionally empty to document the decision.
+-- Future work: tighten gig_roles policy to restrict who can update which fields.
