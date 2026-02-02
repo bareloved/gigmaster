@@ -1259,7 +1259,7 @@ export function GigEditorPanel({
             </Popover>
           </MetadataRow>
 
-          {/* Call Time */}
+          {/* Arrival Time */}
           <MetadataRow label={t("soundcheckTime")} inputId="call-time">
             <div className="flex items-center gap-2">
               <Clock3 className="h-4 w-4 text-muted-foreground" />
@@ -1275,7 +1275,7 @@ export function GigEditorPanel({
             </div>
           </MetadataRow>
 
-          {/* On Stage Time */}
+          {/* Soundcheck Time */}
           <MetadataRow label={t("onStageTime")} inputId="on-stage-time">
             <div className="flex items-center gap-2">
               <Clock3 className="h-4 w-4 text-muted-foreground" />
