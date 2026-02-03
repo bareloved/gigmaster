@@ -400,3 +400,22 @@ export interface SystemUser {
   created_at: string;
 }
 
+/**
+ * Gig Contact - People musicians can contact about the gig
+ */
+export interface GigContact {
+  id: string;
+  gigId: string;
+  label: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  sourceType: 'manual' | 'lineup' | 'contact';
+  sourceId: string | null;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export type GigContactInsert = Omit<GigContact, 'id' | 'createdAt'>;
+export type GigContactUpdate = Partial<Omit<GigContact, 'id' | 'gigId' | 'createdAt'>>;
+

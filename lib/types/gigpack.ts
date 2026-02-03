@@ -1,3 +1,5 @@
+import type { GigContact } from '@/lib/types/shared';
+
 export interface Profile {
   id: string;
   full_name: string | null;
@@ -124,6 +126,8 @@ export interface GigPack {
   materials: GigMaterial[] | null;
   // Schedule - timeline for the day
   schedule: GigScheduleItem[] | null;
+  // Gig contacts - people musicians can reach out to
+  contacts: GigContact[] | null;
 }
 
 export type GigPackInsert = Omit<GigPack, "id" | "created_at" | "updated_at">;
