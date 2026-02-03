@@ -197,6 +197,53 @@ export type Database = {
         }
         Relationships: []
       }
+      gig_contacts: {
+        Row: {
+          id: string
+          gig_id: string
+          label: string
+          name: string
+          phone: string | null
+          email: string | null
+          source_type: string
+          source_id: string | null
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          gig_id: string
+          label: string
+          name: string
+          phone?: string | null
+          email?: string | null
+          source_type?: string
+          source_id?: string | null
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          gig_id?: string
+          label?: string
+          name?: string
+          phone?: string | null
+          email?: string | null
+          source_type?: string
+          source_id?: string | null
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_contacts_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gig_invitations: {
         Row: {
           accepted_at: string | null
