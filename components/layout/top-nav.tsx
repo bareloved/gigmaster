@@ -115,7 +115,7 @@ export function TopNav() {
         <div className="flex h-24 items-center px-6 gap-6">
           {/* Logo + App Name */}
           <Link href="/dashboard" className="min-w-fit flex items-center">
-            <Image src="/gigmasterlogo.png" alt="GigMaster" width={170} height={134} className="object-contain mt-3" />
+            <Image src="/gigmasterlogo.png" alt="GigMaster" width={170} height={134} className="object-contain mt-3 w-auto" priority />
           </Link>
 
           {/* Center - Main Navigation (Desktop) */}
