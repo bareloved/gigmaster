@@ -125,7 +125,7 @@ function SignInForm() {
               <span className="block text-lg tracking-[0.2em] uppercase text-amber-400 mb-4">
                 Welcome to
               </span>
-              <Image src="/gigmasterlogo.png" alt="GigMaster" width={560} height={440} className="mx-auto" />
+              <Image src="/gigmasterlogo.png" alt="GigMaster" width={560} height={440} className="mx-auto w-auto" priority />
             </h1>
 
             {/* Tagline with decorative elements */}
@@ -205,7 +205,7 @@ function SignInForm() {
 
             {/* Mobile Logo */}
             <div className="lg:hidden flex justify-center mb-6">
-              <Image src="/gigmasterlogo.png" alt="GigMaster" width={320} height={252} />
+              <Image src="/gigmasterlogo.png" alt="GigMaster" width={320} height={252} className="w-auto" priority />
             </div>
 
             {/* Header */}
@@ -331,7 +331,7 @@ function SignInForm() {
               <span className="block text-lg tracking-[0.2em] uppercase text-amber-400 mb-4">
                 Welcome to
               </span>
-              <Image src="/gigmasterlogo.png" alt="GigMaster" width={560} height={440} className="mx-auto" />
+              <Image src="/gigmasterlogo.png" alt="GigMaster" width={560} height={440} className="mx-auto w-auto" priority />
             </h1>
 
             {/* Tagline with decorative elements */}
@@ -403,7 +403,7 @@ function SignInForm() {
           <div className="bg-[#2a2a3e] rounded-2xl p-8 shadow-2xl">
             {/* Mobile Logo */}
             <div className="lg:hidden flex justify-center mb-6">
-              <Image src="/gigmasterlogo.png" alt="GigMaster" width={320} height={252} />
+              <Image src="/gigmasterlogo.png" alt="GigMaster" width={320} height={252} className="w-auto" priority />
             </div>
 
             {/* Header */}

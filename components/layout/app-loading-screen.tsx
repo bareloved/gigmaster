@@ -21,7 +21,7 @@ export function AppLoadingScreen({ className }: AppLoadingScreenProps) {
           {/* Pulsing ring animation */}
           <div className="absolute inset-0 rounded-xl bg-primary/20 animate-ping" />
           <div className="relative">
-            <Image src="/gigmasterlogo.png" alt="GigMaster" width={240} height={188} />
+            <Image src="/gigmasterlogo.png" alt="GigMaster" width={240} height={188} className="w-auto" priority />
           </div>
         </div>
 

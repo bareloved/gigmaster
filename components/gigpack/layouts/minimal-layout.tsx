@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, Paperclip, ExternalLink, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, Guitar, Drum, Piano, Volume2, Radio, FileText, CheckCircle2, XCircle, HelpCircle, MinusCircle, AlertCircle } from "lucide-react";
 import { classifyGigVisualTheme, pickFallbackImageForTheme } from "@/lib/gigpack/gig-visual-theme";
 import { GigActivityWidget } from "@/components/dashboard/activity-widget";
+import { NeedHelpSection } from "@/components/gigpack/need-help-section";
 
 function getStatusIcon(status?: string) {
   switch (status) {
@@ -585,6 +586,16 @@ export function MinimalLayout({ gigPack, openMaps }: MinimalLayoutProps) {
             )}
           </div>
         </div>
+        {/* Need Help - Contacts */}
+        {gigPack.contacts && gigPack.contacts.length > 0 && (
+          <div className="mt-8">
+            <NeedHelpSection
+              contacts={gigPack.contacts}
+              accentColor={accentColor}
+            />
+          </div>
+        )}
+
         {/* Updates / Activity Log — reuses the dashboard widget scoped to this gig */}
         <GigActivityWidget gigId={gigPack.id} limit={10} showViewAll className="mt-8 shadow-sm" />
         <div className="mt-12 text-center text-xs text-muted-foreground/60">

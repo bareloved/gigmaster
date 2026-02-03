@@ -616,7 +616,8 @@ export async function getGig(id: string): Promise<GigPack | null> {
       id: s.id,
       time: s.time,
       label: s.label
-    })) || []
+    })) || [],
+    contacts: null // TODO: Query gig_contacts when contacts UI is integrated
   };
 
   return gigPack;

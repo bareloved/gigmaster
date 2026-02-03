@@ -91,7 +91,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/dashboard">
-                <Image src="/gigmasterlogo.png" alt="GigMaster" width={88} height={70} />
+                <Image src="/gigmasterlogo.png" alt="GigMaster" width={88} height={70} className="w-auto" priority />
                 <span className="font-semibold">GigMaster</span>
               </Link>
             </SidebarMenuButton>

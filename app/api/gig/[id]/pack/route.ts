@@ -140,7 +140,8 @@ export async function GET(
       id: s.id,
       time: s.time,
       label: s.label
-    })) || []
+    })) || [],
+    contacts: null // Contacts not included in API pack endpoint
   };
 
   return NextResponse.json(gigPack);

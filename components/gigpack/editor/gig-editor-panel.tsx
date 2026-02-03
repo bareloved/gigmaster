@@ -73,6 +73,8 @@ import { PasteScheduleDialog } from "@/components/gigpack/dialogs/paste-schedule
 import { SetlistPDFUpload } from "@/components/gigpack/shared/setlist-pdf-upload";
 import { GigPackTemplate, applyTemplateToFormDefaults } from "@/lib/gigpack/templates";
 import { useGigDraft, useGigDraftAutoSave, type GigDraftFormData } from "@/hooks/use-gig-draft";
+import { GigContactsManager, type PendingContact } from "@/components/gig-contacts/gig-contacts-manager";
+import { createGigContact } from "@/lib/api/gig-contacts";
 
 // ============================================================================
 // Types
@@ -402,7 +404,11 @@ export function GigEditorPanel({
     gigPack?.schedule || []
   );
 
+  // Pending contacts state (for new gigs before saving)
+  const [pendingContacts, setPendingContacts] = useState<PendingContact[]>([]);
+
   // Info tab visibility flags
+  const [showContacts, setShowContacts] = useState((gigPack?.contacts?.length || 0) > 0);
   const [showDressCode, setShowDressCode] = useState(!!gigPack?.dress_code);
   const [showBackline, setShowBackline] = useState(!!gigPack?.backline_notes);
   const [showParking, setShowParking] = useState(!!gigPack?.parking_notes);
@@ -437,6 +443,7 @@ export function GigEditorPanel({
       setSchedule(gigPack.schedule || []);
 
       // Sync visibility flags
+      setShowContacts((gigPack.contacts?.length || 0) > 0);
       setShowDressCode(!!gigPack.dress_code);
       setShowBackline(!!gigPack.backline_notes);
       setShowParking(!!gigPack.parking_notes);
@@ -498,9 +505,11 @@ export function GigEditorPanel({
     setPackingChecklist([]);
     setMaterials([]);
     setSchedule([]);
+    setPendingContacts([]);
     setActiveTab("schedule");
 
     // Reset Info tab visibility flags
+    setShowContacts(false);
     setShowDressCode(false);
     setShowBackline(false);
     setShowParking(false);
@@ -909,6 +918,30 @@ export function GigEditorPanel({
       } else {
         // Clear draft on successful creation
         clearDraft();
+
+        // Save pending contacts to the new gig
+        if (result?.id && pendingContacts.length > 0) {
+          try {
+            await Promise.all(
+              pendingContacts.map((contact, index) =>
+                createGigContact({
+                  gigId: result.id,
+                  label: contact.label,
+                  name: contact.name,
+                  phone: contact.phone,
+                  email: contact.email,
+                  sourceType: contact.sourceType,
+                  sourceId: contact.sourceId,
+                  sortOrder: index,
+                })
+              )
+            );
+            setPendingContacts([]);
+          } catch (contactError) {
+            console.error("Error saving contacts:", contactError);
+            // Don't fail the whole operation, gig was created
+          }
+        }
 
         if (onCreateSuccess && result) {
           // Construct new gigPack object
@@ -1497,6 +1530,35 @@ export function GigEditorPanel({
           {/* Info/Logistics Tab */}
           {activeTab === "info" && (
             <div className="space-y-4">
+              {/* Gig Contacts */}
+              {showContacts && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+                      <Users className="h-4 w-4" />
+                      {t("contacts.tabLabel")}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingContacts([]);
+                        setShowContacts(false);
+                      }}
+                      disabled={isLoading}
+                      className="text-[11px] text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      {t("materials.remove")}
+                    </button>
+                  </div>
+                  <GigContactsManager
+                    gigId={gigPack?.id}
+                    pendingContacts={pendingContacts}
+                    onPendingContactsChange={setPendingContacts}
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
+
               {/* Dress Code */}
               {showDressCode && (
                 <div className="space-y-1">
@@ -1632,6 +1694,34 @@ export function GigEditorPanel({
 
               {/* Add buttons for hidden fields */}
               <div className="space-y-2">
+                {!showContacts && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setShowContacts(true);
+                      // Add an empty contact row when first opening
+                      if (pendingContacts.length === 0 && !gigPack?.id) {
+                        setPendingContacts([{
+                          id: crypto.randomUUID(),
+                          label: "",
+                          name: "",
+                          phone: null,
+                          email: null,
+                          sourceType: "manual",
+                          sourceId: null,
+                        }]);
+                      }
+                    }}
+                    disabled={isLoading}
+                    className="w-full justify-start text-xs"
+                  >
+                    <Plus className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
+                    <Users className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
+                    {t("contacts.tabLabel")}
+                  </Button>
+                )}
                 {!showDressCode && (
                   <Button
                     type="button"
