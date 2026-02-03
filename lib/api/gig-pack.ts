@@ -48,6 +48,17 @@ interface GigOwnerProfile {
   name: string | null;
 }
 
+interface GigContactRow {
+  id: string;
+  label: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  source_type: string;
+  source_id: string | null;
+  sort_order: number;
+}
+
 /**
  * Gig Pack API
  * Fetches all data needed for the GigPack view
@@ -96,6 +107,16 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
         musician_name,
         musician_id,
         invitation_status,
+        sort_order
+      ),
+      gig_contacts(
+        id,
+        label,
+        name,
+        phone,
+        email,
+        source_type,
+        source_id,
         sort_order
       )
     `)
@@ -185,6 +206,22 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
       kind: (m.kind || 'other') as GigMaterial['kind'],
     }));
 
+  // Transform contacts
+  const contacts = ((gig.gig_contacts as GigContactRow[]) || [])
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+    .map((c) => ({
+      id: c.id,
+      gigId: gig.id,
+      label: c.label,
+      name: c.name,
+      phone: c.phone,
+      email: c.email,
+      sourceType: c.source_type as 'manual' | 'lineup' | 'contact',
+      sourceId: c.source_id,
+      sortOrder: c.sort_order,
+      createdAt: '', // Not fetched, not needed for display
+    }));
+
   // Transform packing items
   const packingChecklist = ((gig.gig_packing_items as GigPackingItemRow[]) || [])
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
@@ -268,6 +305,7 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
     packing_checklist: packingChecklist.length > 0 ? packingChecklist : null,
     gig_type: gig.gig_type || null,
     materials: materials.length > 0 ? materials : null,
+    contacts: contacts.length > 0 ? contacts : null,
     schedule: schedule.length > 0 ? schedule : null,
     is_external: gig.is_external ?? false,
     external_event_url: gig.external_event_url ?? null,

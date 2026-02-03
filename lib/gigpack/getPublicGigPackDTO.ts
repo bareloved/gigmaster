@@ -175,6 +175,7 @@ export async function getPublicGigPackDTO(token: string): Promise<PublicGigPackD
     backline_notes: gig.backline_notes,
     parking_notes: gig.parking_notes,
     payment_notes: null, // Not in DB
+    contacts: null, // Contacts not exposed in public share
   };
 
   return dto;

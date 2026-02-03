@@ -84,6 +84,20 @@ export interface GigScheduleItem {
   label: string;        // description, e.g. "Soundcheck"
 }
 
+// Contact Types
+export interface GigContact {
+  id: string;
+  gigId: string;
+  label: string;        // e.g. "Venue Manager", "Sound Engineer"
+  name: string;
+  phone: string | null;
+  email: string | null;
+  sourceType: 'manual' | 'lineup' | 'contact';
+  sourceId: string | null;
+  sortOrder: number;
+  createdAt: string;
+}
+
 // Packing Checklist Types
 export interface PackingChecklistItem {
   id: string;      // Unique ID (UUID or stable string)
@@ -136,6 +150,8 @@ export interface GigPack {
   materials: GigMaterial[] | null;
   // Schedule - timeline for the day
   schedule: GigScheduleItem[] | null;
+  // Contacts - venue contacts, sound engineers, etc.
+  contacts: GigContact[] | null;
   // External gig fields (imported from Google Calendar)
   is_external?: boolean;
   external_event_url?: string | null;
