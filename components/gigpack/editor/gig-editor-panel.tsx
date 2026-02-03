@@ -73,6 +73,7 @@ import { PasteScheduleDialog } from "@/components/gigpack/dialogs/paste-schedule
 import { SetlistPDFUpload } from "@/components/gigpack/shared/setlist-pdf-upload";
 import { GigPackTemplate, applyTemplateToFormDefaults } from "@/lib/gigpack/templates";
 import { useGigDraft, useGigDraftAutoSave, type GigDraftFormData } from "@/hooks/use-gig-draft";
+import { GigContactsManager } from "@/components/gig-contacts/gig-contacts-manager";
 
 // ============================================================================
 // Types
@@ -979,6 +980,7 @@ export function GigEditorPanel({
     { id: "lineup", label: t("lineup"), icon: <Users className="h-4 w-4" /> },
     { id: "setlist", label: t("musicSetlist"), icon: <Music className="h-4 w-4" /> },
     { id: "materials", label: t("materials.tabLabel"), icon: <Paperclip className="h-4 w-4" /> },
+    { id: "contacts", label: t("contacts.tabLabel"), icon: <Users className="h-4 w-4" /> },
     { id: "info", label: t("logistics"), icon: <Package className="h-4 w-4" /> },
   ];
 
@@ -1808,6 +1810,15 @@ export function GigEditorPanel({
                 {t("materials.addButton")}
               </Button>
             </div>
+          )}
+
+          {/* Contacts Tab */}
+          {activeTab === "contacts" && gigPack?.id && (
+            <GigContactsManager
+              gigId={gigPack.id}
+              lineup={lineup}
+              disabled={isLoading}
+            />
           )}
 
         </div>
