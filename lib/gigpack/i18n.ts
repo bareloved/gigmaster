@@ -320,6 +320,10 @@ const MESSAGES: MessageTree = {
       open: "Open",
       remove: "Remove"
     },
+    contacts: {
+      tabLabel: "Gig Contacts",
+      description: "Who should musicians contact about this gig?"
+    },
     schedule: {
       tabLabel: "Schedule",
       description: "Build a clear timeline for the day: soundcheck, doors, showtime and more.",
