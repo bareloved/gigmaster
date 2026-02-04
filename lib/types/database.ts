@@ -65,10 +65,12 @@ export type Database = {
           provider: string
           provider_calendar_id: string
           refresh_token: string
+          send_invites_enabled: boolean | null
           sync_enabled: boolean | null
           token_expires_at: string
           updated_at: string | null
           user_id: string
+          write_access: boolean | null
         }
         Insert: {
           access_token: string
@@ -78,10 +80,12 @@ export type Database = {
           provider?: string
           provider_calendar_id: string
           refresh_token: string
+          send_invites_enabled?: boolean | null
           sync_enabled?: boolean | null
           token_expires_at: string
           updated_at?: string | null
           user_id: string
+          write_access?: boolean | null
         }
         Update: {
           access_token?: string
@@ -91,10 +95,12 @@ export type Database = {
           provider?: string
           provider_calendar_id?: string
           refresh_token?: string
+          send_invites_enabled?: boolean | null
           sync_enabled?: boolean | null
           token_expires_at?: string
           updated_at?: string | null
           user_id?: string
+          write_access?: boolean | null
         }
         Relationships: []
       }
@@ -475,7 +481,10 @@ export type Database = {
           contact_id: string | null
           currency: string | null
           gig_id: string
+          google_calendar_event_id: string | null
           id: string
+          invitation_method: string | null
+          invitation_sent_at: string | null
           invitation_status: string | null
           is_paid: boolean | null
           musician_id: string | null
@@ -501,7 +510,10 @@ export type Database = {
           contact_id?: string | null
           currency?: string | null
           gig_id: string
+          google_calendar_event_id?: string | null
           id?: string
+          invitation_method?: string | null
+          invitation_sent_at?: string | null
           invitation_status?: string | null
           is_paid?: boolean | null
           musician_id?: string | null
@@ -527,7 +539,10 @@ export type Database = {
           contact_id?: string | null
           currency?: string | null
           gig_id?: string
+          google_calendar_event_id?: string | null
           id?: string
+          invitation_method?: string | null
+          invitation_sent_at?: string | null
           invitation_status?: string | null
           is_paid?: boolean | null
           musician_id?: string | null
@@ -622,6 +637,54 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "gig_shares_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_calendar_watches: {
+        Row: {
+          id: string
+          user_id: string
+          gig_id: string
+          calendar_event_id: string
+          channel_id: string
+          resource_id: string
+          expiration: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          gig_id: string
+          calendar_event_id: string
+          channel_id: string
+          resource_id: string
+          expiration: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          gig_id?: string
+          calendar_event_id?: string
+          channel_id?: string
+          resource_id?: string
+          expiration?: string
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_calendar_watches_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_calendar_watches_gig_id_fkey"
             columns: ["gig_id"]
             isOneToOne: false
             referencedRelation: "gigs"
