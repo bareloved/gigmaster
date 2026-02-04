@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Clock, Users, Trash2, CalendarSync } from "lucide-react";
+import { MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Clock, Users, Trash2, CalendarSync, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUser } from "@/lib/providers/user-provider";
@@ -27,6 +27,7 @@ import {
   useDeclineInvitation,
   useUpdateGigStatus,
   useDeleteGig,
+  useDuplicateGig,
 } from "@/hooks/use-gig-mutations";
 import { checkGigConflicts } from "@/lib/api/calendar";
 import { createClient } from "@/lib/supabase/client";
@@ -43,6 +44,10 @@ const GigPackShareDialog = dynamic(
 );
 const DeleteGigDialog = dynamic(
   () => import("@/components/gigs/dialogs/delete-gig-dialog").then(m => m.DeleteGigDialog),
+  { ssr: false }
+);
+const DuplicateGigDialog = dynamic(
+  () => import("@/components/gigs/dialogs/duplicate-gig-dialog").then(m => m.DuplicateGigDialog),
   { ssr: false }
 );
 
@@ -219,11 +224,15 @@ export function DashboardGigItemGrid({
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
+  // Duplicate dialog state
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+
   // PERFORMANCE: Use optimistic update hooks for instant UI feedback
   const acceptInvitationMutation = useAcceptInvitation();
   const declineInvitationMutation = useDeclineInvitation();
   const updateStatusMutation = useUpdateGigStatus();
   const deleteGigMutation = useDeleteGig();
+  const duplicateMutation = useDuplicateGig();
 
   // Handle accept invitation with conflict check
   const handleAcceptInvitation = async () => {
@@ -422,6 +431,10 @@ export function DashboardGigItemGrid({
                         Mark as Completed
                       </DropdownMenuItem>
                     )}
+                    <DropdownMenuItem onClick={() => setDuplicateDialogOpen(true)}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Duplicate Gig
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => setDeleteDialogOpen(true)}
@@ -477,6 +490,28 @@ export function DashboardGigItemGrid({
           onConfirm={async () => {
             await deleteGigMutation.mutateAsync(gig.gigId);
           }}
+        />
+      )}
+
+      {/* Duplicate Dialog */}
+      {gig.isManager && (
+        <DuplicateGigDialog
+          open={duplicateDialogOpen}
+          onOpenChange={setDuplicateDialogOpen}
+          sourceGig={{
+            gigId: gig.gigId,
+            gigTitle: gig.gigTitle,
+            date: gig.date,
+          }}
+          onConfirm={async (newTitle, newDate) => {
+            await duplicateMutation.mutateAsync({
+              sourceGigId: gig.gigId,
+              newTitle,
+              newDate,
+            });
+            setDuplicateDialogOpen(false);
+          }}
+          isPending={duplicateMutation.isPending}
         />
       )}
     </>
