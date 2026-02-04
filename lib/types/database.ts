@@ -125,6 +125,33 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          id: string
+          category: string
+          message: string
+          user_id: string | null
+          created_at: string
+          resolved: boolean
+        }
+        Insert: {
+          id?: string
+          category?: string
+          message: string
+          user_id?: string | null
+          created_at?: string
+          resolved?: boolean
+        }
+        Update: {
+          id?: string
+          category?: string
+          message?: string
+          user_id?: string | null
+          created_at?: string
+          resolved?: boolean
+        }
+        Relationships: []
+      }
       gig_activity_log: {
         Row: {
           activity_type: string

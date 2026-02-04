@@ -419,3 +419,26 @@ export interface GigContact {
 export type GigContactInsert = Omit<GigContact, 'id' | 'createdAt'>;
 export type GigContactUpdate = Partial<Omit<GigContact, 'id' | 'gigId' | 'createdAt'>>;
 
+/**
+ * Feedback - User feedback submissions
+ */
+export type FeedbackCategory = 'bug' | 'feature' | 'general';
+
+export interface Feedback {
+  id: string;
+  category: string; // FeedbackCategory but comes as string from DB
+  message: string;
+  user_id: string | null;
+  created_at: string;
+  resolved: boolean;
+  // Manually joined profile data
+  user_email?: string | null;
+  user_name?: string | null;
+}
+
+export interface FeedbackInsert {
+  category?: FeedbackCategory;
+  message: string;
+  user_id?: string | null;
+}
+

@@ -166,6 +166,27 @@ export default function HistoryPage() {
     });
   }, [roleFilteredGigs, debouncedSearchQuery]);
 
+  // Group gigs by month (reverse chronological for history)
+  const gigsByMonth = useMemo(() => {
+    const groups: { [key: string]: { label: string; gigs: DashboardGig[] } } = {};
+
+    searchFilteredGigs.forEach((gig) => {
+      const date = new Date(gig.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+      if (!groups[monthKey]) {
+        groups[monthKey] = { label: monthLabel, gigs: [] };
+      }
+      groups[monthKey].gigs.push(gig);
+    });
+
+    // Return sorted by month key in reverse (most recent first for history)
+    return Object.entries(groups)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([key, value]) => ({ key, ...value }));
+  }, [searchFilteredGigs]);
+
   // Infinite scroll: auto-load when scrolling to bottom
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -415,32 +436,41 @@ export default function HistoryPage() {
       {/* Gigs List/Grid */}
       {!isLoading && searchFilteredGigs.length > 0 && (
         <>
-          {viewMode === "grid" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {searchFilteredGigs.map((gig, index) => (
-                <DashboardGigItemGrid
-                  key={gig.gigId}
-                  gig={gig}
-                  isPastGig={true}
-                  returnUrl="/history"
-                  onClick={() => handleEditGig(gig)}
-                  index={index}
-                />
-              ))}
+          {gigsByMonth.map((monthGroup) => (
+            <div key={monthGroup.key} className="space-y-3">
+              {/* Month Header */}
+              <h3 className="text-lg font-semibold text-muted-foreground sticky top-0 bg-background py-2 z-10">
+                {monthGroup.label}
+              </h3>
+
+              {viewMode === "grid" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {monthGroup.gigs.map((gig, index) => (
+                    <DashboardGigItemGrid
+                      key={gig.gigId}
+                      gig={gig}
+                      isPastGig={true}
+                      returnUrl="/history"
+                      onClick={() => handleEditGig(gig)}
+                      index={index}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {monthGroup.gigs.map((gig) => (
+                    <DashboardGigItem
+                      key={gig.gigId}
+                      gig={gig}
+                      isPastGig={true}
+                      returnUrl="/history"
+                      onClick={() => handleEditGig(gig)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="space-y-3">
-              {searchFilteredGigs.map((gig) => (
-                <DashboardGigItem
-                  key={gig.gigId}
-                  gig={gig}
-                  isPastGig={true}
-                  returnUrl="/history"
-                  onClick={() => handleEditGig(gig)}
-                />
-              ))}
-            </div>
-          )}
+          ))}
 
           {/* Load More */}
           {hasNextPage && (
