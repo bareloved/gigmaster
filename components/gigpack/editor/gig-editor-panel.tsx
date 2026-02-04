@@ -906,6 +906,28 @@ export function GigEditorPanel({
       }
 
       if (isEditing) {
+        // Update calendar events if significant fields changed (non-blocking)
+        // Map GigPack field names to database column names
+        if (gigPack?.id) {
+          const changedFields: string[] = [];
+          if (gigPackData.date !== gigPack.date) changedFields.push('date');
+          if (gigPackData.on_stage_time !== gigPack.on_stage_time) changedFields.push('start_time');
+          if (gigPackData.venue_name !== gigPack.venue_name) changedFields.push('location_name');
+          if (gigPackData.call_time !== gigPack.call_time) changedFields.push('call_time');
+          if (gigPackData.title !== gigPack.title) changedFields.push('title');
+
+          if (changedFields.length > 0) {
+            // Fire-and-forget calendar update
+            fetch("/api/calendar/update-events", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ gigId: gigPack.id, changedFields }),
+            }).catch(err => {
+              console.error("Failed to update calendar events:", err);
+            });
+          }
+        }
+
         if (onUpdateSuccess && result) {
           // Construct updated gigPack object
           // For now, we might need to reload the page or fetch updated data.
