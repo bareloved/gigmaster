@@ -4,9 +4,9 @@ import { GoogleCalendarClient } from "@/lib/integrations/google-calendar";
 
 /**
  * Google Calendar OAuth Callback
- * 
+ *
  * Handles the OAuth redirect from Google after user authorizes the app.
- * Exchanges authorization code for tokens and stores in database.
+ * Detects if write access was granted and stores appropriately.
  */
 
 export async function GET(request: NextRequest) {
@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
     const error = searchParams.get("error");
+    const scope = searchParams.get("scope");
 
     // Check for OAuth errors
     if (error) {
@@ -46,6 +47,12 @@ export async function GET(request: NextRequest) {
     const googleClient = new GoogleCalendarClient();
     const tokens = await googleClient.authorize(code);
 
+    // Check if write scope was granted
+    const grantedScopes = scope?.split(" ") || [];
+    const hasWriteAccess = grantedScopes.includes(
+      "https://www.googleapis.com/auth/calendar.events"
+    );
+
     // Store tokens in database
     const { error: dbError } = await supabase
       .from("calendar_connections")
@@ -58,6 +65,7 @@ export async function GET(request: NextRequest) {
           refresh_token: tokens.refresh_token,
           token_expires_at: new Date(tokens.expiry_date).toISOString(),
           sync_enabled: true,
+          write_access: hasWriteAccess,
           last_synced_at: null,
           updated_at: new Date().toISOString(),
         },
@@ -75,8 +83,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Success! Redirect back to settings
+    const successParam = hasWriteAccess ? "connected_write" : "connected";
     return NextResponse.redirect(
-      new URL("/settings/calendar?success=connected", request.url)
+      new URL(`/settings/calendar?success=${successParam}`, request.url)
     );
   } catch (error: unknown) {
     console.error("OAuth callback error:", error);
