@@ -75,6 +75,7 @@ import { GigPackTemplate, applyTemplateToFormDefaults } from "@/lib/gigpack/temp
 import { useGigDraft, useGigDraftAutoSave, type GigDraftFormData } from "@/hooks/use-gig-draft";
 import { GigContactsManager, type PendingContact } from "@/components/gig-contacts/gig-contacts-manager";
 import { createGigContact } from "@/lib/api/gig-contacts";
+import { EmailCollectionModal } from "@/components/gigs/email-collection-modal";
 
 // ============================================================================
 // Types
@@ -406,6 +407,11 @@ export function GigEditorPanel({
 
   // Pending contacts state (for new gigs before saving)
   const [pendingContacts, setPendingContacts] = useState<PendingContact[]>([]);
+
+  // Calendar invitation state
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [missingEmails, setMissingEmails] = useState<Array<{id: string; name: string; role: string | null}>>([]);
+  const [pendingGigId, setPendingGigId] = useState<string | null>(null);
 
   // Info tab visibility flags
   const [showContacts, setShowContacts] = useState((gigPack?.contacts?.length || 0) > 0);
@@ -943,6 +949,11 @@ export function GigEditorPanel({
           }
         }
 
+        // Send calendar invites if lineup has members (non-blocking)
+        if (result?.id && lineup.length > 0) {
+          sendCalendarInvitesForGig(result.id);
+        }
+
         if (onCreateSuccess && result) {
           // Construct new gigPack object
           const newGigPack: Partial<GigPack> = {
@@ -1004,6 +1015,80 @@ export function GigEditorPanel({
     // Add new items to existing schedule and sort by time
     const updatedSchedule = sortScheduleByTime([...schedule, ...newItems]);
     setSchedule(updatedSchedule);
+  };
+
+  /**
+   * Send calendar invitations after gig creation (non-blocking)
+   */
+  const sendCalendarInvitesForGig = async (
+    gigId: string,
+    roleEmails?: Record<string, string>
+  ) => {
+    try {
+      // Check if calendar invites are enabled
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: connection } = await supabase
+        .from("calendar_connections")
+        .select("write_access, send_invites_enabled")
+        .eq("user_id", user.id)
+        .eq("provider", "google")
+        .single();
+
+      if (!connection?.write_access || !connection?.send_invites_enabled) {
+        // Calendar invites not enabled
+        return;
+      }
+
+      // Send invites in background (non-blocking)
+      fetch("/api/calendar/send-invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gigId, roleEmails }),
+      })
+        .then(res => res.json())
+        .then(result => {
+          if (result.sent > 0) {
+            toast({
+              title: t("invitesSent"),
+              description: `${result.sent} calendar invitation${result.sent > 1 ? 's' : ''} sent`,
+              duration: 3000,
+            });
+          }
+        })
+        .catch(err => {
+          console.error("Failed to send calendar invites:", err);
+          // Don't show error - gig was created successfully, invites are secondary
+        });
+    } catch (error) {
+      console.error("Error sending calendar invites:", error);
+    }
+  };
+
+  /**
+   * Handle email modal submission
+   */
+  const handleEmailModalSubmit = (emails: Record<string, string>) => {
+    setShowEmailModal(false);
+    if (pendingGigId) {
+      sendCalendarInvitesForGig(pendingGigId, emails);
+    }
+    setPendingGigId(null);
+    setMissingEmails([]);
+  };
+
+  /**
+   * Handle email modal skip
+   */
+  const handleEmailModalSkip = () => {
+    setShowEmailModal(false);
+    if (pendingGigId) {
+      sendCalendarInvitesForGig(pendingGigId, {});
+    }
+    setPendingGigId(null);
+    setMissingEmails([]);
   };
 
   // Tab configuration
@@ -1969,6 +2054,14 @@ export function GigEditorPanel({
           {content}
         </div>
 
+        <EmailCollectionModal
+          open={showEmailModal}
+          onOpenChange={setShowEmailModal}
+          missingEmails={missingEmails}
+          onSubmit={handleEmailModalSubmit}
+          onSkip={handleEmailModalSkip}
+        />
+
         <PasteScheduleDialog
           open={pasteScheduleOpen}
           onOpenChange={setPasteScheduleOpen}
@@ -2000,6 +2093,14 @@ export function GigEditorPanel({
           {loading && isEditing ? <EditorSkeleton /> : content}
         </SheetContent>
       </Sheet>
+
+      <EmailCollectionModal
+        open={showEmailModal}
+        onOpenChange={setShowEmailModal}
+        missingEmails={missingEmails}
+        onSubmit={handleEmailModalSubmit}
+        onSkip={handleEmailModalSkip}
+      />
 
       <PasteScheduleDialog
         open={pasteScheduleOpen}
