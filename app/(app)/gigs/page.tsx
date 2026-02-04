@@ -270,6 +270,27 @@ export default function AllGigsPage() {
 
   const filteredGigs = searchFilteredGigs;
 
+  // Group gigs by month
+  const gigsByMonth = useMemo(() => {
+    const groups: { [key: string]: { label: string; gigs: DashboardGig[] } } = {};
+
+    filteredGigs.forEach((gig) => {
+      const date = new Date(gig.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const monthLabel = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+      if (!groups[monthKey]) {
+        groups[monthKey] = { label: monthLabel, gigs: [] };
+      }
+      groups[monthKey].gigs.push(gig);
+    });
+
+    // Return sorted by month key (chronological order)
+    return Object.entries(groups)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, value]) => ({ key, ...value }));
+  }, [filteredGigs]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -370,28 +391,37 @@ export default function AllGigsPage() {
         </Card>
       ) : (
         <>
-          {viewMode === "list" ? (
-            <div className="space-y-3">
-              {filteredGigs.map((gig) => (
-                <DashboardGigItem
-                  key={gig.gigId}
-                  gig={gig}
-                  onClick={() => handleEditGig(gig)}
-                />
-              ))}
+          {gigsByMonth.map((monthGroup) => (
+            <div key={monthGroup.key} className="space-y-3">
+              {/* Month Header */}
+              <h3 className="text-lg font-semibold text-muted-foreground sticky top-0 bg-background py-2 z-10">
+                {monthGroup.label}
+              </h3>
+
+              {viewMode === "list" ? (
+                <div className="space-y-3">
+                  {monthGroup.gigs.map((gig) => (
+                    <DashboardGigItem
+                      key={gig.gigId}
+                      gig={gig}
+                      onClick={() => handleEditGig(gig)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {monthGroup.gigs.map((gig, index) => (
+                    <DashboardGigItemGrid
+                      key={gig.gigId}
+                      gig={gig}
+                      onClick={() => handleEditGig(gig)}
+                      index={index}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredGigs.map((gig, index) => (
-                <DashboardGigItemGrid
-                  key={gig.gigId}
-                  gig={gig}
-                  onClick={() => handleEditGig(gig)}
-                  index={index}
-                />
-              ))}
-            </div>
-          )}
+          ))}
 
           {/* Load More Trigger */}
           {hasNextPage && (
