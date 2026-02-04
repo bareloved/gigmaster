@@ -426,15 +426,14 @@ export type FeedbackCategory = 'bug' | 'feature' | 'general';
 
 export interface Feedback {
   id: string;
-  category: FeedbackCategory;
+  category: string; // FeedbackCategory but comes as string from DB
   message: string;
   user_id: string | null;
   created_at: string;
-  // Joined from profiles
-  profiles?: {
-    email: string | null;
-    name: string | null;
-  } | null;
+  resolved: boolean;
+  // Manually joined profile data
+  user_email?: string | null;
+  user_name?: string | null;
 }
 
 export interface FeedbackInsert {
