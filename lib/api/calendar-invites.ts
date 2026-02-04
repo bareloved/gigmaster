@@ -332,6 +332,26 @@ export async function sendCalendarInvites(
         })
         .eq("id", role.id);
 
+      // Register webhook for response tracking (non-blocking)
+      try {
+        const webhookUrl = `${baseUrl}/api/webhooks/google-calendar`;
+        const watch = await googleClient.watchEvent(event.id, webhookUrl);
+
+        await supabase
+          .from("google_calendar_watches")
+          .insert({
+            user_id: userId,
+            gig_id: gigId,
+            calendar_event_id: event.id,
+            channel_id: watch.channelId,
+            resource_id: watch.resourceId,
+            expiration: new Date(watch.expiration).toISOString(),
+          });
+      } catch (watchError) {
+        console.warn("Failed to register webhook:", watchError);
+        // Non-fatal - invites still sent successfully
+      }
+
       results.push({
         roleId: role.id,
         success: true,
