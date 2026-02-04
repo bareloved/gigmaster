@@ -1357,6 +1357,7 @@ export function GigEditorPanel({
                   placeholder={t("searchMusicians")}
                   disabled={isLoading}
                   className="w-full"
+                  currentLineup={lineup}
                 />
               </div>
             </div>

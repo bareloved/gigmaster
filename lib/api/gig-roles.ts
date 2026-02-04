@@ -161,6 +161,103 @@ export async function deleteRole(roleId: string): Promise<void> {
   if (error) throw new Error(error.message || "Failed to delete role");
 }
 
+/** Recent musician data for quick-add suggestions */
+export interface RecentMusician {
+  name: string;
+  role: string;
+  userId?: string;
+  contactId?: string;
+  linkedUserId?: string | null;
+  lastGigDate: string;
+  timesWorkedTogether: number;
+}
+
+/**
+ * Get recent musicians from the user's gig history
+ * Returns musicians sorted by most recent gig date, then by frequency
+ */
+export async function getRecentMusicians(limit: number = 10): Promise<RecentMusician[]> {
+  const supabase = createClient();
+
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+
+  // Fetch roles from user's gigs with gig date info
+  const { data: roles, error } = await supabase
+    .from("gig_roles")
+    .select(`
+      musician_name,
+      role_name,
+      musician_id,
+      contact_id,
+      gigs!inner(
+        owner_id,
+        date
+      )
+    `)
+    .eq("gigs.owner_id", user.id)
+    .not("musician_name", "is", null)
+    .order("gigs(date)", { ascending: false });
+
+  if (error) throw new Error(error.message || "Failed to fetch recent musicians");
+
+  // Group by musician name and aggregate data
+  const musicianMap = new Map<string, RecentMusician>();
+
+  interface RoleWithGig {
+    musician_name: string | null;
+    role_name: string | null;
+    musician_id: string | null;
+    contact_id: string | null;
+    gigs: { owner_id: string; date: string | null };
+  }
+
+  (roles as RoleWithGig[] | null)?.forEach((role) => {
+    const name = role.musician_name?.trim();
+    if (!name) return;
+
+    const gigDate = role.gigs?.date || "";
+
+    if (musicianMap.has(name)) {
+      const existing = musicianMap.get(name)!;
+      existing.timesWorkedTogether++;
+      // Keep the most recent date
+      if (gigDate > existing.lastGigDate) {
+        existing.lastGigDate = gigDate;
+      }
+      // Prefer linked user/contact IDs if we don't have them yet
+      if (!existing.userId && role.musician_id) {
+        existing.userId = role.musician_id;
+      }
+      if (!existing.contactId && role.contact_id) {
+        existing.contactId = role.contact_id;
+      }
+    } else {
+      musicianMap.set(name, {
+        name,
+        role: role.role_name || "",
+        userId: role.musician_id || undefined,
+        contactId: role.contact_id || undefined,
+        linkedUserId: role.musician_id || null,
+        lastGigDate: gigDate,
+        timesWorkedTogether: 1,
+      });
+    }
+  });
+
+  // Sort by most recent gig date first, then by frequency
+  return Array.from(musicianMap.values())
+    .sort((a, b) => {
+      // First sort by date (most recent first)
+      const dateCompare = b.lastGigDate.localeCompare(a.lastGigDate);
+      if (dateCompare !== 0) return dateCompare;
+      // Then by frequency
+      return b.timesWorkedTogether - a.timesWorkedTogether;
+    })
+    .slice(0, limit);
+}
+
 export async function searchMusicianNames(query: string = ""): Promise<MusicianSuggestion[]> {
   const supabase = createClient();
 

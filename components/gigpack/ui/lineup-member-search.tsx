@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@/lib/providers/user-provider";
 import { searchSystemUsers } from "@/lib/api/users";
 import { searchContacts } from "@/lib/api/musician-contacts";
+import { getRecentMusicians, type RecentMusician } from "@/lib/api/gig-roles";
 import {
   Command,
   CommandEmpty,
@@ -38,6 +39,14 @@ export interface SelectedMember {
   contactId?: string;
 }
 
+/** Current lineup member info for filtering */
+export interface CurrentLineupMember {
+  name?: string;
+  contactId?: string;
+  userId?: string;
+  linkedUserId?: string | null;
+}
+
 interface LineupMemberSearchProps {
   /** Callback when a member is selected */
   onSelectMember: (member: SelectedMember) => void;
@@ -47,6 +56,8 @@ interface LineupMemberSearchProps {
   disabled?: boolean;
   /** Additional class names */
   className?: string;
+  /** Current lineup members to filter out from suggestions */
+  currentLineup?: CurrentLineupMember[];
 }
 
 export function LineupMemberSearch({
@@ -54,10 +65,34 @@ export function LineupMemberSearch({
   placeholder = "Search musicians...",
   disabled = false,
   className,
+  currentLineup = [],
 }: LineupMemberSearchProps) {
   const { user } = useUser();
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+
+  // Fetch recent musicians from gig history
+  const { data: recentMusicians = [] } = useQuery({
+    queryKey: ["recent-musicians", user?.id],
+    queryFn: () => getRecentMusicians(10), // Get top 10, will filter to show 3
+    enabled: !!user && open,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  // Filter recent musicians to exclude those already in lineup
+  const filteredRecentMusicians = useMemo(() => {
+    return recentMusicians.filter((musician) => {
+      // Check if this musician is already in the lineup
+      const isInLineup = currentLineup.some(
+        (member) =>
+          (member.contactId && member.contactId === musician.contactId) ||
+          (member.userId && member.userId === musician.userId) ||
+          (member.linkedUserId && member.linkedUserId === musician.linkedUserId) ||
+          (member.name && member.name.toLowerCase() === musician.name.toLowerCase())
+      );
+      return !isInLineup;
+    }).slice(0, 3); // Show up to 3 recent musicians
+  }, [recentMusicians, currentLineup]);
 
   // Search My Circle
   const { data: circleResults = [] } = useQuery({
@@ -83,6 +118,7 @@ export function LineupMemberSearch({
   );
 
   const hasResults = circleResults.length > 0 || filteredSystemUsers.length > 0;
+  const showRecentSection = searchValue.length < 2 && filteredRecentMusicians.length > 0;
 
   const handleSelectContact = (contact: typeof circleResults[0]) => {
     onSelectMember({
@@ -90,6 +126,18 @@ export function LineupMemberSearch({
       role: contact.default_roles?.[0] || contact.primary_instrument || "",
       contactId: contact.id,
       linkedUserId: contact.linked_user_id,
+    });
+    setOpen(false);
+    setSearchValue("");
+  };
+
+  const handleSelectRecentMusician = (musician: RecentMusician) => {
+    onSelectMember({
+      name: musician.name,
+      role: musician.role,
+      userId: musician.userId,
+      contactId: musician.contactId,
+      linkedUserId: musician.linkedUserId,
     });
     setOpen(false);
     setSearchValue("");
@@ -141,9 +189,42 @@ export function LineupMemberSearch({
             onValueChange={setSearchValue}
           />
           <CommandList>
-            {searchValue.length < 2 ? (
+            {/* Recent Musicians Section - shown when not searching */}
+            {showRecentSection && (
+              <CommandGroup heading="Recent">
+                {filteredRecentMusicians.map((musician, index) => (
+                  <CommandItem
+                    key={`recent-${musician.name}-${index}`}
+                    value={`recent-${musician.name}-${index}`}
+                    onSelect={() => handleSelectRecentMusician(musician)}
+                    className="flex items-center gap-3 py-2 cursor-pointer"
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="text-xs">
+                        {musician.name.substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{musician.name}</p>
+                      {musician.role && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {musician.role}
+                        </p>
+                      )}
+                    </div>
+                    <Plus className="h-4 w-4 text-muted-foreground" />
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+
+            {searchValue.length < 2 && !showRecentSection ? (
               <CommandEmpty>Type at least 2 characters to search...</CommandEmpty>
-            ) : !hasResults ? (
+            ) : searchValue.length < 2 ? (
+              <CommandSeparator className="my-2" />
+            ) : null}
+
+            {searchValue.length >= 2 && !hasResults ? (
               <div className="py-4 text-center">
                 <p className="text-sm text-muted-foreground mb-3">No matches found</p>
                 <Button
