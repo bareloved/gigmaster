@@ -84,8 +84,8 @@ async function invalidateGigSaveQueries(
     }),
   ]);
 
-  // For edits: refresh the specific gig detail view, pack view, and editor cache
-  if (isEditing && gigId) {
+  // Refresh the specific gig detail view, pack view, and editor cache
+  if (gigId) {
     queryClient.invalidateQueries({
       queryKey: ["gig", gigId],
     });

@@ -1,16 +1,43 @@
 # Mobile Integration Guide
 
-Guide for building the React Native companion app using Expo.
+Guide for building the GigMaster iOS/Android companion app using Expo and React Native.
+
+**Last Updated:** February 2026
 
 ---
 
 ## Overview
 
-The web app codebase is organized to support a future mobile companion app:
+GigMaster's web codebase is architected to support a mobile companion app:
+
 - **Shared types** - `/lib/types/shared.ts`
 - **Shared API functions** - `/lib/api/*`
 - **Shared utilities** - `/lib/utils/*`
-- **Same Supabase backend** - Database, Auth, Storage
+- **Same Supabase backend** - Database, Auth, Storage, RLS policies
+
+### Current Web Stack (Reference)
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| Next.js | 16.x | Web framework |
+| React | 19.x | UI library |
+| TypeScript | 5.x | Type safety |
+| Supabase | 2.81+ | Backend (Postgres, Auth, Storage) |
+| TanStack Query | 5.x | Server state management |
+| Tailwind CSS | 3.4 | Styling |
+
+### Recommended Mobile Stack
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| Expo SDK | 52+ | React Native framework |
+| Expo Router | 4.x | File-based navigation |
+| React Native | 0.76+ | Mobile runtime |
+| TypeScript | 5.x | Type safety (shared with web) |
+| Supabase JS | 2.x | Backend client |
+| TanStack Query | 5.x | Server state (same as web) |
+| NativeWind | 4.x | Tailwind for React Native |
+| expo-secure-store | Latest | Secure token storage |
 
 ---
 
@@ -19,308 +46,241 @@ The web app codebase is organized to support a future mobile companion app:
 ### Create New Expo App
 
 ```bash
-# In a separate directory or monorepo apps folder
-npx create-expo-app gig-brain-mobile --template blank-typescript
+# Using the latest Expo template with TypeScript and Expo Router
+npx create-expo-app@latest gigmaster-mobile --template
 
-cd gig-brain-mobile
+cd gigmaster-mobile
+```
+
+### Project Structure
+
+Expo Router uses file-based routing similar to Next.js App Router:
+
+```
+gigmaster-mobile/
+├── app/                    # Routes (like Next.js app directory)
+│   ├── _layout.tsx         # Root layout
+│   ├── index.tsx           # Home screen (/)
+│   ├── (auth)/             # Auth group
+│   │   ├── login.tsx
+│   │   └── signup.tsx
+│   ├── (tabs)/             # Tab navigator group
+│   │   ├── _layout.tsx     # Tab bar configuration
+│   │   ├── index.tsx       # Dashboard tab
+│   │   ├── gigs.tsx        # Gigs list tab
+│   │   └── money.tsx       # Money tab
+│   └── gig/
+│       └── [id].tsx        # Dynamic gig detail route
+├── components/             # Reusable components
+├── lib/                    # Shared code (copied from web)
+│   ├── api/                # API functions (mobile-ready ✅)
+│   ├── types/              # TypeScript types (mobile-ready ✅)
+│   ├── utils/              # Utilities (mobile-ready ✅)
+│   └── supabase.ts         # Mobile Supabase client
+├── hooks/                  # Custom hooks
+├── assets/                 # Images, fonts
+├── app.json                # Expo config
+├── tsconfig.json           # TypeScript config
+└── package.json
 ```
 
 ### Install Dependencies
 
 ```bash
-# Supabase
-npm install @supabase/supabase-js
+# Core Supabase
+npx expo install @supabase/supabase-js
 
-# AsyncStorage for session persistence
-npm install @react-native-async-storage/async-storage
+# Secure storage for auth tokens (recommended over AsyncStorage)
+npx expo install expo-secure-store
 
-# URL polyfill (required for Supabase)
-npm install react-native-url-polyfill
-
-# Navigation (recommended)
-npm install @react-navigation/native @react-navigation/native-stack
-npm install react-native-screens react-native-safe-area-context
-
-# TanStack Query (optional but recommended)
+# TanStack Query (same version as web)
 npm install @tanstack/react-query
+
+# NativeWind (Tailwind for RN - optional but recommended)
+npm install nativewind
+npm install --save-dev tailwindcss
+
+# Additional useful packages
+npx expo install expo-linking expo-constants
 ```
 
 ---
 
 ## Step 2: Configure Supabase Client
 
+### Secure Storage Setup
+
+Create `/lib/storage.ts`:
+
+```typescript
+import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
+
+// Platform-aware storage adapter
+export const secureStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    if (Platform.OS === 'web') {
+      return localStorage.getItem(key);
+    }
+    return await SecureStore.getItemAsync(key);
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    if (Platform.OS === 'web') {
+      localStorage.setItem(key, value);
+      return;
+    }
+    await SecureStore.setItemAsync(key, value);
+  },
+  removeItem: async (key: string): Promise<void> => {
+    if (Platform.OS === 'web') {
+      localStorage.removeItem(key);
+      return;
+    }
+    await SecureStore.deleteItemAsync(key);
+  },
+};
+```
+
+### Supabase Client
+
 Create `/lib/supabase.ts`:
 
 ```typescript
-import 'react-native-url-polyfill/auto';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { secureStorage } from './storage';
+import type { Database } from './types/database';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: AsyncStorage,
+    storage: secureStorage,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false, // Important for mobile
+    detectSessionInUrl: false, // Important for mobile - no URL-based auth
   },
 });
 ```
 
+### Environment Variables
+
 Create `.env`:
 
 ```env
-EXPO_PUBLIC_SUPABASE_URL=your-supabase-url
+EXPO_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
+
+> **Note:** Expo uses `EXPO_PUBLIC_` prefix (similar to `NEXT_PUBLIC_` in Next.js)
 
 ---
 
 ## Step 3: Copy Shared Code
 
-### Option A: Direct Copy (Simple, for MVP)
+### Option A: Direct Copy (MVP Approach)
 
-1. Copy `/lib/types/shared.ts` to your mobile app
-2. Copy `/lib/types/database.ts` to your mobile app
-3. Copy `/lib/api/*` files to your mobile app
-4. Copy `/lib/utils/*` files to your mobile app
+Copy these directories from the web app to your mobile app:
 
-Update imports to use your mobile Supabase client:
+1. `/lib/types/` → Mobile `/lib/types/`
+2. `/lib/api/` → Mobile `/lib/api/`
+3. `/lib/utils/` → Mobile `/lib/utils/`
+
+Then update Supabase imports in API files:
 
 ```typescript
 // Before (web)
 import { createClient } from '@/lib/supabase/client';
 
-// After (mobile)
-import { supabase } from '../lib/supabase';
+export async function listUserProjects() {
+  const supabase = createClient();
+  // ...
+}
 
-// Replace all createClient() calls with supabase
-const { data } = await supabase.from('gigs').select('*');
-```
+// After (mobile) - modify to accept client as parameter
+import type { SupabaseClient } from '@supabase/supabase-js';
 
-### Option B: Monorepo with Shared Package (Recommended for Production)
+export async function listUserProjects(supabase: SupabaseClient) {
+  // ...
+}
 
-Set up a monorepo with Turborepo or Nx:
+// Or use singleton pattern
+import { supabase } from '../supabase';
 
-```
-/packages/
-  └── shared/
-      ├── api/
-      ├── types/
-      └── utils/
+export async function listUserProjects() {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-/apps/
-  ├── web/        # Next.js
-  └── mobile/     # Expo
-```
-
-Both apps import from `@workspace/shared`.
-
----
-
-## Step 4: Implement Key Screens
-
-### 1. Authentication
-
-```typescript
-// screens/LoginScreen.tsx
-import { useState } from 'react';
-import { View, TextInput, Button, Text } from 'react-native';
-import { supabase } from '../lib/supabase';
-
-export function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  async function signIn() {
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) alert(error.message);
-    setLoading(false);
-  }
-
-  return (
-    <View>
-      <TextInput
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-      />
-      <TextInput
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <Button title="Sign In" onPress={signIn} disabled={loading} />
-    </View>
-  );
+  if (error) throw error;
+  return data || [];
 }
 ```
 
-### 2. Dashboard - "My Gigs"
+### Option B: Monorepo with Shared Package (Production)
 
-```typescript
-// screens/DashboardScreen.tsx
-import { useEffect, useState } from 'react';
-import { View, Text, FlatList } from 'react-native';
-import { listGigsAsPlayer } from '../lib/api/gigs';
-import { supabase } from '../lib/supabase';
+For production, set up a monorepo with Turborepo:
 
-export function DashboardScreen() {
-  const [gigs, setGigs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Get current user
-    supabase.auth.getUser().then(({ data }) => {
-      setUserId(data.user?.id || null);
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!userId) return;
-    
-    fetchGigs();
-  }, [userId]);
-
-  async function fetchGigs() {
-    try {
-      const data = await listGigsAsPlayer(userId!);
-      setGigs(data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  if (loading) return <Text>Loading...</Text>;
-
-  return (
-    <FlatList
-      data={gigs}
-      renderItem={({ item }) => (
-        <View>
-          <Text>{item.title}</Text>
-          <Text>{item.date}</Text>
-          <Text>{item.projects.name}</Text>
-        </View>
-      )}
-      keyExtractor={(item) => item.id}
-    />
-  );
-}
+```
+/
+├── packages/
+│   └── shared/
+│       ├── api/           # Platform-agnostic API functions
+│       ├── types/         # TypeScript types
+│       ├── utils/         # Utility functions
+│       └── package.json
+├── apps/
+│   ├── web/               # Next.js app
+│   └── mobile/            # Expo app
+├── package.json           # Root workspace
+└── turbo.json             # Turborepo config
 ```
 
-### 3. Gig Pack (Mobile-Optimized View)
+Both apps import from `@gigmaster/shared`:
 
 ```typescript
-// screens/GigPackScreen.tsx
-import { useEffect, useState } from 'react';
-import { View, Text, ScrollView } from 'react-native';
-import { getGigPack } from '../lib/api/gig-pack';
-import type { GigPackData } from '../lib/types/shared';
-import { supabase } from '../lib/supabase';
-
-export function GigPackScreen({ route }) {
-  const { gigId } = route.params;
-  const [gigPack, setGigPack] = useState<GigPackData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadGigPack();
-  }, [gigId]);
-
-  async function loadGigPack() {
-    try {
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) return;
-
-      const pack = await getGigPack(gigId, data.user.id);
-      setGigPack(pack);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  if (loading) return <Text>Loading...</Text>;
-  if (!gigPack) return <Text>Gig not found</Text>;
-
-  return (
-    <ScrollView>
-      {/* Logistics */}
-      <View>
-        <Text>{gigPack.title}</Text>
-        <Text>{gigPack.date}</Text>
-        <Text>{gigPack.locationName}</Text>
-      </View>
-
-      {/* Setlist */}
-      {gigPack.setlist.length > 0 && (
-        <View>
-          <Text>Setlist</Text>
-          {gigPack.setlist.map((item) => (
-            <View key={item.id}>
-              <Text>{item.title}</Text>
-              {item.key && <Text>Key: {item.key}</Text>}
-              {item.bpm && <Text>BPM: {item.bpm}</Text>}
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* User's role & payment */}
-      {gigPack.userRole && (
-        <View>
-          <Text>Your Role: {gigPack.userRole.roleName}</Text>
-          <Text>
-            Fee: {gigPack.userRole.agreedFee} {gigPack.userRole.currency}
-          </Text>
-          <Text>
-            Status: {gigPack.userRole.isPaid ? 'Paid' : 'Unpaid'}
-          </Text>
-        </View>
-      )}
-    </ScrollView>
-  );
-}
+import { listUserProjects } from '@gigmaster/shared/api/projects';
+import type { Project } from '@gigmaster/shared/types';
 ```
 
 ---
 
-## Step 5: Navigation Setup
+## Step 4: Authentication with Expo Router
+
+### Root Layout with Auth
+
+Create `/app/_layout.tsx`:
 
 ```typescript
-// App.tsx
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useEffect, useState } from 'react';
-import { supabase } from './lib/supabase';
+import { Stack } from 'expo-router';
+import { Session } from '@supabase/supabase-js';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import * as SplashScreen from 'expo-splash-screen';
+import { supabase } from '../lib/supabase';
+import { AuthContext } from '../contexts/auth';
 
-import { LoginScreen } from './screens/LoginScreen';
-import { DashboardScreen } from './screens/DashboardScreen';
-import { GigPackScreen } from './screens/GigPackScreen';
+SplashScreen.preventAutoHideAsync();
 
-const Stack = createNativeStackNavigator();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 2 * 60 * 1000, // 2 minutes (match web)
+    },
+  },
+});
 
-export default function App() {
-  const [session, setSession] = useState(null);
+export default function RootLayout() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      setIsLoading(false);
+      SplashScreen.hideAsync();
     });
 
     // Listen for auth changes
@@ -333,152 +293,530 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  if (isLoading) {
+    return null; // Splash screen still showing
+  }
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator>
-        {!session ? (
-          <Stack.Screen name="Login" component={LoginScreen} />
-        ) : (
-          <>
-            <Stack.Screen name="Dashboard" component={DashboardScreen} />
-            <Stack.Screen name="GigPack" component={GigPackScreen} />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <QueryClientProvider client={queryClient}>
+      <AuthContext.Provider value={{ session, user: session?.user ?? null }}>
+        <Stack screenOptions={{ headerShown: false }}>
+          {!session ? (
+            <Stack.Screen name="(auth)" />
+          ) : (
+            <Stack.Screen name="(tabs)" />
+          )}
+        </Stack>
+      </AuthContext.Provider>
+    </QueryClientProvider>
   );
+}
+```
+
+### Auth Context
+
+Create `/contexts/auth.tsx`:
+
+```typescript
+import { createContext, useContext } from 'react';
+import type { Session, User } from '@supabase/supabase-js';
+
+interface AuthContextType {
+  session: Session | null;
+  user: User | null;
+}
+
+export const AuthContext = createContext<AuthContextType>({
+  session: null,
+  user: null,
+});
+
+export const useAuth = () => useContext(AuthContext);
+```
+
+### Login Screen
+
+Create `/app/(auth)/login.tsx`:
+
+```typescript
+import { useState } from 'react';
+import { View, TextInput, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
+import { supabase } from '../../lib/supabase';
+
+export default function LoginScreen() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function signIn() {
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      Alert.alert('Error', error.message);
+    }
+    // Navigation happens automatically via auth state change
+    setLoading(false);
+  }
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>GigMaster</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={signIn}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? 'Signing in...' : 'Sign In'}
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, justifyContent: 'center', padding: 20 },
+  title: { fontSize: 32, fontWeight: 'bold', textAlign: 'center', marginBottom: 40 },
+  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 16, marginBottom: 16 },
+  button: { backgroundColor: '#000', borderRadius: 8, padding: 16 },
+  buttonText: { color: '#fff', textAlign: 'center', fontWeight: '600' },
+});
+```
+
+---
+
+## Step 5: Main App Screens
+
+### Tab Navigator
+
+Create `/app/(tabs)/_layout.tsx`:
+
+```typescript
+import { Tabs } from 'expo-router';
+import { Calendar, DollarSign, Home } from 'lucide-react-native';
+
+export default function TabLayout() {
+  return (
+    <Tabs
+      screenOptions={{
+        tabBarActiveTintColor: '#000',
+        headerShown: true,
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Dashboard',
+          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="gigs"
+        options={{
+          title: 'Gigs',
+          tabBarIcon: ({ color, size }) => <Calendar size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="money"
+        options={{
+          title: 'Money',
+          tabBarIcon: ({ color, size }) => <DollarSign size={size} color={color} />,
+        }}
+      />
+    </Tabs>
+  );
+}
+```
+
+### Dashboard with TanStack Query
+
+Create `/app/(tabs)/index.tsx`:
+
+```typescript
+import { View, Text, FlatList, StyleSheet, RefreshControl } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../../contexts/auth';
+import { listGigsAsPlayer } from '../../lib/api/gigs';
+import { GigCard } from '../../components/GigCard';
+
+export default function DashboardScreen() {
+  const { user } = useAuth();
+
+  const { data: gigs, isLoading, error, refetch, isRefetching } = useQuery({
+    queryKey: ['gigs', 'player', user?.id],
+    queryFn: () => listGigsAsPlayer(user!.id),
+    enabled: !!user,
+  });
+
+  if (isLoading) {
+    return <LoadingSkeleton />;
+  }
+
+  if (error) {
+    return <ErrorView message={error.message} onRetry={refetch} />;
+  }
+
+  const upcomingGigs = gigs?.filter(g => new Date(g.date) >= new Date()) || [];
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.header}>Upcoming Gigs</Text>
+
+      <FlatList
+        data={upcomingGigs}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => <GigCard gig={item} />}
+        refreshControl={
+          <RefreshControl refreshing={isRefetching} onRefresh={refetch} />
+        }
+        ListEmptyComponent={
+          <Text style={styles.empty}>No upcoming gigs</Text>
+        }
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: { fontSize: 24, fontWeight: 'bold', padding: 16 },
+  empty: { textAlign: 'center', color: '#666', marginTop: 40 },
+});
+```
+
+### Gig Detail Screen
+
+Create `/app/gig/[id].tsx`:
+
+```typescript
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '../../contexts/auth';
+import { getGigPack } from '../../lib/api/gig-pack';
+import { formatCurrency } from '../../lib/utils/currency';
+
+export default function GigDetailScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { user } = useAuth();
+
+  const { data: gigPack, isLoading } = useQuery({
+    queryKey: ['gig-pack', id, user?.id],
+    queryFn: () => getGigPack(id, user!.id),
+    enabled: !!user && !!id,
+  });
+
+  if (isLoading || !gigPack) {
+    return <LoadingSkeleton />;
+  }
+
+  return (
+    <ScrollView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>{gigPack.title}</Text>
+        <Text style={styles.date}>{formatDate(gigPack.date)}</Text>
+        {gigPack.locationName && (
+          <Text style={styles.location}>{gigPack.locationName}</Text>
+        )}
+      </View>
+
+      {/* User's Role & Payment */}
+      {gigPack.userRole && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Your Role</Text>
+          <Text>{gigPack.userRole.roleName}</Text>
+          <Text>
+            {formatCurrency(gigPack.userRole.agreedFee, gigPack.userRole.currency)}
+          </Text>
+          <Text style={styles.status}>
+            {gigPack.userRole.paymentStatus === 'paid' ? '✅ Paid' : '⏳ Pending'}
+          </Text>
+        </View>
+      )}
+
+      {/* Setlist */}
+      {gigPack.setlist.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Setlist</Text>
+          {gigPack.setlist.map((item, index) => (
+            <View key={item.id} style={styles.setlistItem}>
+              <Text style={styles.setlistNumber}>{index + 1}</Text>
+              <View>
+                <Text style={styles.songTitle}>{item.title}</Text>
+                {item.key && <Text style={styles.songMeta}>Key: {item.key}</Text>}
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Notes */}
+      {gigPack.notes && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Notes</Text>
+          <Text>{gigPack.notes}</Text>
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  title: { fontSize: 24, fontWeight: 'bold' },
+  date: { fontSize: 16, color: '#666', marginTop: 4 },
+  location: { fontSize: 14, color: '#888', marginTop: 2 },
+  section: { padding: 16, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  sectionTitle: { fontSize: 18, fontWeight: '600', marginBottom: 12 },
+  status: { marginTop: 8, fontWeight: '500' },
+  setlistItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
+  setlistNumber: { width: 30, fontSize: 14, color: '#888' },
+  songTitle: { fontSize: 16 },
+  songMeta: { fontSize: 12, color: '#888' },
+});
+```
+
+---
+
+## Step 6: TypeScript Configuration
+
+### tsconfig.json
+
+```json
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
 }
 ```
 
 ---
 
-## Step 6: Reusable API Functions
+## Features Roadmap
 
-All functions in `/lib/api/*` can be reused directly:
+### MVP (Phase 1)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Authentication | 🔲 | Sign in/out with email |
+| Dashboard | 🔲 | Upcoming gigs list |
+| Gig Detail | 🔲 | Full gig pack view |
+| Setlist View | 🔲 | Read-only setlist |
+| Payment Status | 🔲 | See if you've been paid |
+| Pull-to-refresh | 🔲 | Refresh gig data |
+
+### Version 2
+
+| Feature | Notes |
+|---------|-------|
+| Push Notifications | Gig reminders, payment updates |
+| Calendar View | Monthly calendar of gigs |
+| Offline Mode | Cache gigs for offline viewing |
+| Invitation Response | Accept/decline gigs in app |
+| Profile Management | Update name, photo |
+
+### Version 3
+
+| Feature | Notes |
+|---------|-------|
+| Manager View | Manage gigs, invite musicians |
+| Setlist Editing | Reorder, add songs |
+| File Downloads | Save PDFs offline |
+| Widget | iOS home screen widget for next gig |
+| Apple Watch | Glanceable gig info |
+
+---
+
+## Performance Best Practices
+
+### 1. TanStack Query Caching
+
+Match the web app's caching strategy:
 
 ```typescript
-// In your mobile app screens
-import { listGigsAsPlayer, listGigsAsManager } from '../lib/api/gigs';
-import { listSetlistItemsForGig } from '../lib/api/setlist-items';
-import { listFilesForGig } from '../lib/api/gig-files';
-import { getPlayerMoneySummary } from '../lib/api/player-money';
-import { getGigPack } from '../lib/api/gig-pack';
-
-// All work exactly the same, just ensure you've replaced
-// createClient() with your mobile supabase client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 2 * 60 * 1000, // 2 minutes
+      gcTime: 10 * 60 * 1000,   // 10 minutes (was cacheTime)
+    },
+  },
+});
 ```
 
----
+### 2. Image Optimization
 
-## Features to Implement (Priority Order)
+```typescript
+import { Image } from 'expo-image';
 
-### MVP (Must Have)
-1. ✅ Authentication (sign in/out)
-2. ✅ Dashboard - "My Gigs" list (as player)
-3. ✅ Gig Pack view (all essential info)
-4. ✅ Setlist display
-5. ✅ Resources/files (clickable URLs)
+// Use expo-image for better caching
+<Image
+  source={{ uri: project.imageUrl }}
+  style={{ width: 100, height: 100 }}
+  placeholder={blurhash}
+  contentFit="cover"
+  transition={200}
+/>
+```
 
-### V2 (Nice to Have)
-- 📅 Calendar view of gigs
-- 💰 Money tracking (payment status)
-- 🔔 Push notifications for gig updates
-- 📍 Maps integration for venue locations
-- 📥 Offline mode with local caching
+### 3. List Virtualization
 
-### V3 (Future)
-- ✏️ Status updates (accept/decline invitations)
-- 📝 Notes per gig
-- 📤 Export setlist as PDF
-- 🎵 Link songs to Spotify/YouTube
+React Native's FlatList already virtualizes. For complex lists:
 
----
+```typescript
+<FlatList
+  data={gigs}
+  renderItem={renderGig}
+  initialNumToRender={10}
+  maxToRenderPerBatch={10}
+  windowSize={5}
+  removeClippedSubviews={true}
+/>
+```
 
-## Performance Considerations
+### 4. Bundle Size
 
-1. **Use TanStack Query** for caching
-2. **Lazy load** heavy data (setlists, files)
-3. **Pagination** for large lists (past gigs)
-4. **Optimize images** (compress project covers)
-5. **Offline support** with AsyncStorage
+Expo's tree-shaking works well. Avoid:
+- Importing entire icon libraries
+- Large utility libraries (use native alternatives)
 
 ---
 
 ## Testing Checklist
 
-- [ ] Auth: Sign in/out works
-- [ ] Dashboard: Shows upcoming gigs
-- [ ] Navigation: Can navigate to gig detail
-- [ ] Gig Pack: All sections render correctly
-- [ ] URLs: External links open in browser
-- [ ] Session: Persists across app restarts
-- [ ] Errors: Graceful error handling
+### Development
+
+- [ ] Auth: Sign in/out persists across app restarts
+- [ ] Dashboard: Shows upcoming gigs correctly
+- [ ] Navigation: Deep links work (`/gig/[id]`)
+- [ ] Query caching: Data persists between screens
+- [ ] Error handling: Network errors show gracefully
+- [ ] Pull-to-refresh: Updates data
+
+### Device Testing
+
+- [ ] iOS Simulator: All screens render correctly
+- [ ] Android Emulator: All screens render correctly
+- [ ] Physical iPhone: Performance acceptable
+- [ ] Physical Android: Performance acceptable
+
+### Pre-Release
+
+- [ ] Build succeeds: `eas build --platform ios`
+- [ ] No TypeScript errors: `npx tsc --noEmit`
+- [ ] No console warnings in production build
 
 ---
 
 ## Deployment
 
 ### Development
+
 ```bash
-npm start
-# Scan QR code with Expo Go app
+# Start Expo development server
+npx expo start
+
+# Run on iOS simulator
+npx expo run:ios
+
+# Run on Android emulator
+npx expo run:android
 ```
 
-### Production
+### Production Builds with EAS
+
 ```bash
-# iOS
+# Install EAS CLI
+npm install -g eas-cli
+
+# Configure EAS
+eas build:configure
+
+# Build for iOS
 eas build --platform ios
 
-# Android
+# Build for Android
 eas build --platform android
+
+# Submit to App Store
+eas submit --platform ios
+
+# Submit to Play Store
+eas submit --platform android
 ```
 
-See [Expo documentation](https://docs.expo.dev/) for detailed build guides.
+### Requirements
 
----
-
-## Future: Monorepo Migration
-
-When both apps are stable, consider migrating to a monorepo:
-
-**Tools:**
-- Turborepo (recommended)
-- Nx
-- Yarn Workspaces + Lerna
-
-**Benefits:**
-- Share code via `@workspace/shared`
-- Single source of truth for types
-- Synchronized deployments
-- Easier refactoring
-
-**Structure:**
-```
-/
-├── packages/
-│   └── shared/           # API, types, utils
-├── apps/
-│   ├── web/              # Next.js
-│   └── mobile/           # Expo
-├── package.json          # Root workspace
-└── turbo.json            # Turborepo config
-```
+- **Apple Developer Account:** $99/year for App Store distribution
+- **Google Play Developer Account:** $25 one-time for Play Store distribution
+- **EAS Account:** Free tier available, paid for faster builds
 
 ---
 
 ## Resources
 
+### Official Docs
+
 - [Expo Documentation](https://docs.expo.dev/)
-- [Supabase React Native Guide](https://supabase.com/docs/guides/getting-started/quickstarts/react-native)
-- [React Navigation](https://reactnavigation.org/)
-- [TanStack Query (React Query)](https://tanstack.com/query/latest)
+- [Expo Router](https://docs.expo.dev/router/introduction/)
+- [Supabase + Expo Guide](https://docs.expo.dev/guides/using-supabase/)
+- [TanStack Query](https://tanstack.com/query/latest)
+
+### Project References
+
+- `/lib/README.md` - Code portability matrix
+- `/lib/supabase/CLIENTS_GUIDE.md` - Supabase client patterns
+- `CLAUDE.md` - Project conventions and patterns
 
 ---
 
-## Need Help?
+## Troubleshooting
 
-Refer to:
-- `/lib/README.md` - Code structure guide
-- `/lib/supabase/CLIENTS_GUIDE.md` - Supabase client setup
-- `/BUILD_STEPS.md` - How features were built
+### Common Issues
 
+**"Unable to resolve module" errors:**
+- Run `npx expo start --clear` to clear Metro cache
+- Check `tsconfig.json` path aliases
+
+**Auth session not persisting:**
+- Ensure `expo-secure-store` is installed
+- Check that `detectSessionInUrl: false` is set
+
+**Slow performance on Android:**
+- Enable Hermes (default in Expo SDK 52+)
+- Use `useCallback` and `useMemo` for expensive renders
+
+**Type errors after copying web code:**
+- Ensure `database.ts` types are copied
+- Update Supabase client imports in API files

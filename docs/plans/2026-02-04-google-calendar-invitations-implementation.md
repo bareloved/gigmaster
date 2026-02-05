@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Send Google Calendar invitations to lineup members when a manager views their gig pack, with real-time response sync via webhooks.
+**Goal:** Send Google Calendar invitations to lineup members when a manager creates a gig, with real-time response sync via webhooks.
 
 **Architecture:** Extend existing Google Calendar integration with write permissions. Add new columns to track invitation method per gig_role. Create webhook endpoint for real-time response updates. Background processing for non-blocking UX.
 
@@ -81,7 +81,7 @@ COMMENT ON TABLE google_calendar_watches IS 'Tracks Google Calendar webhook chan
 
 **Step 2: Apply migration via Supabase Dashboard**
 
-Run: Open Supabase Dashboard > SQL Editor > Paste and run the migration
+use the supabase MCP to run the migration
 
 **Step 3: Commit**
 
@@ -1745,179 +1745,266 @@ git commit -m "feat(ui): add email collection modal"
 
 ---
 
-## Task 10: Update Gig Pack Button Behavior
+## Task 10: Send Calendar Invites on Gig Creation
 
 **Files:**
-- Modify: `components/dashboard/gig-item.tsx`
+- Modify: `components/gigpack/editor/gig-editor-panel.tsx`
 
-**Step 1: Add imports and state**
+**Goal:** When a user clicks "Pack this gig" to create a new gig, automatically send Google Calendar invitations to all lineup members who have email addresses.
 
-Add to imports (around line 18):
+**Step 1: Add state for email collection modal**
+
+Add imports at the top (around line 4):
 
 ```typescript
 import dynamic from "next/dynamic";
 
-// Add this with the other dynamic imports (around line 35-50)
+// Add with other dynamic imports or after the existing imports
 const EmailCollectionModal = dynamic(
   () => import("@/components/gigs/email-collection-modal").then(m => m.EmailCollectionModal),
   { ssr: false }
 );
 ```
 
-**Step 2: Add state for sending invites**
+**Step 2: Add state variables**
 
-Add inside the GigItem component, after other state declarations:
+Add inside the component, after other state declarations (around line 380):
 
 ```typescript
-const [isSendingInvites, setIsSendingInvites] = useState(false);
+// Calendar invitation state
 const [showEmailModal, setShowEmailModal] = useState(false);
 const [missingEmails, setMissingEmails] = useState<Array<{id: string; name: string; role: string | null}>>([]);
-const [calendarEnabled, setCalendarEnabled] = useState<boolean | null>(null);
+const [pendingGigResult, setPendingGigResult] = useState<{ id: string; publicSlug?: string } | null>(null);
 ```
 
-**Step 3: Add function to check and send invites**
+**Step 3: Create helper function to send invites**
 
-Add after the existing handler functions:
+Add after the existing handler functions (around line 1000):
 
 ```typescript
-const checkAndSendInvites = async () => {
-  if (!gig.isManager) return;
-
+/**
+ * Send calendar invitations after gig creation
+ * Returns true if invites were sent (or attempted)
+ */
+const sendCalendarInvitesForGig = async (
+  gigId: string,
+  lineupMembers: LineupMember[],
+  roleEmails?: Record<string, string>
+): Promise<void> => {
   try {
     // Check if calendar invites are enabled
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     const { data: connection } = await supabase
       .from("calendar_connections")
       .select("write_access, send_invites_enabled")
-      .eq("user_id", user?.id)
+      .eq("user_id", user.id)
       .eq("provider", "google")
       .single();
 
     if (!connection?.write_access || !connection?.send_invites_enabled) {
-      // Calendar invites not enabled, just navigate
-      return false;
+      // Calendar invites not enabled
+      return;
     }
 
-    setCalendarEnabled(true);
-
-    // Check for roles needing invites
-    const response = await fetch(`/api/calendar/send-invites?gigId=${gig.gigId}`);
-    const data = await response.json();
-
-    if (data.needsInvites === 0) {
-      // No invites needed, just navigate
-      return false;
-    }
-
-    if (data.missingEmails?.length > 0) {
-      // Show email collection modal
-      setMissingEmails(data.missingEmails);
-      setShowEmailModal(true);
-      return true; // Prevent navigation
-    }
-
-    // Send invites in background
-    setIsSendingInvites(true);
-    toast.loading("Sending invitations...", { id: "send-invites" });
-
+    // Send invites in background (non-blocking)
     fetch("/api/calendar/send-invites", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ gigId: gig.gigId }),
+      body: JSON.stringify({ gigId, roleEmails }),
     })
       .then(res => res.json())
       .then(result => {
-        toast.dismiss("send-invites");
         if (result.failed > 0) {
-          toast.success(`${result.sent} sent, ${result.failed} failed`);
+          toast({
+            title: t("invitesSentPartial"),
+            description: `${result.sent} sent, ${result.failed} failed`,
+            duration: 4000,
+          });
         } else if (result.sent > 0) {
-          toast.success(`${result.sent} invitation${result.sent > 1 ? 's' : ''} sent`);
+          toast({
+            title: t("invitesSent"),
+            description: `${result.sent} calendar invitation${result.sent > 1 ? 's' : ''} sent`,
+            duration: 3000,
+          });
         }
       })
-      .catch(() => {
-        toast.dismiss("send-invites");
-        toast.error("Failed to send invitations");
-      })
-      .finally(() => {
-        setIsSendingInvites(false);
+      .catch(err => {
+        console.error("Failed to send calendar invites:", err);
+        // Don't show error - gig was created successfully, invites are secondary
       });
-
-    return false; // Don't prevent navigation
   } catch (error) {
-    console.error("Error checking invites:", error);
-    return false;
+    console.error("Error sending calendar invites:", error);
   }
 };
 
-const handleGigPackClick = async (e: React.MouseEvent) => {
-  e.preventDefault();
-  const shouldPrevent = await checkAndSendInvites();
-  if (!shouldPrevent) {
-    window.location.href = `/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`;
-  }
+/**
+ * Check which lineup members are missing emails
+ */
+const getLineupMissingEmails = (lineupMembers: LineupMember[]): Array<{id: string; name: string; role: string | null}> => {
+  // For now, we assume lineup members added from search have emails
+  // Members manually typed without linking to contacts/users may not
+  // This will be enhanced when we have proper email tracking on lineup
+  return lineupMembers
+    .filter(m => m.name && !m.userId && !m.linkedUserId && !m.contactId)
+    .map((m, index) => ({
+      id: `lineup-${index}`, // Temporary ID for the modal
+      name: m.name || 'Unknown',
+      role: m.role || null,
+    }));
 };
+```
 
+**Step 4: Update handleSubmit to send invites after creation**
+
+In the `handleSubmit` function, after successful gig creation (around line 918-960), modify the create success block:
+
+Find this section:
+```typescript
+} else {
+  // Clear draft on successful creation
+  clearDraft();
+
+  // Save pending contacts to the new gig
+  if (result?.id && pendingContacts.length > 0) {
+```
+
+And update the entire else block to:
+
+```typescript
+} else {
+  // Clear draft on successful creation
+  clearDraft();
+
+  // Save pending contacts to the new gig
+  if (result?.id && pendingContacts.length > 0) {
+    try {
+      await Promise.all(
+        pendingContacts.map((contact, index) =>
+          createGigContact({
+            gigId: result.id,
+            label: contact.label,
+            name: contact.name,
+            phone: contact.phone,
+            email: contact.email,
+            sourceType: contact.sourceType,
+            sourceId: contact.sourceId,
+            sortOrder: index,
+          })
+        )
+      );
+      setPendingContacts([]);
+    } catch (contactError) {
+      console.error("Error saving contacts:", contactError);
+      // Don't fail the whole operation, gig was created
+    }
+  }
+
+  // Check for lineup members missing emails
+  const lineupWithData = lineup.filter((m) => m.role || m.name);
+  const missing = getLineupMissingEmails(lineupWithData);
+
+  if (missing.length > 0 && result?.id) {
+    // Store result and show email collection modal
+    setPendingGigResult({ id: result.id, publicSlug: result.publicSlug });
+    setMissingEmails(missing);
+    setShowEmailModal(true);
+    // Don't navigate yet - wait for modal
+    return;
+  }
+
+  // Send calendar invites (non-blocking)
+  if (result?.id && lineupWithData.length > 0) {
+    sendCalendarInvitesForGig(result.id, lineupWithData);
+  }
+
+  if (onCreateSuccess && result) {
+    // Construct new gigPack object
+    const newGigPack: Partial<GigPack> = {
+      id: result.id,
+      ...gigPackData,
+      theme: "minimal" as const,
+      public_slug: result.publicSlug || "",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    onCreateSuccess(newGigPack as GigPack);
+  } else {
+    onOpenChange(false);
+  }
+}
+```
+
+**Step 5: Add email modal handlers**
+
+Add these handlers after the helper functions:
+
+```typescript
 const handleSendWithEmails = async (emails: Record<string, string>) => {
   setShowEmailModal(false);
-  setIsSendingInvites(true);
-  toast.loading("Sending invitations...", { id: "send-invites" });
 
-  try {
-    const response = await fetch("/api/calendar/send-invites", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ gigId: gig.gigId, roleEmails: emails }),
-    });
-    const result = await response.json();
-
-    toast.dismiss("send-invites");
-    if (result.failed > 0) {
-      toast.success(`${result.sent} sent, ${result.failed} failed`);
-    } else if (result.sent > 0) {
-      toast.success(`${result.sent} invitation${result.sent > 1 ? 's' : ''} sent`);
-    }
-  } catch {
-    toast.dismiss("send-invites");
-    toast.error("Failed to send invitations");
-  } finally {
-    setIsSendingInvites(false);
-    window.location.href = `/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`;
+  if (pendingGigResult?.id) {
+    const lineupWithData = lineup.filter((m) => m.role || m.name);
+    sendCalendarInvitesForGig(pendingGigResult.id, lineupWithData, emails);
   }
+
+  // Continue with navigation
+  if (onCreateSuccess && pendingGigResult) {
+    const newGigPack: Partial<GigPack> = {
+      id: pendingGigResult.id,
+      title,
+      band_id: bandId || null,
+      band_name: bandName || null,
+      date: date || null,
+      theme: "minimal" as const,
+      public_slug: pendingGigResult.publicSlug || "",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    onCreateSuccess(newGigPack as GigPack);
+  } else {
+    onOpenChange(false);
+  }
+
+  setPendingGigResult(null);
 };
 
 const handleSkipEmails = () => {
   setShowEmailModal(false);
-  // Send to members with emails only
-  handleSendWithEmails({});
+
+  // Send to members with emails only (empty roleEmails)
+  if (pendingGigResult?.id) {
+    const lineupWithData = lineup.filter((m) => m.role || m.name);
+    sendCalendarInvitesForGig(pendingGigResult.id, lineupWithData, {});
+  }
+
+  // Continue with navigation
+  if (onCreateSuccess && pendingGigResult) {
+    const newGigPack: Partial<GigPack> = {
+      id: pendingGigResult.id,
+      title,
+      theme: "minimal" as const,
+      public_slug: pendingGigResult.publicSlug || "",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    onCreateSuccess(newGigPack as GigPack);
+  } else {
+    onOpenChange(false);
+  }
+
+  setPendingGigResult(null);
 };
 ```
 
-**Step 4: Update the Gig Pack button**
+**Step 6: Add the email collection modal to the JSX**
 
-Replace the Gig Pack Link/Button (around line 314-319):
-
-```typescript
-{/* Gig Pack Button (only for hosts) */}
-{gig.isManager && (
-  <Button
-    variant="outline"
-    size="sm"
-    className="gap-2"
-    onClick={handleGigPackClick}
-    disabled={isSendingInvites}
-  >
-    <Package className={`h-4 w-4 ${isSendingInvites ? 'animate-pulse' : ''}`} />
-    {isSendingInvites ? 'Sending...' : 'Gig Pack'}
-  </Button>
-)}
-```
-
-**Step 5: Add the modal at the end of the component**
-
-Add before the closing fragment of the return statement:
+Add before the final closing `</>` of the component (around line 2008):
 
 ```typescript
-{/* Email Collection Modal */}
+{/* Email Collection Modal for Calendar Invites */}
 <EmailCollectionModal
   open={showEmailModal}
   onOpenChange={setShowEmailModal}
@@ -1927,16 +2014,25 @@ Add before the closing fragment of the return statement:
 />
 ```
 
-**Step 6: Run type check and lint**
+**Step 7: Add translations**
+
+Add to `lib/gigpack/i18n.ts` in the gigpack translations:
+
+```typescript
+invitesSent: "Invitations sent",
+invitesSentPartial: "Some invitations sent",
+```
+
+**Step 8: Run type check and lint**
 
 Run: `npm run check && npm run lint`
 Expected: No errors
 
-**Step 7: Commit**
+**Step 9: Commit**
 
 ```bash
-git add components/dashboard/gig-item.tsx
-git commit -m "feat(ui): integrate calendar invites with Gig Pack button"
+git add components/gigpack/editor/gig-editor-panel.tsx lib/gigpack/i18n.ts
+git commit -m "feat(ui): send calendar invites automatically when creating gig"
 ```
 
 ---
@@ -2184,9 +2280,19 @@ This plan implements:
 5. **Updated OAuth flow** for write access
 6. **Settings UI** for enabling calendar invites
 7. **Email collection modal** for missing addresses
-8. **Updated Gig Pack button** to trigger invites
+8. **"Pack this gig" integration** - invites sent automatically when creating a gig
 9. **Invitation method icons** in lineup display
 10. **Auto-update events** when gig details change
 11. **Tests** for the new functionality
+
+### User Flow
+
+1. User enables "Send Google Calendar invites" in Settings → Calendar
+2. User creates a new gig with lineup members
+3. User clicks "Pack this gig" to create the gig
+4. **Automatically:** Calendar invitations are sent to all lineup members with emails
+5. If some members are missing emails, a modal prompts for them (optional)
+6. Musicians receive calendar invitations and can accept/decline
+7. Responses sync back to GigMaster via webhooks
 
 Total estimated tasks: 15

@@ -36,8 +36,9 @@ interface GigForInvite {
   location_address: string | null;
   dress_code: string | null;
   owner_id: string | null;
-  owner: Array<{ name: string | null }> | null;
-  projects: { name: string } | null;
+  project_id: string | null;
+  projectName?: string | null; // Fetched separately
+  ownerName?: string | null; // Fetched separately
 }
 
 /**
@@ -89,6 +90,9 @@ export async function getRolesNeedingInvites(gigId: string): Promise<{
     throw new Error(`Failed to fetch roles: ${error.message}`);
   }
 
+  console.log("[getRolesNeedingInvites] Found roles:", roles?.length || 0, "for gig:", gigId);
+  console.log("[getRolesNeedingInvites] Roles data:", JSON.stringify(roles, null, 2));
+
   // Get profile emails for roles with musician_id
   const musicianIds = (roles || [])
     .map(r => r.musician_id)
@@ -130,6 +134,8 @@ export async function getRolesNeedingInvites(gigId: string): Promise<{
     }
   }
 
+  console.log("[getRolesNeedingInvites] With emails:", rolesWithEmails.length, "Missing emails:", missingEmails.length);
+
   return { roles: rolesWithEmails, missingEmails };
 }
 
@@ -142,64 +148,83 @@ function buildEventDescription(
   baseUrl: string
 ): string {
   const lines: string[] = [];
+  const bandName = gig.projectName || gig.ownerName || 'the band';
+  const inviterName = gig.ownerName || 'the band manager';
 
+  // Invitation header
+  lines.push(`You've been invited to "${gig.title}" with ${bandName} by ${inviterName}.`);
+  lines.push('');
+
+  // Role info
   lines.push(`Your role: ${role.role_name || 'Musician'}`);
+  lines.push('');
 
+  // Schedule section
+  lines.push('Schedule:');
   if (gig.call_time) {
-    lines.push(`Call time: ${gig.call_time}`);
+    lines.push(`• Call time: ${gig.call_time}`);
   }
-
+  if (gig.start_time) {
+    lines.push(`• Start time: ${gig.start_time}`);
+  }
   if (gig.dress_code) {
-    lines.push(`Dress code: ${gig.dress_code}`);
+    lines.push(`• Dress code: ${gig.dress_code}`);
+  }
+  if (gig.location_name) {
+    lines.push(`• Venue: ${gig.location_name}`);
+  }
+  if (gig.location_address) {
+    lines.push(`• Address: ${gig.location_address}`);
   }
 
   lines.push('');
-  lines.push(`View full gig details:`);
-  lines.push(`${baseUrl}/gigs/${gig.id}/pack`);
+  lines.push(`View full gig details: ${baseUrl}/gigs/${gig.id}/pack`);
   lines.push('');
   lines.push('---');
-  lines.push('This gig was organized with GigMaster.');
-  lines.push(`Manage your gigs smarter: ${baseUrl}`);
+  lines.push(`Organized with GigMaster | ${baseUrl}`);
 
   return lines.join('\n');
 }
 
 /**
- * Build event title
+ * Build event title: "Band Name - Event Title"
  */
 function buildEventTitle(gig: GigForInvite): string {
-  const ownerName = gig.owner?.[0]?.name;
-  const bandName = gig.projects?.name || ownerName || 'Gig';
-  const venue = gig.location_name || 'TBD';
-  return `[${bandName}] - ${venue}`;
+  const bandName = gig.projectName || gig.ownerName || 'Gig';
+  const eventTitle = gig.title || gig.location_name || 'Untitled Gig';
+  return `${bandName} - ${eventTitle}`;
 }
 
 /**
- * Convert gig date/time to ISO format for Google Calendar
+ * Convert gig date/time to RFC 3339 format for Google Calendar API
+ * Uses UTC (Z suffix) for unambiguous timestamps that Google Calendar accepts
  */
 function toGoogleDateTime(date: string, time: string | null): {
-  start: { dateTime: string; timeZone: string };
-  end: { dateTime: string; timeZone: string };
+  start: { dateTime: string };
+  end: { dateTime: string };
 } {
-  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // Extract just the date part (YYYY-MM-DD) if it's a full ISO timestamp
+  const dateOnly = date.includes('T') ? date.split('T')[0] : date;
 
-  if (time) {
-    const startDateTime = `${date}T${time}:00`;
-    // Default to 2 hours duration
-    const startDate = new Date(`${date}T${time}:00`);
-    const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
-    const endDateTime = endDate.toISOString().replace('Z', '').split('.')[0];
+  // Use the gig's time or default to 6pm
+  const startTime = time || '18:00';
 
-    return {
-      start: { dateTime: startDateTime, timeZone },
-      end: { dateTime: endDateTime, timeZone },
-    };
+  // Normalize time: ensure HH:MM:SS format
+  // Handle "HH:MM" (add :00) or "HH:MM:SS" (use as-is)
+  const normalizedTime = startTime.length === 5 ? `${startTime}:00` : startTime;
+
+  // Parse as local time and convert to ISO string (UTC with Z suffix)
+  const startDate = new Date(`${dateOnly}T${normalizedTime}`);
+  const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+
+  // Validate the dates are valid before calling toISOString
+  if (isNaN(startDate.getTime())) {
+    throw new Error(`Invalid date/time: date="${date}", time="${time}"`);
   }
 
-  // All-day event fallback - default to 6pm-8pm
   return {
-    start: { dateTime: `${date}T18:00:00`, timeZone },
-    end: { dateTime: `${date}T20:00:00`, timeZone },
+    start: { dateTime: startDate.toISOString() },
+    end: { dateTime: endDate.toISOString() },
   };
 }
 
@@ -244,12 +269,7 @@ export async function sendCalendarInvites(
       location_address,
       dress_code,
       owner_id,
-      owner:profiles!gigs_owner_id_fkey (
-        name
-      ),
-      projects (
-        name
-      )
+      project_id
     `)
     .eq("id", gigId)
     .single();
@@ -257,6 +277,35 @@ export async function sendCalendarInvites(
   if (gigError || !gig) {
     throw new Error(`Failed to fetch gig: ${gigError?.message}`);
   }
+
+  // Get project name separately
+  let projectName: string | null = null;
+  if (gig.project_id) {
+    const { data: project } = await supabase
+      .from("projects")
+      .select("name")
+      .eq("id", gig.project_id)
+      .single();
+    projectName = project?.name || null;
+  }
+
+  // Get owner name separately
+  let ownerName: string | null = null;
+  if (gig.owner_id) {
+    const { data: ownerProfile } = await supabase
+      .from("profiles")
+      .select("name")
+      .eq("id", gig.owner_id)
+      .single();
+    ownerName = ownerProfile?.name || null;
+  }
+
+  // Create gig object for event building
+  const gigForInvite: GigForInvite = {
+    ...gig,
+    projectName,
+    ownerName,
+  };
 
   // Verify user owns this gig
   if (gig.owner_id !== userId) {
@@ -290,7 +339,7 @@ export async function sendCalendarInvites(
     expiry_date: new Date(connection.token_expires_at).getTime(),
   });
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gigmaster.app';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gigmaster.io';
   const { start, end } = toGoogleDateTime(gig.date, gig.start_time);
 
   // Send invites one by one
@@ -311,8 +360,8 @@ export async function sendCalendarInvites(
     try {
       // Create calendar event
       const eventInput: CreateEventInput = {
-        summary: buildEventTitle(gig as unknown as GigForInvite),
-        description: buildEventDescription(role, gig as unknown as GigForInvite, baseUrl),
+        summary: buildEventTitle(gigForInvite),
+        description: buildEventDescription(role, gigForInvite, baseUrl),
         location: gig.location_name || undefined,
         start,
         end,
@@ -420,9 +469,7 @@ export async function updateCalendarEvents(
       .from("gigs")
       .select(`
         id, title, date, start_time, end_time, call_time,
-        location_name, location_address, dress_code, owner_id,
-        owner:profiles!gigs_owner_id_fkey (name),
-        projects (name)
+        location_name, location_address, dress_code, owner_id, project_id
       `)
       .eq("id", gigId)
       .single(),
@@ -440,6 +487,35 @@ export async function updateCalendarEvents(
 
   const gig = gigResult.data;
   const connection = connectionResult.data;
+
+  // Get project name separately
+  let projectName: string | null = null;
+  if (gig.project_id) {
+    const { data: project } = await supabase
+      .from("projects")
+      .select("name")
+      .eq("id", gig.project_id)
+      .single();
+    projectName = project?.name || null;
+  }
+
+  // Get owner name separately
+  let ownerName: string | null = null;
+  if (gig.owner_id) {
+    const { data: ownerProfile } = await supabase
+      .from("profiles")
+      .select("name")
+      .eq("id", gig.owner_id)
+      .single();
+    ownerName = ownerProfile?.name || null;
+  }
+
+  // Create gig object for event building
+  const gigForInvite: GigForInvite = {
+    ...gig,
+    projectName,
+    ownerName,
+  };
 
   // Get roles with calendar events
   const { data: roles } = await supabase
@@ -460,7 +536,7 @@ export async function updateCalendarEvents(
     expiry_date: new Date(connection.token_expires_at).getTime(),
   });
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gigmaster.app';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gigmaster.io';
   const { start, end } = toGoogleDateTime(gig.date, gig.start_time);
 
   let updated = 0;
@@ -470,10 +546,10 @@ export async function updateCalendarEvents(
 
     try {
       await googleClient.updateEvent(role.google_calendar_event_id, {
-        summary: buildEventTitle(gig as unknown as GigForInvite),
+        summary: buildEventTitle(gigForInvite),
         description: buildEventDescription(
           role as unknown as GigRoleForInvite,
-          gig as unknown as GigForInvite,
+          gigForInvite,
           baseUrl
         ),
         location: gig.location_name || undefined,

@@ -101,6 +101,7 @@ const config: Config = {
             'bounce-soft': 'bounceSoft 0.5s ease-in-out',
             'fade-in': 'fadeIn 0.3s ease-out',
             'scale-in': 'scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            'marquee': 'marquee 8s linear infinite',
           },
           keyframes: {
             slideIn: {
@@ -130,6 +131,10 @@ const config: Config = {
             scaleIn: {
               '0%': { opacity: '0', transform: 'scale(0.9)' },
               '100%': { opacity: '1', transform: 'scale(1)' },
+            },
+            marquee: {
+              '0%, 15%': { transform: 'translateX(0)' },
+              '85%, 100%': { transform: 'translateX(calc(-100% + 70px))' },
             },
           },
           boxShadow: {

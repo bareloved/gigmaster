@@ -527,6 +527,7 @@ async function detectChangesAndNotify(
 }
 
 export async function getGig(id: string): Promise<GigPack | null> {
+  try {
   const supabase = await createClient();
 
   const { data: gig, error } = await supabase
@@ -547,7 +548,9 @@ export async function getGig(id: string): Promise<GigPack | null> {
     .eq("id", id)
     .single();
 
-  if (error || !gig) return null;
+  if (error || !gig) {
+    return null;
+  }
 
   // Map to GigPack type
   const gigPack: GigPack = {
@@ -621,6 +624,10 @@ export async function getGig(id: string): Promise<GigPack | null> {
   };
 
   return gigPack;
+  } catch (err) {
+    console.error("[getGig] Unexpected error:", err);
+    return null;
+  }
 }
 
 // Feature flag: Use RPC for atomic single-call save (set to false to use legacy multi-call approach)

@@ -72,11 +72,11 @@ export interface CreateEventInput {
   location?: string;
   start: {
     dateTime: string;
-    timeZone: string;
+    timeZone?: string;  // Optional when using UTC (Z suffix) format
   };
   end: {
     dateTime: string;
-    timeZone: string;
+    timeZone?: string;  // Optional when using UTC (Z suffix) format
   };
   attendees: Array<{
     email: string;
@@ -336,6 +336,12 @@ export class GoogleCalendarClient {
         })),
       };
     } catch (error: unknown) {
+      console.error("[GoogleCalendarClient.createEvent] Full error:", error);
+      // Try to extract more details from Google API errors
+      const googleError = error as { response?: { data?: { error?: { message?: string; errors?: unknown[] } } } };
+      if (googleError?.response?.data?.error) {
+        console.error("[GoogleCalendarClient.createEvent] Google API error details:", JSON.stringify(googleError.response.data.error, null, 2));
+      }
       const message = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to create calendar event: ${message}`);
     }

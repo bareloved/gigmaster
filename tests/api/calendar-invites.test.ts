@@ -55,7 +55,7 @@ describe("Calendar Invites API", () => {
 
   describe("CalendarInviteResult type", () => {
     it("represents a successful calendar invite", () => {
-      const result = {
+      const result: { roleId: string; success: boolean; method: "google_calendar"; eventId?: string; error?: string } = {
         roleId: "role-123",
         success: true,
         method: "google_calendar" as const,
@@ -69,7 +69,7 @@ describe("Calendar Invites API", () => {
     });
 
     it("represents a successful email fallback", () => {
-      const result = {
+      const result: { roleId: string; success: boolean; method: "email"; eventId?: string } = {
         roleId: "role-123",
         success: true,
         method: "email" as const,

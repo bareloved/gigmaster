@@ -33,7 +33,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log("[Send Invites API] Processing for gig:", gigId, "roleEmails:", roleEmails);
     const result = await sendCalendarInvites(gigId, user.id, roleEmails);
+    console.log("[Send Invites API] Result:", result);
 
     return NextResponse.json(result);
 
