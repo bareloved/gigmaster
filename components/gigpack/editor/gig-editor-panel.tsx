@@ -75,6 +75,7 @@ import { GigPackTemplate, applyTemplateToFormDefaults } from "@/lib/gigpack/temp
 import { useGigDraft, useGigDraftAutoSave, type GigDraftFormData } from "@/hooks/use-gig-draft";
 import { GigContactsManager, type PendingContact } from "@/components/gig-contacts/gig-contacts-manager";
 import { createGigContact } from "@/lib/api/gig-contacts";
+import { EmailCollectionModal } from "@/components/gigs/email-collection-modal";
 
 // ============================================================================
 // Types
@@ -407,6 +408,11 @@ export function GigEditorPanel({
   // Pending contacts state (for new gigs before saving)
   const [pendingContacts, setPendingContacts] = useState<PendingContact[]>([]);
 
+  // Calendar invitation state
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [missingEmails, setMissingEmails] = useState<Array<{id: string; name: string; role: string | null}>>([]);
+  const [pendingGigId, setPendingGigId] = useState<string | null>(null);
+
   // Info tab visibility flags
   const [showContacts, setShowContacts] = useState((gigPack?.contacts?.length || 0) > 0);
   const [showDressCode, setShowDressCode] = useState(!!gigPack?.dress_code);
@@ -572,13 +578,14 @@ export function GigEditorPanel({
   }, []);
 
 
-  // When opening in "create" mode (no gigPack), always start with blank form
+  // When opening in "create" mode (not editing), always start with blank form
+  // Use isEditing prop instead of !gigPack because gigPack is undefined during loading
   useEffect(() => {
-    if (open && !gigPack && isDraftLoaded && !initialDraftCheckDone.current) {
+    if (open && !isEditing && isDraftLoaded && !initialDraftCheckDone.current) {
       initialDraftCheckDone.current = true;
       resetFormToBlank();
     }
-  }, [open, gigPack, isDraftLoaded]);
+  }, [open, isEditing, isDraftLoaded]);
 
   // Handler to load draft into the form (called when user clicks "Resume Draft" button)
   const handleLoadDraft = () => {
@@ -900,6 +907,28 @@ export function GigEditorPanel({
       }
 
       if (isEditing) {
+        // Update calendar events if significant fields changed (non-blocking)
+        // Map GigPack field names to database column names
+        if (gigPack?.id) {
+          const changedFields: string[] = [];
+          if (gigPackData.date !== gigPack.date) changedFields.push('date');
+          if (gigPackData.on_stage_time !== gigPack.on_stage_time) changedFields.push('start_time');
+          if (gigPackData.venue_name !== gigPack.venue_name) changedFields.push('location_name');
+          if (gigPackData.call_time !== gigPack.call_time) changedFields.push('call_time');
+          if (gigPackData.title !== gigPack.title) changedFields.push('title');
+
+          if (changedFields.length > 0) {
+            // Fire-and-forget calendar update
+            fetch("/api/calendar/update-events", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ gigId: gigPack.id, changedFields }),
+            }).catch(err => {
+              console.error("Failed to update calendar events:", err);
+            });
+          }
+        }
+
         if (onUpdateSuccess && result) {
           // Construct updated gigPack object
           // For now, we might need to reload the page or fetch updated data.
@@ -941,6 +970,11 @@ export function GigEditorPanel({
             console.error("Error saving contacts:", contactError);
             // Don't fail the whole operation, gig was created
           }
+        }
+
+        // Check for calendar invites if lineup has members
+        if (result?.id && lineup.length > 0) {
+          checkAndSendCalendarInvites(result.id);
         }
 
         if (onCreateSuccess && result) {
@@ -1004,6 +1038,147 @@ export function GigEditorPanel({
     // Add new items to existing schedule and sort by time
     const updatedSchedule = sortScheduleByTime([...schedule, ...newItems]);
     setSchedule(updatedSchedule);
+  };
+
+  /**
+   * Send calendar invitations after gig creation (non-blocking)
+   */
+  const sendCalendarInvitesForGig = async (
+    gigId: string,
+    roleEmails?: Record<string, string>
+  ) => {
+    try {
+      // Check if calendar invites are enabled
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: connection } = await supabase
+        .from("calendar_connections")
+        .select("write_access, send_invites_enabled")
+        .eq("user_id", user.id)
+        .eq("provider", "google")
+        .single();
+
+      if (!connection?.write_access || !connection?.send_invites_enabled) {
+        // Calendar invites not enabled
+        console.log("[Calendar Invites] Not enabled - write_access:", connection?.write_access, "send_invites_enabled:", connection?.send_invites_enabled);
+        return;
+      }
+
+      // Send invites in background (non-blocking)
+      console.log("[Calendar Invites] Sending invites for gig:", gigId);
+      fetch("/api/calendar/send-invites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gigId, roleEmails }),
+      })
+        .then(res => res.json())
+        .then(result => {
+          console.log("[Calendar Invites] Result:", result);
+          if (result.error) {
+            console.error("[Calendar Invites] Error from API:", result.error);
+            toast({
+              title: "Calendar invite error",
+              description: result.error,
+              variant: "destructive",
+              duration: 5000,
+            });
+          } else if (result.sent > 0) {
+            toast({
+              title: t("invitesSent"),
+              description: `${result.sent} calendar invitation${result.sent > 1 ? 's' : ''} sent`,
+              duration: 3000,
+            });
+          } else if (result.sent === 0 && result.failed === 0) {
+            console.log("[Calendar Invites] No roles to invite - members may not have email addresses");
+          }
+        })
+        .catch(err => {
+          console.error("Failed to send calendar invites:", err);
+          // Don't show error - gig was created successfully, invites are secondary
+        });
+    } catch (error) {
+      console.error("Error sending calendar invites:", error);
+    }
+  };
+
+  /**
+   * Check for missing emails and either show modal or send invites directly
+   */
+  const checkAndSendCalendarInvites = async (gigId: string) => {
+    try {
+      // Check if calendar invites are enabled
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: connection } = await supabase
+        .from("calendar_connections")
+        .select("write_access, send_invites_enabled")
+        .eq("user_id", user.id)
+        .eq("provider", "google")
+        .single();
+
+      if (!connection?.write_access || !connection?.send_invites_enabled) {
+        console.log("[Calendar Invites] Not enabled");
+        return;
+      }
+
+      // Check for roles needing invites
+      const response = await fetch(`/api/calendar/send-invites?gigId=${gigId}`);
+      const data = await response.json();
+
+      console.log("[Calendar Invites] Check result:", data);
+
+      if (data.error) {
+        console.error("[Calendar Invites] Error checking roles:", data.error);
+        return;
+      }
+
+      if (data.needsInvites === 0) {
+        console.log("[Calendar Invites] No roles need invites");
+        return;
+      }
+
+      // If there are missing emails, show the modal
+      if (data.missingEmails && data.missingEmails.length > 0) {
+        console.log("[Calendar Invites] Missing emails for roles:", data.missingEmails);
+        setMissingEmails(data.missingEmails);
+        setPendingGigId(gigId);
+        setShowEmailModal(true);
+        return;
+      }
+
+      // All roles have emails, send invites directly
+      sendCalendarInvitesForGig(gigId);
+    } catch (error) {
+      console.error("Error checking calendar invites:", error);
+    }
+  };
+
+  /**
+   * Handle email modal submission
+   */
+  const handleEmailModalSubmit = (emails: Record<string, string>) => {
+    setShowEmailModal(false);
+    if (pendingGigId) {
+      sendCalendarInvitesForGig(pendingGigId, emails);
+    }
+    setPendingGigId(null);
+    setMissingEmails([]);
+  };
+
+  /**
+   * Handle email modal skip
+   */
+  const handleEmailModalSkip = () => {
+    setShowEmailModal(false);
+    if (pendingGigId) {
+      sendCalendarInvitesForGig(pendingGigId, {});
+    }
+    setPendingGigId(null);
+    setMissingEmails([]);
   };
 
   // Tab configuration
@@ -1179,6 +1354,7 @@ export function GigEditorPanel({
         {/* Band Selector */}
         <div className="mt-1 mb-6 max-w-xs">
           <Select
+            key={`band-select-${bands.length}-${bandId || 'none'}`}
             name="band"
             value={bandId || ""}
             onValueChange={handleBandSelect}
@@ -1969,6 +2145,14 @@ export function GigEditorPanel({
           {content}
         </div>
 
+        <EmailCollectionModal
+          open={showEmailModal}
+          onOpenChange={setShowEmailModal}
+          missingEmails={missingEmails}
+          onSubmit={handleEmailModalSubmit}
+          onSkip={handleEmailModalSkip}
+        />
+
         <PasteScheduleDialog
           open={pasteScheduleOpen}
           onOpenChange={setPasteScheduleOpen}
@@ -2000,6 +2184,14 @@ export function GigEditorPanel({
           {loading && isEditing ? <EditorSkeleton /> : content}
         </SheetContent>
       </Sheet>
+
+      <EmailCollectionModal
+        open={showEmailModal}
+        onOpenChange={setShowEmailModal}
+        missingEmails={missingEmails}
+        onSubmit={handleEmailModalSubmit}
+        onSkip={handleEmailModalSkip}
+      />
 
       <PasteScheduleDialog
         open={pasteScheduleOpen}

@@ -4,12 +4,31 @@ import { OAuth2Client } from "google-auth-library";
 
 /**
  * Google Calendar API Client
- * 
+ *
  * Wrapper for Google Calendar API operations:
  * - OAuth authorization
  * - Token refresh
  * - Fetch calendar events
+ * - Create/update events with attendees
+ * - Webhook registration for response sync
  */
+
+/**
+ * OAuth scopes for read-only access (current)
+ */
+export const GOOGLE_CALENDAR_READ_SCOPES = [
+  "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/calendar.events.readonly",
+];
+
+/**
+ * OAuth scopes for write access (calendar invitations)
+ */
+export const GOOGLE_CALENDAR_WRITE_SCOPES = [
+  "https://www.googleapis.com/auth/calendar.readonly",
+  "https://www.googleapis.com/auth/calendar.events.readonly",
+  "https://www.googleapis.com/auth/calendar.events",
+];
 
 export interface GoogleCalendarEvent {
   id: string;
@@ -47,6 +66,30 @@ export interface GoogleTokens {
   expiry_date: number; // Unix timestamp in ms
 }
 
+export interface CreateEventInput {
+  summary: string;
+  description: string;
+  location?: string;
+  start: {
+    dateTime: string;
+    timeZone?: string;  // Optional when using UTC (Z suffix) format
+  };
+  end: {
+    dateTime: string;
+    timeZone?: string;  // Optional when using UTC (Z suffix) format
+  };
+  attendees: Array<{
+    email: string;
+    displayName?: string;
+  }>;
+}
+
+export interface WatchResponse {
+  channelId: string;
+  resourceId: string;
+  expiration: number;
+}
+
 // Google Calendar API types from googleapis
 type GoogleCalendarAPI = ReturnType<typeof google.calendar>;
 
@@ -76,12 +119,12 @@ export class GoogleCalendarClient {
 
   /**
    * Generate authorization URL for OAuth flow
+   * @param writeAccess - If true, request write permissions for creating events
    */
-  getAuthorizationUrl(): string {
-    const scopes = [
-      "https://www.googleapis.com/auth/calendar.readonly",
-      "https://www.googleapis.com/auth/calendar.events.readonly",
-    ];
+  getAuthorizationUrl(writeAccess: boolean = false): string {
+    const scopes = writeAccess
+      ? GOOGLE_CALENDAR_WRITE_SCOPES
+      : GOOGLE_CALENDAR_READ_SCOPES;
 
     return this.oauth2Client.generateAuthUrl({
       access_type: "offline", // Request refresh token
@@ -241,6 +284,162 @@ export class GoogleCalendarClient {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to get calendar event: ${message}`);
+    }
+  }
+
+  /**
+   * Create a calendar event with attendees
+   */
+  async createEvent(input: CreateEventInput): Promise<GoogleCalendarEvent> {
+    try {
+      const response = await this.calendar.events.insert({
+        calendarId: "primary",
+        requestBody: {
+          summary: input.summary,
+          description: input.description,
+          location: input.location,
+          start: input.start,
+          end: input.end,
+          attendees: input.attendees.map(a => ({
+            email: a.email,
+            displayName: a.displayName,
+          })),
+          reminders: {
+            useDefault: true,
+          },
+        },
+        sendUpdates: "all", // Send invitations to attendees
+      });
+
+      const event = response.data;
+      return {
+        id: event.id || '',
+        summary: event.summary || '',
+        description: event.description || undefined,
+        location: event.location || undefined,
+        start: {
+          dateTime: event.start?.dateTime || undefined,
+          date: event.start?.date || undefined,
+          timeZone: event.start?.timeZone || undefined,
+        },
+        end: {
+          dateTime: event.end?.dateTime || undefined,
+          date: event.end?.date || undefined,
+          timeZone: event.end?.timeZone || undefined,
+        },
+        htmlLink: event.htmlLink || '',
+        status: event.status || '',
+        attendees: event.attendees?.map(a => ({
+          email: a.email || '',
+          displayName: a.displayName || undefined,
+          responseStatus: a.responseStatus as 'accepted' | 'declined' | 'tentative' | 'needsAction' | undefined,
+        })),
+      };
+    } catch (error: unknown) {
+      console.error("[GoogleCalendarClient.createEvent] Full error:", error);
+      // Try to extract more details from Google API errors
+      const googleError = error as { response?: { data?: { error?: { message?: string; errors?: unknown[] } } } };
+      if (googleError?.response?.data?.error) {
+        console.error("[GoogleCalendarClient.createEvent] Google API error details:", JSON.stringify(googleError.response.data.error, null, 2));
+      }
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to create calendar event: ${message}`);
+    }
+  }
+
+  /**
+   * Update an existing calendar event
+   */
+  async updateEvent(eventId: string, input: Partial<CreateEventInput>): Promise<GoogleCalendarEvent> {
+    try {
+      const response = await this.calendar.events.patch({
+        calendarId: "primary",
+        eventId,
+        requestBody: {
+          summary: input.summary,
+          description: input.description,
+          location: input.location,
+          start: input.start,
+          end: input.end,
+        },
+        sendUpdates: "all",
+      });
+
+      const event = response.data;
+      return {
+        id: event.id || '',
+        summary: event.summary || '',
+        description: event.description || undefined,
+        location: event.location || undefined,
+        start: {
+          dateTime: event.start?.dateTime || undefined,
+          date: event.start?.date || undefined,
+          timeZone: event.start?.timeZone || undefined,
+        },
+        end: {
+          dateTime: event.end?.dateTime || undefined,
+          date: event.end?.date || undefined,
+          timeZone: event.end?.timeZone || undefined,
+        },
+        htmlLink: event.htmlLink || '',
+        status: event.status || '',
+        attendees: event.attendees?.map(a => ({
+          email: a.email || '',
+          displayName: a.displayName || undefined,
+          responseStatus: a.responseStatus as 'accepted' | 'declined' | 'tentative' | 'needsAction' | undefined,
+        })),
+      };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to update calendar event: ${message}`);
+    }
+  }
+
+  /**
+   * Watch a calendar event for changes (webhook registration)
+   */
+  async watchEvent(eventId: string, webhookUrl: string): Promise<WatchResponse> {
+    try {
+      // Generate unique channel ID
+      const channelId = `gigmaster-${eventId}-${Date.now()}`;
+
+      const response = await this.calendar.events.watch({
+        calendarId: "primary",
+        requestBody: {
+          id: channelId,
+          type: "web_hook",
+          address: webhookUrl,
+          params: {
+            ttl: "604800", // 7 days in seconds
+          },
+        },
+      });
+
+      return {
+        channelId: response.data.id || channelId,
+        resourceId: response.data.resourceId || '',
+        expiration: parseInt(response.data.expiration || '0', 10),
+      };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to watch calendar event: ${message}`);
+    }
+  }
+
+  /**
+   * Stop watching a calendar event
+   */
+  async stopWatch(channelId: string, resourceId: string): Promise<void> {
+    try {
+      await this.calendar.channels.stop({
+        requestBody: {
+          id: channelId,
+          resourceId,
+        },
+      });
+    } catch (error: unknown) {
+      // Ignore errors when stopping watches - channel may have expired
+      console.warn(`Failed to stop watch ${channelId}:`, error);
     }
   }
 }

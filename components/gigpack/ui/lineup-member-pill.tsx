@@ -19,6 +19,8 @@ import {
   Music,
   Drum,
   Radio,
+  Calendar,
+  Mail,
   type LucideIcon,
 } from "lucide-react";
 
@@ -80,6 +82,7 @@ interface LineupMemberPillProps {
   role: string;
   notes?: string;
   invitationStatus?: string;
+  invitationMethod?: 'google_calendar' | 'email' | null;
   onNameChange: (name: string) => void;
   onRoleChange: (role: string) => void;
   onNotesChange: (notes: string) => void;
@@ -132,6 +135,7 @@ export function LineupMemberPill({
   role,
   notes = "",
   invitationStatus,
+  invitationMethod,
   onNameChange,
   onRoleChange,
   onNotesChange,
@@ -280,6 +284,19 @@ export function LineupMemberPill({
           ) : (
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <span className="font-medium text-sm truncate">{name}</span>
+              {/* Invitation method icon */}
+              {invitationMethod && (
+                <span
+                  className="shrink-0"
+                  title={invitationMethod === 'google_calendar' ? 'Sent via Google Calendar' : 'Sent via email'}
+                >
+                  {invitationMethod === 'google_calendar' ? (
+                    <Calendar className="h-3.5 w-3.5 text-blue-500" />
+                  ) : (
+                    <Mail className="h-3.5 w-3.5 text-amber-500" />
+                  )}
+                </span>
+              )}
               {/* Invitation status badge - Google Calendar style */}
               {(() => {
                 const statusConfig = getStatusBadgeConfig(invitationStatus);

@@ -86,14 +86,53 @@ export type ContactStatus =
 /**
  * Invitation status for gig roles
  */
-export type InvitationStatus = 
+export type InvitationStatus =
   | 'pending'      // Added to role, but invitation not sent yet
   | 'invited'      // Invitation sent
-  | 'accepted' 
+  | 'accepted'
   | 'declined'
   | 'tentative'
-  | 'needs_sub' 
+  | 'needs_sub'
   | 'replaced';
+
+/**
+ * Invitation method tracking
+ */
+export type InvitationMethod = 'google_calendar' | 'email' | null;
+
+/**
+ * Google Calendar watch for webhook sync
+ */
+export interface GoogleCalendarWatch {
+  id: string;
+  userId: string;
+  gigId: string;
+  calendarEventId: string;
+  channelId: string;
+  resourceId: string;
+  expiration: string;
+  createdAt: string;
+}
+
+/**
+ * Calendar invite send result
+ */
+export interface CalendarInviteResult {
+  roleId: string;
+  success: boolean;
+  method: InvitationMethod;
+  eventId?: string;
+  error?: string;
+}
+
+/**
+ * Batch calendar invite response
+ */
+export interface SendInvitesResponse {
+  sent: number;
+  failed: number;
+  results: CalendarInviteResult[];
+}
 
 /**
  * Gig status workflow

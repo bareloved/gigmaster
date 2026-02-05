@@ -349,7 +349,9 @@ const MESSAGES: MessageTree = {
       draftSaved: "Draft saved",
       restoredDraft: "Restored previous draft",
       undoRestore: "Undo"
-    }
+    },
+    invitesSent: "Calendar invites sent",
+    invitesSentPartial: "Some invites couldn't be sent"
   },
   public: {
     venue: "Venue",

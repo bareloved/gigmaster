@@ -1,4 +1,5 @@
 import { TopNav } from "@/components/layout/top-nav";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import { AuthLoadingGate } from "@/components/layout/auth-loading-gate";
 import { AppFooter } from "@/components/layout/app-footer";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
@@ -17,12 +18,19 @@ export default function AppLayout({
         <TopNav />
 
         {/* Main Content Area */}
-        <main className="container mx-auto flex-1 p-6 max-w-7xl">
+        {/* Responsive padding: tighter on mobile, normal on desktop */}
+        {/* pb-20 on mobile for bottom nav clearance */}
+        <main className="flex-1 px-4 py-4 pb-20 sm:px-5 sm:py-5 lg:container lg:mx-auto lg:px-6 lg:py-6 lg:pb-6 lg:max-w-7xl">
           {children}
         </main>
 
-        {/* Footer */}
-        <AppFooter />
+        {/* Footer - hidden on mobile where bottom nav is shown */}
+        <div className="hidden lg:block">
+          <AppFooter />
+        </div>
+
+        {/* Bottom Navigation - mobile only */}
+        <BottomNav />
 
         {/* Floating Feedback Button */}
         <FeedbackButton />

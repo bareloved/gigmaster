@@ -80,9 +80,14 @@ export default function AllGigsPage() {
   // Fetch gig data when editing
   const { data: editingGig, isLoading: isLoadingEditingGig } = useQuery({
     queryKey: ["gig-editor", editingGigId],
-    queryFn: () => editingGigId ? getGig(editingGigId) : null,
+    queryFn: async () => {
+      if (!editingGigId) return null;
+      return await getGig(editingGigId);
+    },
     enabled: !!editingGigId && isEditorOpen,
+    staleTime: 0, // Always refetch
   });
+
 
   const handleCreateGig = () => {
     setEditingGigId(null);
@@ -292,64 +297,62 @@ export default function AllGigsPage() {
   }, [filteredGigs]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-5 lg:space-y-6">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">All Gigs</h2>
-          <p className="text-muted-foreground">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">All Gigs</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Manage all your gigs in one place
           </p>
         </div>
-        <Button onClick={handleCreateGig} className="gap-2">
+        <Button onClick={handleCreateGig} className="gap-2 h-9 sm:h-10 text-sm">
           <Plus className="h-4 w-4" />
-          Create Gig
+          <span className="hidden xs:inline">Create Gig</span>
+          <span className="xs:hidden">New</span>
         </Button>
       </div>
 
       {/* Filters - Search and View Controls */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b">
-        {/* View Mode Toggle and Search */}
-        <div className="flex items-center gap-2 flex-1 w-full">
-          {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 border rounded-md p-1">
-            <Button
-              variant={viewMode === "list" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => { setViewMode("list"); localStorage.setItem("gigs-view-mode", "list"); }}
-              className="h-7 px-2"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "grid" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => { setViewMode("grid"); localStorage.setItem("gigs-view-mode", "grid"); }}
-              className="h-7 px-2"
-            >
-              <Grid3x3 className="h-4 w-4" />
-            </Button>
-          </div>
+      <div className="flex items-center justify-between gap-2 sm:gap-3 pb-2 border-b">
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-1 border rounded-md p-0.5 sm:p-1">
+          <Button
+            variant={viewMode === "list" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => { setViewMode("list"); localStorage.setItem("gigs-view-mode", "list"); }}
+            className="h-7 w-7 sm:h-8 sm:w-8 p-0"
+          >
+            <List className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === "grid" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => { setViewMode("grid"); localStorage.setItem("gigs-view-mode", "grid"); }}
+            className="h-7 w-7 sm:h-8 sm:w-8 p-0"
+          >
+            <Grid3x3 className="h-4 w-4" />
+          </Button>
+        </div>
 
-          {/* Search */}
-          <div className="relative ml-auto">
-            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Search gigs..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-8 h-9 w-[200px] sm:w-[250px]"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+        {/* Search */}
+        <div className="relative flex-1 max-w-[200px] sm:max-w-[250px]">
+          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 pr-8 h-8 sm:h-9 text-sm"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -366,23 +369,23 @@ export default function AllGigsPage() {
 
       {/* Gigs List/Grid */}
       {isLoading ? (
-        <div className="space-y-3">
-          <Skeleton className="h-40 w-full" />
-          <Skeleton className="h-40 w-full" />
-          <Skeleton className="h-40 w-full" />
+        <div className="space-y-2 sm:space-y-3">
+          <Skeleton className="h-32 sm:h-40 w-full" />
+          <Skeleton className="h-32 sm:h-40 w-full" />
+          <Skeleton className="h-32 sm:h-40 w-full" />
         </div>
       ) : filteredGigs.length === 0 ? (
-        <Card>
-          <CardContent className="py-12">
+        <Card className="p-3 sm:p-4 lg:p-6">
+          <CardContent className="py-8 sm:py-12 px-0">
             <div className="flex flex-col items-center text-center">
-              <Music className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-1">No gigs found</h3>
-              <p className="text-sm text-muted-foreground mb-4">
+              <Music className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-3 sm:mb-4" />
+              <h3 className="text-base sm:text-lg font-semibold mb-1">No gigs found</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                 {searchQuery
                   ? "Try adjusting your filters or search query."
                   : "Create your first gig to get started."}
               </p>
-              <Button onClick={handleCreateGig} size="sm" className="gap-2">
+              <Button onClick={handleCreateGig} size="sm" className="gap-2 h-9">
                 <Plus className="h-4 w-4" />
                 Create Gig
               </Button>
@@ -392,14 +395,14 @@ export default function AllGigsPage() {
       ) : (
         <>
           {gigsByMonth.map((monthGroup) => (
-            <div key={monthGroup.key} className="space-y-3">
+            <div key={monthGroup.key} className="space-y-2 sm:space-y-3">
               {/* Month Header */}
-              <h3 className="text-lg font-semibold text-muted-foreground sticky top-0 bg-background py-2 z-10">
+              <h3 className="text-base sm:text-lg font-semibold text-muted-foreground sticky top-0 bg-background py-1.5 sm:py-2 z-10">
                 {monthGroup.label}
               </h3>
 
               {viewMode === "list" ? (
-                <div className="space-y-3">
+                <div className="space-y-2 sm:space-y-3">
                   {monthGroup.gigs.map((gig) => (
                     <DashboardGigItem
                       key={gig.gigId}
@@ -409,7 +412,7 @@ export default function AllGigsPage() {
                   ))}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {monthGroup.gigs.map((gig, index) => (
                     <DashboardGigItemGrid
                       key={gig.gigId}
@@ -438,6 +441,7 @@ export default function AllGigsPage() {
 
       {/* Gig Editor Sliding Panel */}
       <GigEditorPanel
+        key={editingGigId || "create"}
         mode="sheet"
         open={isEditorOpen}
         loading={isLoadingEditingGig}
