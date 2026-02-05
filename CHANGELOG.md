@@ -4,6 +4,36 @@ All notable changes to GigMaster are documented here. Update this file with ever
 
 ## [Unreleased]
 
+### Added
+- `.env.example` — Environment variables template
+
+---
+
+## 2026-02-05
+
+### Added
+- Google Calendar invites: automatically send calendar invitations when creating gigs
+- Calendar invite settings toggle in user settings
+- Email collection modal for musicians without email addresses
+- Invitation method icons in lineup view (email, WhatsApp, calendar)
+- Webhook endpoint for Google Calendar event updates
+- Auto-update calendar events when gig details change
+
+### Fixed
+- Band selection not displaying when editing gigs
+
+### Changed
+- OAuth flow now supports write access for calendar invites
+
+## 2026-02-04
+
+### Added
+- Duplicate gig functionality in quick actions menu
+- Admin actions for feedback management
+- Gigs grouped by month on gigs and history pages
+
+## 2026-02-01
+
 ### Fixed
 - TypeScript type errors resolved across 32 files (Json types, null safety, missing fields)
 - Removed dead code: unused imports, debug console.logs, performance timing
