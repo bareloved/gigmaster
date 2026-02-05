@@ -24,9 +24,8 @@ import {
 } from "lucide-react";
 import { uploadImage, deleteImage, getPathFromUrl } from "@/lib/utils/image-upload";
 import { ImageCropDialog } from "@/components/bands/image-crop-dialog";
-import { LineupMemberSearch } from "@/components/gigpack/ui/lineup-member-search";
-import { LineupMemberPill } from "@/components/gigpack/ui/lineup-member-pill";
-import type { SelectedMember } from "@/components/gigpack/ui/lineup-member-search";
+import { LineupBuilder } from "@/components/gigpack/ui/lineup-builder";
+import type { SelectedMember } from "@/components/gigpack/ui/lineup-search-input";
 
 interface BandEditorPanelProps {
   open: boolean;
@@ -244,6 +243,8 @@ export function BandEditorPanel({
       role: member.role,
       name: member.name,
       notes: "",
+      email: member.email,
+      phone: member.phone,
     };
     setDefaultLineup([...defaultLineup, newMember]);
   };
@@ -506,29 +507,14 @@ export function BandEditorPanel({
                 </p>
               </div>
 
-              {defaultLineup.map((member, index) => (
-                <LineupMemberPill
-                  key={index}
-                  name={member.name || ""}
-                  role={member.role || ""}
-                  notes={member.notes || ""}
-                  onNameChange={(name) => handleUpdateLineupMember(index, "name", name)}
-                  onRoleChange={(role) => handleUpdateLineupMember(index, "role", role)}
-                  onNotesChange={(notes) => handleUpdateLineupMember(index, "notes", notes)}
-                  onRemove={() => handleRemoveLineupMember(index)}
-                  disabled={isLoading}
-                  showRemove={true}
-                />
-              ))}
-
-              <div className="w-full">
-                <LineupMemberSearch
-                  onSelectMember={handleAddLineupMemberFromSearch}
-                  placeholder="Search musicians..."
-                  disabled={isLoading}
-                  className="w-full"
-                />
-              </div>
+              <LineupBuilder
+                lineup={defaultLineup}
+                onAddMember={handleAddLineupMemberFromSearch}
+                onUpdateMember={handleUpdateLineupMember}
+                onRemoveMember={handleRemoveLineupMember}
+                placeholder="Search musicians..."
+                disabled={isLoading}
+              />
             </div>
           </div>
 

@@ -8,9 +8,13 @@ export interface Profile {
 }
 
 export interface LineupMember {
-  role: string;
+  role?: string | null;
   name?: string;
   notes?: string;
+  /** Email for display (transient, not persisted to DB) */
+  email?: string | null;
+  /** Phone for display (transient, not persisted to DB) */
+  phone?: string | null;
 }
 
 // Structured Setlist Types (Setlist v2)

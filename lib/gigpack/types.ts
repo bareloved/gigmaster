@@ -21,6 +21,10 @@ export interface LineupMember {
   invitationStatus?: string;
   /** Gig role ID from the database (for tracking existing roles) */
   gigRoleId?: string;
+  /** Email for display (transient, not persisted to DB) */
+  email?: string | null;
+  /** Phone for display (transient, not persisted to DB) */
+  phone?: string | null;
 }
 
 // Structured Setlist Types (Setlist v2)

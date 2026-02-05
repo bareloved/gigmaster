@@ -46,8 +46,8 @@ import { useSaveGigPack } from "@/hooks/use-gig-mutations";
 import { Calendar } from "@/components/ui/calendar";
 import { TimePicker } from "@/components/gigpack/ui/time-picker";
 import { VenueAutocomplete } from "@/components/gigpack/ui/venue-autocomplete";
-import { LineupMemberSearch } from "@/components/gigpack/ui/lineup-member-search";
-import { LineupMemberPill } from "@/components/gigpack/ui/lineup-member-pill";
+import { LineupBuilder } from "@/components/gigpack/ui/lineup-builder";
+import type { SelectedMember } from "@/components/gigpack/ui/lineup-search-input";
 import { GigTypeSelect } from "@/components/gigpack/ui/gig-type-select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -642,13 +642,7 @@ export function GigEditorPanel({
   };
 
   // Add member from search (My Circle or System Users)
-  const addLineupMemberFromSearch = (member: {
-    name: string;
-    role: string;
-    userId?: string;
-    linkedUserId?: string | null;
-    contactId?: string;
-  }) => {
+  const addLineupMemberFromSearch = (member: SelectedMember) => {
     // Build the lineup member with user/contact IDs for proper notification handling
     const newMember: LineupMember = {
       role: member.role,
@@ -657,6 +651,8 @@ export function GigEditorPanel({
       userId: member.userId,
       linkedUserId: member.linkedUserId,
       contactId: member.contactId,
+      email: member.email,
+      phone: member.phone,
     };
 
     // Check if we have an empty row to fill first
@@ -1511,32 +1507,14 @@ export function GigEditorPanel({
         <div className="mt-4 min-h-[200px]">
           {/* Lineup Tab */}
           {activeTab === "lineup" && (
-            <div className="space-y-3">
-              {lineup.map((member, index) => (
-                <LineupMemberPill
-                  key={index}
-                  name={member.name || ""}
-                  role={member.role || ""}
-                  notes={member.notes || ""}
-                  invitationStatus={member.invitationStatus}
-                  onNameChange={(name) => updateLineupMember(index, "name", name)}
-                  onRoleChange={(role) => updateLineupMember(index, "role", role)}
-                  onNotesChange={(notes) => updateLineupMember(index, "notes", notes)}
-                  onRemove={() => removeLineupMember(index)}
-                  disabled={isLoading}
-                  showRemove={true}
-                />
-              ))}
-              <div className="w-full">
-                <LineupMemberSearch
-                  onSelectMember={addLineupMemberFromSearch}
-                  placeholder={t("searchMusicians")}
-                  disabled={isLoading}
-                  className="w-full"
-                  currentLineup={lineup}
-                />
-              </div>
-            </div>
+            <LineupBuilder
+              lineup={lineup}
+              onAddMember={addLineupMemberFromSearch}
+              onUpdateMember={updateLineupMember}
+              onRemoveMember={removeLineupMember}
+              placeholder={t("searchMusicians")}
+              disabled={isLoading}
+            />
           )}
 
           {/* Setlist Tab */}
