@@ -396,6 +396,22 @@ export class GoogleCalendarClient {
   }
 
   /**
+   * Delete a calendar event (sends cancellation to attendees)
+   */
+  async deleteEvent(eventId: string): Promise<void> {
+    try {
+      await this.calendar.events.delete({
+        calendarId: "primary",
+        eventId,
+        sendUpdates: "all", // Send cancellation emails to attendees
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to delete calendar event: ${message}`);
+    }
+  }
+
+  /**
    * Watch a calendar event for changes (webhook registration)
    */
   async watchEvent(eventId: string, webhookUrl: string): Promise<WatchResponse> {
