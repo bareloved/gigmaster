@@ -105,7 +105,29 @@ export function TimePicker({
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value)
+    const raw = e.target.value
+
+    // Allow clearing
+    if (raw === "") {
+      setInputValue("")
+      return
+    }
+
+    // Strip everything except digits and colon
+    const digits = raw.replace(/[^\d]/g, "")
+
+    // Limit to 4 digits (HHMM)
+    const trimmed = digits.slice(0, 4)
+
+    // Auto-insert colon after first 2 digits
+    let formatted: string
+    if (trimmed.length <= 2) {
+      formatted = trimmed
+    } else {
+      formatted = `${trimmed.slice(0, 2)}:${trimmed.slice(2)}`
+    }
+
+    setInputValue(formatted)
   }
 
   const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
@@ -179,6 +201,7 @@ export function TimePicker({
             placeholder={placeholder}
             disabled={disabled}
             autoComplete="off"
+            maxLength={5}
             className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground cursor-text text-center"
           />
         </div>
