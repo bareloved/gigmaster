@@ -185,6 +185,8 @@ export function LineupSearchInput({
       userId: musician.userId,
       contactId: musician.contactId,
       linkedUserId: musician.linkedUserId,
+      email: musician.email,
+      phone: musician.phone,
     });
     setSearchValue("");
     inputRef.current?.focus();

@@ -170,6 +170,8 @@ export interface RecentMusician {
   linkedUserId?: string | null;
   lastGigDate: string;
   timesWorkedTogether: number;
+  email?: string | null;
+  phone?: string | null;
 }
 
 /**
@@ -183,7 +185,7 @@ export async function getRecentMusicians(limit: number = 10): Promise<RecentMusi
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  // Fetch roles from user's gigs with gig date info
+  // Fetch roles from user's gigs with gig date info and contact email/phone
   const { data: roles, error } = await supabase
     .from("gig_roles")
     .select(`
@@ -194,6 +196,10 @@ export async function getRecentMusicians(limit: number = 10): Promise<RecentMusi
       gigs!inner(
         owner_id,
         date
+      ),
+      musician_contacts(
+        email,
+        phone
       )
     `)
     .eq("gigs.owner_id", user.id)
@@ -211,6 +217,7 @@ export async function getRecentMusicians(limit: number = 10): Promise<RecentMusi
     musician_id: string | null;
     contact_id: string | null;
     gigs: { owner_id: string; date: string | null };
+    musician_contacts: { email: string | null; phone: string | null } | null;
   }
 
   (roles as RoleWithGig[] | null)?.forEach((role) => {
@@ -233,6 +240,13 @@ export async function getRecentMusicians(limit: number = 10): Promise<RecentMusi
       if (!existing.contactId && role.contact_id) {
         existing.contactId = role.contact_id;
       }
+      // Fill in email/phone if we don't have them yet
+      if (!existing.email && role.musician_contacts?.email) {
+        existing.email = role.musician_contacts.email;
+      }
+      if (!existing.phone && role.musician_contacts?.phone) {
+        existing.phone = role.musician_contacts.phone;
+      }
     } else {
       musicianMap.set(name, {
         name,
@@ -242,6 +256,8 @@ export async function getRecentMusicians(limit: number = 10): Promise<RecentMusi
         linkedUserId: role.musician_id || null,
         lastGigDate: gigDate,
         timesWorkedTogether: 1,
+        email: role.musician_contacts?.email || null,
+        phone: role.musician_contacts?.phone || null,
       });
     }
   });
