@@ -119,6 +119,8 @@ export interface GigEditorPanelProps {
   loading?: boolean;
   /** Explicit edit mode (useful during loading) */
   isEditing?: boolean;
+  /** Whether we're duplicating an existing gig (pre-filled data, but creating new) */
+  isDuplicating?: boolean;
 }
 
 // ============================================================================
@@ -265,6 +267,7 @@ export function GigEditorPanel({
   mode = "sheet",
   loading = false,
   isEditing: isEditingProp,
+  isDuplicating = false,
 }: GigEditorPanelProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -551,7 +554,7 @@ export function GigEditorPanel({
   };
 
   // Auto-save draft for new gigs only (not when editing existing gigs)
-  useGigDraftAutoSave(currentFormData, saveDraft, !isEditing && open);
+  useGigDraftAutoSave(currentFormData, saveDraft, !isEditing && !isDuplicating && open);
 
   // Fetch user's bands on mount
   useEffect(() => {
@@ -581,11 +584,11 @@ export function GigEditorPanel({
   // When opening in "create" mode (not editing), always start with blank form
   // Use isEditing prop instead of !gigPack because gigPack is undefined during loading
   useEffect(() => {
-    if (open && !isEditing && isDraftLoaded && !initialDraftCheckDone.current) {
+    if (open && !isEditing && !isDuplicating && isDraftLoaded && !initialDraftCheckDone.current) {
       initialDraftCheckDone.current = true;
       resetFormToBlank();
     }
-  }, [open, isEditing, isDraftLoaded]);
+  }, [open, isEditing, isDuplicating, isDraftLoaded]);
 
   // Handler to load draft into the form (called when user clicks "Resume Draft" button)
   const handleLoadDraft = () => {
@@ -1256,7 +1259,7 @@ export function GigEditorPanel({
       <div className="flex items-center justify-between px-5 pt-4 pb-2">
         <div className="flex-1 flex items-center gap-3">
           {/* Draft saved indicator - only for new gigs */}
-          {!isEditing && lastSavedAt && (
+          {!isEditing && !isDuplicating && lastSavedAt && (
             <span className="text-xs text-muted-foreground animate-in fade-in-0 duration-200">
               {tDraft("draftSaved")}
             </span>
@@ -1990,7 +1993,7 @@ export function GigEditorPanel({
           </div>
 
           {/* Resume Draft button - only for new gigs when draft exists and not yet resumed */}
-          {!isEditing && hasDraft && (
+          {!isEditing && !isDuplicating && hasDraft && (
             <Button
               type="button"
               variant="ghost"
@@ -2050,7 +2053,7 @@ export function GigEditorPanel({
           <SheetDescription className="sr-only">
             {isEditing ? t("editGigPackTitle") : t("createGigPackTitle")}
           </SheetDescription>
-          {loading && isEditing ? <EditorSkeleton /> : content}
+          {loading && (isEditing || isDuplicating) ? <EditorSkeleton /> : content}
         </SheetContent>
       </Sheet>
 

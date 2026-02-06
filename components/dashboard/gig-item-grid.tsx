@@ -3,6 +3,7 @@
 import { useState, memo } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +28,6 @@ import {
   useDeclineInvitation,
   useUpdateGigStatus,
   useDeleteGig,
-  useDuplicateGig,
 } from "@/hooks/use-gig-mutations";
 import { checkGigConflicts } from "@/lib/api/calendar";
 import { createClient } from "@/lib/supabase/client";
@@ -44,10 +44,6 @@ const GigPackShareDialog = dynamic(
 );
 const DeleteGigDialog = dynamic(
   () => import("@/components/gigs/dialogs/delete-gig-dialog").then(m => m.DeleteGigDialog),
-  { ssr: false }
-);
-const DuplicateGigDialog = dynamic(
-  () => import("@/components/gigs/dialogs/duplicate-gig-dialog").then(m => m.DuplicateGigDialog),
   { ssr: false }
 );
 
@@ -218,15 +214,13 @@ export function DashboardGigItemGrid({
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Duplicate dialog state
-  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const router = useRouter();
 
   // PERFORMANCE: Use optimistic update hooks for instant UI feedback
   const acceptInvitationMutation = useAcceptInvitation();
   const declineInvitationMutation = useDeclineInvitation();
   const updateStatusMutation = useUpdateGigStatus();
   const deleteGigMutation = useDeleteGig();
-  const duplicateMutation = useDuplicateGig();
 
   // Handle accept invitation with conflict check
   const handleAcceptInvitation = async () => {
@@ -426,7 +420,7 @@ export function DashboardGigItemGrid({
                         Mark as Completed
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem onClick={() => setDuplicateDialogOpen(true)}>
+                    <DropdownMenuItem onClick={() => router.push(`/gigs/new?duplicate=${gig.gigId}`)}>
                       <Copy className="h-4 w-4 mr-2" />
                       Duplicate Gig
                     </DropdownMenuItem>
@@ -488,27 +482,6 @@ export function DashboardGigItemGrid({
         />
       )}
 
-      {/* Duplicate Dialog */}
-      {gig.isManager && (
-        <DuplicateGigDialog
-          open={duplicateDialogOpen}
-          onOpenChange={setDuplicateDialogOpen}
-          sourceGig={{
-            gigId: gig.gigId,
-            gigTitle: gig.gigTitle,
-            date: gig.date,
-          }}
-          onConfirm={async (newTitle, newDate) => {
-            await duplicateMutation.mutateAsync({
-              sourceGigId: gig.gigId,
-              newTitle,
-              newDate,
-            });
-            setDuplicateDialogOpen(false);
-          }}
-          isPending={duplicateMutation.isPending}
-        />
-      )}
     </>
   );
 }

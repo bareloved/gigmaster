@@ -6,7 +6,7 @@ import {
   declineInvitation,
   updateGigStatus,
 } from "@/lib/api/gig-actions";
-import { deleteGig, duplicateGig } from "@/lib/api/gigs";
+import { deleteGig } from "@/lib/api/gigs";
 import { saveGigPack } from "@/app/(app)/gigs/actions";
 import type { DashboardGig } from "@/lib/types/shared";
 import type { GigPack } from "@/lib/gigpack/types";
@@ -525,49 +525,3 @@ export function useDeleteGig() {
   });
 }
 
-/**
- * Hook for duplicating a gig with all its related data
- */
-export function useDuplicateGig() {
-  const queryClient = useQueryClient();
-  const { user } = useUser();
-
-  return useMutation({
-    mutationFn: ({
-      sourceGigId,
-      newTitle,
-      newDate,
-    }: {
-      sourceGigId: string;
-      newTitle?: string;
-      newDate?: string;
-    }) => duplicateGig(sourceGigId, newTitle, newDate),
-    onSuccess: (result) => {
-      invalidateGigListQueries(queryClient, user?.id);
-
-      // Build a summary of what was copied
-      const parts: string[] = [];
-      if (result.counts.roles > 0) {
-        parts.push(`${result.counts.roles} role${result.counts.roles !== 1 ? 's' : ''}`);
-      }
-      if (result.counts.setlistItems > 0) {
-        parts.push(`${result.counts.setlistItems} song${result.counts.setlistItems !== 1 ? 's' : ''}`);
-      }
-      if (result.counts.scheduleItems > 0) {
-        parts.push(`${result.counts.scheduleItems} schedule item${result.counts.scheduleItems !== 1 ? 's' : ''}`);
-      }
-      if (result.counts.materials > 0) {
-        parts.push(`${result.counts.materials} file${result.counts.materials !== 1 ? 's' : ''}`);
-      }
-
-      const summary = parts.length > 0
-        ? ` with ${parts.join(', ')}`
-        : '';
-
-      toast.success(`Gig duplicated${summary}`);
-    },
-    onError: (error: Error) => {
-      toast.error(`Failed to duplicate gig: ${error.message}`);
-    },
-  });
-}
