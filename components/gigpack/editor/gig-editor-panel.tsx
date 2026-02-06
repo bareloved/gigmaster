@@ -1524,21 +1524,8 @@ export function GigEditorPanel({
                 {t("musicSetlist")}
               </label>
 
-              {/* Toggle: Type it / Upload PDF */}
+              {/* Toggle: Upload PDF / Type it */}
               <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
-                <button
-                  type="button"
-                  onClick={() => setSetlistMode("type")}
-                  className={cn(
-                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                    setlistMode === "type"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <FileText className="inline-block mr-1.5 h-3.5 w-3.5" />
-                  Type it
-                </button>
                 <button
                   type="button"
                   onClick={() => setSetlistMode("pdf")}
@@ -1552,6 +1539,19 @@ export function GigEditorPanel({
                   <FileUp className="inline-block mr-1.5 h-3.5 w-3.5" />
                   Upload PDF
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setSetlistMode("type")}
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    setlistMode === "type"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <FileText className="inline-block mr-1.5 h-3.5 w-3.5" />
+                  Type it
+                </button>
               </div>
 
               {setlistMode === "type" ? (
@@ -1563,7 +1563,7 @@ export function GigEditorPanel({
                     name="setlist"
                     value={setlistText}
                     onChange={(e) => setSetlistText(e.target.value)}
-                    rows={16}
+                    rows={10}
                     placeholder={t("setlistPlaceholder")}
                     disabled={isLoading}
                     className="text-base font-semibold"
