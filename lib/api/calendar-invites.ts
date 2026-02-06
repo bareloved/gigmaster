@@ -568,6 +568,88 @@ export async function updateCalendarEvents(
 }
 
 /**
+ * Cancel all Google Calendar events for a gig (when gig is deleted)
+ * Deletes the calendar events so attendees get a cancellation notification from Google.
+ * Also cleans up any webhook watches.
+ */
+export async function cancelCalendarEvents(
+  gigId: string,
+  userId: string
+): Promise<number> {
+  const supabase = await createClient();
+
+  // Get roles with calendar events
+  const { data: roles } = await supabase
+    .from("gig_roles")
+    .select("id, google_calendar_event_id")
+    .eq("gig_id", gigId)
+    .not("google_calendar_event_id", "is", null);
+
+  if (!roles || roles.length === 0) {
+    return 0;
+  }
+
+  // Get calendar connection for the gig owner
+  const { data: connection } = await supabase
+    .from("calendar_connections")
+    .select("access_token, refresh_token, token_expires_at")
+    .eq("user_id", userId)
+    .eq("provider", "google")
+    .single();
+
+  if (!connection) {
+    console.warn("[cancelCalendarEvents] No calendar connection found for user:", userId);
+    return 0;
+  }
+
+  // Initialize Google client
+  const googleClient = new GoogleCalendarClient();
+  googleClient.setCredentials({
+    access_token: connection.access_token,
+    refresh_token: connection.refresh_token,
+    expiry_date: new Date(connection.token_expires_at).getTime(),
+  });
+
+  let cancelled = 0;
+
+  for (const role of roles) {
+    if (!role.google_calendar_event_id) continue;
+
+    try {
+      // Delete the event — Google sends cancellation emails to attendees automatically
+      await googleClient.deleteEvent(role.google_calendar_event_id);
+      cancelled++;
+    } catch (error) {
+      console.error(`Failed to cancel calendar event ${role.google_calendar_event_id}:`, error);
+      // Continue with other events even if one fails
+    }
+  }
+
+  // Clean up webhook watches for this gig
+  const { data: watches } = await supabase
+    .from("google_calendar_watches")
+    .select("channel_id, resource_id")
+    .eq("gig_id", gigId);
+
+  if (watches && watches.length > 0) {
+    for (const watch of watches) {
+      try {
+        await googleClient.stopWatch(watch.channel_id, watch.resource_id);
+      } catch (error) {
+        console.warn(`Failed to stop watch ${watch.channel_id}:`, error);
+      }
+    }
+
+    await supabase
+      .from("google_calendar_watches")
+      .delete()
+      .eq("gig_id", gigId);
+  }
+
+  return cancelled;
+}
+
+/**
  * Map Google Calendar response status to GigMaster invitation status
  */
 export function mapResponseStatus(googleStatus: string): string {

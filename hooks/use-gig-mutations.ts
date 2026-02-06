@@ -449,7 +449,22 @@ export function useDeleteGig() {
   const { user } = useUser();
 
   return useMutation({
-    mutationFn: deleteGig,
+    mutationFn: async (gigId: string) => {
+      // Cancel Google Calendar events BEFORE deleting the gig
+      // (we need gig_roles to still exist to find the event IDs)
+      try {
+        await fetch("/api/calendar/cancel-events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ gigId }),
+        });
+      } catch {
+        // Non-fatal — continue with deletion even if calendar cancel fails
+        console.warn("Failed to cancel calendar events for gig:", gigId);
+      }
+
+      return deleteGig(gigId);
+    },
     onMutate: async (gigId) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["dashboard-gigs", user?.id] });

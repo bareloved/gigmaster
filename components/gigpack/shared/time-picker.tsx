@@ -179,7 +179,7 @@ export function TimePicker({
           ref={containerRef}
           onClick={handleContainerClick}
           className={cn(
-            "flex h-8 w-[80px] items-center justify-center rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-within:ring-1 focus-within:ring-ring cursor-text",
+            "flex h-8 w-[80px] items-center justify-center rounded-md border border-input bg-transparent px-3 py-1 text-base md:text-sm shadow-sm transition-colors focus-within:ring-1 focus-within:ring-ring cursor-text",
             disabled && "cursor-not-allowed opacity-50",
             className
           )}
