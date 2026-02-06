@@ -139,7 +139,7 @@ interface PanelTabsProps {
 
 function PanelTabs({ tabs, activeTab, onTabChange }: PanelTabsProps) {
   return (
-    <div className="flex items-center gap-1 border-b border-border overflow-x-auto">
+    <div className="flex items-center gap-1 border-b border-border overflow-x-auto justify-center">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
@@ -156,7 +156,7 @@ function PanelTabs({ tabs, activeTab, onTabChange }: PanelTabsProps) {
             )}
           >
             {tab.icon}
-            <span className="hidden sm:inline">{tab.label}</span>
+            <span className={cn("sm:inline", isActive ? "inline" : "hidden")}>{tab.label}</span>
             {isActive && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
             )}

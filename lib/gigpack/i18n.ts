@@ -204,7 +204,7 @@ const MESSAGES: MessageTree = {
     venueAddressPlaceholder: "123 Dizengoff St, Tel Aviv",
     venueMapsUrl: "Maps link",
     venueMapsUrlPlaceholder: "https://maps.google.com/...",
-    lineup: "Who's playing",
+    lineup: "Lineup",
     searchMusicians: "Search musicians...",
     addMember: "Add another",
     rolePlaceholder: "Role",
