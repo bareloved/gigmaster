@@ -317,6 +317,12 @@ const MESSAGES: MessageTree = {
         other: "Other"
       },
       addButton: "Add material",
+      addFirst: "Add your first material",
+      emptyTitle: "No materials yet",
+      edit: "Edit",
+      save: "Save",
+      cancel: "Cancel",
+      openLink: "Open link",
       open: "Open",
       remove: "Remove"
     },

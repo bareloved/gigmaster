@@ -34,10 +34,9 @@ import {
   Shirt,
   ParkingCircle,
   Paperclip,
-  Link2,
   Clipboard,
 } from "lucide-react";
-import { GigPack, LineupMember, PackingChecklistItem, GigMaterial, GigMaterialKind, GigScheduleItem, Band } from "@/lib/gigpack/types";
+import { GigPack, LineupMember, PackingChecklistItem, GigMaterial, GigScheduleItem, Band } from "@/lib/gigpack/types";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { uploadImage, deleteImage, getPathFromUrl, validateImageFile } from "@/lib/utils/image-upload";
@@ -74,6 +73,7 @@ import { SetlistPDFUpload } from "@/components/gigpack/shared/setlist-pdf-upload
 import { GigPackTemplate, applyTemplateToFormDefaults } from "@/lib/gigpack/templates";
 import { useGigDraft, useGigDraftAutoSave, type GigDraftFormData } from "@/hooks/use-gig-draft";
 import { GigContactsManager, type PendingContact } from "@/components/gig-contacts/gig-contacts-manager";
+import { MaterialsEditor } from "@/components/gigpack/editor/materials-editor";
 import { createGigContact } from "@/lib/api/gig-contacts";
 import { EmailCollectionModal } from "@/components/gigs/email-collection-modal";
 
@@ -1939,120 +1939,11 @@ export function GigEditorPanel({
 
           {/* Materials Tab */}
           {activeTab === "materials" && (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                {t("materials.description")}
-              </p>
-
-              {/* Materials List */}
-              <div className="space-y-3">
-                {materials.map((material, index) => (
-                  <div key={material.id} className="space-y-2 rounded-md border bg-background p-3">
-                    <div className="flex gap-2">
-                      {/* Label Input */}
-                      <Input
-                        name={`materials[${index}].label`}
-                        className="flex-1"
-                        value={material.label}
-                        onChange={(e) => {
-                          const newMaterials = [...materials];
-                          newMaterials[index] = { ...material, label: e.target.value };
-                          setMaterials(newMaterials);
-                        }}
-                        placeholder={t("materials.labelPlaceholder")}
-                        disabled={isLoading}
-                      />
-
-                      {/* Kind Select */}
-                      <Select
-                        name={`materials[${index}].kind`}
-                        value={material.kind}
-                        onValueChange={(value: GigMaterialKind) => {
-                          const newMaterials = [...materials];
-                          newMaterials[index] = { ...material, kind: value };
-                          setMaterials(newMaterials);
-                        }}
-                        disabled={isLoading}
-                      >
-                        <SelectTrigger className="w-[180px]" dir={locale === "he" ? "rtl" : "ltr"}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent dir={locale === "he" ? "rtl" : "ltr"}>
-                          <SelectItem value="rehearsal">{t("materials.type.rehearsal")}</SelectItem>
-                          <SelectItem value="performance">{t("materials.type.performance")}</SelectItem>
-                          <SelectItem value="charts">{t("materials.type.charts")}</SelectItem>
-                          <SelectItem value="reference">{t("materials.type.reference")}</SelectItem>
-                          <SelectItem value="other">{t("materials.type.other")}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* URL Input */}
-                    <Input
-                      name={`materials[${index}].url`}
-                      value={material.url}
-                      onChange={(e) => {
-                        const newMaterials = [...materials];
-                        newMaterials[index] = { ...material, url: e.target.value };
-                        setMaterials(newMaterials);
-                      }}
-                      placeholder={t("materials.urlPlaceholder")}
-                      type="url"
-                      disabled={isLoading}
-                    />
-
-                    {/* Actions */}
-                    <div className="flex justify-between items-center text-xs">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (material.url) {
-                            window.open(material.url, '_blank', 'noopener,noreferrer');
-                          }
-                        }}
-                        disabled={!material.url || isLoading}
-                        className="text-muted-foreground hover:text-foreground disabled:opacity-50 flex items-center gap-1"
-                      >
-                        <Link2 className="h-3 w-3" />
-                        {t("materials.open")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newMaterials = materials.filter((_, i) => i !== index);
-                          setMaterials(newMaterials);
-                        }}
-                        disabled={isLoading}
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        {t("materials.remove")}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Add Material Button */}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const newMaterial: GigMaterial = {
-                    id: crypto.randomUUID(),
-                    label: "",
-                    url: "",
-                    kind: "other",
-                  };
-                  setMaterials([...materials, newMaterial]);
-                }}
-                disabled={isLoading}
-                className="mt-2"
-              >
-                <Plus className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
-                {t("materials.addButton")}
-              </Button>
-            </div>
+            <MaterialsEditor
+              value={materials}
+              onChange={setMaterials}
+              disabled={isLoading}
+            />
           )}
 
         </div>
