@@ -192,7 +192,6 @@ export async function duplicateGig(
       venue_name: sourceGig.venue_name,
       venue_address: sourceGig.venue_address,
       venue_maps_url: sourceGig.venue_maps_url,
-      project_id: sourceGig.project_id,
       band_id: sourceGig.band_id,
       band_name: sourceGig.band_name,
       band_logo_url: sourceGig.band_logo_url,

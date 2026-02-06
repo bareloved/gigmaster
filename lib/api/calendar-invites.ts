@@ -36,7 +36,7 @@ interface GigForInvite {
   location_address: string | null;
   dress_code: string | null;
   owner_id: string | null;
-  project_id: string | null;
+  band_id: string | null;
   projectName?: string | null; // Fetched separately
   ownerName?: string | null; // Fetched separately
 }
@@ -187,12 +187,14 @@ function buildEventDescription(
 }
 
 /**
- * Build event title: "Band Name - Event Title"
+ * Build event title: "Band Name - Event Title" (with project) or just "Event Title" (standalone)
  */
 function buildEventTitle(gig: GigForInvite): string {
-  const bandName = gig.projectName || gig.ownerName || 'Gig';
   const eventTitle = gig.title || gig.location_name || 'Untitled Gig';
-  return `${bandName} - ${eventTitle}`;
+  if (gig.projectName) {
+    return `${gig.projectName} - ${eventTitle}`;
+  }
+  return eventTitle;
 }
 
 /**
@@ -269,7 +271,7 @@ export async function sendCalendarInvites(
       location_address,
       dress_code,
       owner_id,
-      project_id
+      band_id
     `)
     .eq("id", gigId)
     .single();
@@ -278,15 +280,15 @@ export async function sendCalendarInvites(
     throw new Error(`Failed to fetch gig: ${gigError?.message}`);
   }
 
-  // Get project name separately
+  // Get band name separately
   let projectName: string | null = null;
-  if (gig.project_id) {
-    const { data: project } = await supabase
-      .from("projects")
+  if (gig.band_id) {
+    const { data: band } = await supabase
+      .from("bands")
       .select("name")
-      .eq("id", gig.project_id)
+      .eq("id", gig.band_id)
       .single();
-    projectName = project?.name || null;
+    projectName = band?.name || null;
   }
 
   // Get owner name separately
@@ -469,7 +471,7 @@ export async function updateCalendarEvents(
       .from("gigs")
       .select(`
         id, title, date, start_time, end_time, call_time,
-        location_name, location_address, dress_code, owner_id, project_id
+        location_name, location_address, dress_code, owner_id, band_id
       `)
       .eq("id", gigId)
       .single(),
@@ -488,15 +490,15 @@ export async function updateCalendarEvents(
   const gig = gigResult.data;
   const connection = connectionResult.data;
 
-  // Get project name separately
+  // Get band name separately
   let projectName: string | null = null;
-  if (gig.project_id) {
-    const { data: project } = await supabase
-      .from("projects")
+  if (gig.band_id) {
+    const { data: band } = await supabase
+      .from("bands")
       .select("name")
-      .eq("id", gig.project_id)
+      .eq("id", gig.band_id)
       .single();
-    projectName = project?.name || null;
+    projectName = band?.name || null;
   }
 
   // Get owner name separately

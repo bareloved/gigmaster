@@ -724,7 +724,6 @@ export type Database = {
           parking_notes: string | null
           payment_notes: string | null
           poster_skin: string | null
-          project_id: string | null
           schedule: string | null
           schedule_notes: Json | null
           setlist: string | null
@@ -769,7 +768,6 @@ export type Database = {
           parking_notes?: string | null
           payment_notes?: string | null
           poster_skin?: string | null
-          project_id?: string | null
           schedule?: string | null
           schedule_notes?: Json | null
           setlist?: string | null
@@ -814,7 +812,6 @@ export type Database = {
           parking_notes?: string | null
           payment_notes?: string | null
           poster_skin?: string | null
-          project_id?: string | null
           schedule?: string | null
           schedule_notes?: Json | null
           setlist?: string | null
@@ -1006,51 +1003,6 @@ export type Database = {
           main_instrument?: string | null
           name?: string | null
           phone?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      projects: {
-        Row: {
-          accent_color: string | null
-          band_logo_url: string | null
-          cover_image_url: string | null
-          created_at: string
-          default_lineup: Json | null
-          description: string | null
-          hero_image_url: string | null
-          id: string
-          name: string
-          owner_id: string
-          poster_skin: string | null
-          updated_at: string
-        }
-        Insert: {
-          accent_color?: string | null
-          band_logo_url?: string | null
-          cover_image_url?: string | null
-          created_at?: string
-          default_lineup?: Json | null
-          description?: string | null
-          hero_image_url?: string | null
-          id?: string
-          name: string
-          owner_id: string
-          poster_skin?: string | null
-          updated_at?: string
-        }
-        Update: {
-          accent_color?: string | null
-          band_logo_url?: string | null
-          cover_image_url?: string | null
-          created_at?: string
-          default_lineup?: Json | null
-          description?: string | null
-          hero_image_url?: string | null
-          id?: string
-          name?: string
-          owner_id?: string
-          poster_skin?: string | null
           updated_at?: string
         }
         Relationships: []

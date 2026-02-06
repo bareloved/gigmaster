@@ -73,7 +73,7 @@ npm run test:coverage # Run with coverage report
 /app
   /(app)              # Authenticated routes (client components)
     /dashboard        # Main dashboard with player/manager views
-    /projects         # Project management
+    /bands            # Band/act management
     /gigs             # Gig detail and pack views
     /money            # Earnings & payouts
     /my-circle        # Musician contacts management
@@ -146,15 +146,15 @@ npm run test:coverage # Run with coverage report
 ```typescript
 // ❌ BAD - Cache shared across all users
 const { data } = useQuery({
-  queryKey: ["projects"],
-  queryFn: listUserProjects,
+  queryKey: ["bands"],
+  queryFn: listUserBands,
 });
 
 // ✅ GOOD - Each user gets their own cache
 const { user } = useUser();
 const { data } = useQuery({
-  queryKey: ["projects", user?.id],
-  queryFn: listUserProjects,
+  queryKey: ["bands", user?.id],
+  queryFn: listUserBands,
   enabled: !!user,
 });
 ```
@@ -209,11 +209,11 @@ See `.cursorrules` for detailed examples.
 
 ### Core Entities
 
-**Hierarchy:** Users → Projects → Gigs → (Roles, Setlist, Files)
+**Hierarchy:** Users → Bands → Gigs → (Roles, Setlist, Files)
 
 - **Users/Profiles** - Musicians and managers (auth + profile data)
-- **Projects** - Bands, acts, or ensembles (owned by user)
-- **Gigs** - Individual performances (belong to project OR standalone)
+- **Bands** - Bands, acts, or ensembles (owned by user)
+- **Gigs** - Individual performances (belong to a band OR standalone)
 - **Gig Roles** - Lineup positions (musician + role + payment info)
 - **Setlist Items** - Songs for a gig (ordered list)
 - **Gig Files** - External links (Google Drive, Dropbox, etc.)
@@ -223,7 +223,7 @@ See `.cursorrules` for detailed examples.
 
 ### Key Relationships
 
-- **Projects are optional** - Gigs can exist without projects (flexible workflow)
+- **Bands are optional** - Gigs can exist without a band (flexible workflow)
 - **Gig Roles link users** - `musician_id` (nullable) links to auth users
 - **Contacts auto-link** - When invited user signs up, all their roles update
 - **Calendar integration** - ICS feed + Google Calendar OAuth import
@@ -243,13 +243,13 @@ All API functions in `/lib/api/*` follow this pattern:
 
 ```typescript
 import { createClient } from '@/lib/supabase/client';
-import type { Project } from '@/lib/types/shared';
+import type { Band } from '@/lib/types/gigpack';
 
-export async function listUserProjects(): Promise<Project[]> {
+export async function listUserBands(): Promise<Band[]> {
   const supabase = createClient();
 
   const { data, error } = await supabase
-    .from('projects')
+    .from('bands')
     .select('*')
     .order('created_at', { ascending: false });
 
@@ -272,14 +272,14 @@ export async function listUserProjects(): Promise<Project[]> {
 
 import { useQuery } from '@tanstack/react-query';
 import { useUser } from '@/lib/providers/user-provider';
-import { listUserProjects } from '@/lib/api/projects';
+import { listUserBands } from '@/lib/api/bands';
 
-export function ProjectsList() {
+export function BandsList() {
   const { user } = useUser();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['projects', user?.id], // ALWAYS include user.id
-    queryFn: listUserProjects,
+    queryKey: ['bands', user?.id], // ALWAYS include user.id
+    queryFn: listUserBands,
     enabled: !!user, // Don't run until user loaded
     staleTime: 2 * 60 * 1000, // 2 minutes (adjust per feature)
   });
@@ -297,13 +297,13 @@ export function ProjectsList() {
 const queryClient = useQueryClient();
 
 const mutation = useMutation({
-  mutationFn: createProject,
+  mutationFn: createBand,
   onSuccess: () => {
     // Surgical cache invalidation
     queryClient.invalidateQueries({
-      queryKey: ['projects', user?.id]
+      queryKey: ['bands', user?.id]
     });
-    toast.success('Project created!');
+    toast.success('Band created!');
   },
 });
 ```
@@ -330,7 +330,7 @@ const mutation = useMutation({
 ### Tables with Special Considerations
 
 **gigs:**
-- `project_id` is nullable (gigs can be standalone)
+- `band_id` is nullable (links to `bands` table — gigs can be standalone)
 - `external_calendar_event_id` tracks imported events
 - `notes` and `schedule` for rich event details
 - `currency` defaults to 'ILS' (8 supported currencies)
@@ -356,12 +356,18 @@ const mutation = useMutation({
 - Publicly readable (for user search) but only owner can update
 - Includes `calendar_ics_token` for ICS feed subscriptions
 
+### Important: "bands" table
+
+The `bands` table stores band/act data. The FK column on `gigs` is `band_id`.
+- **Supabase queries:** Use `.from("bands")`
+- **Types:** Use `Band` from `lib/types/gigpack`
+
 ### Indexes & Performance
 
 All foreign keys have indexes. Key performance indexes:
 
 - `gig_roles`: `musician_id`, `payment_status`, composite on `(gig_id, musician_id)`
-- `gigs`: `project_id`, `date`, `status`
+- `gigs`: `band_id` (FK to `bands`), `date`, `status`
 - `musician_contacts`: GIN for full-text search, composite on `(user_id, last_worked_date)`
 - `notifications`: `user_id`, `read_at`, `created_at`
 

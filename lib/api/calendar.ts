@@ -194,8 +194,8 @@ function gigToICSEvent(gig: DashboardGig): EventAttributes {
     description = `Your role: ${gig.playerRoleName}\n\n${description}`;
   }
 
-  // Build title
-  const titlePrefix = gig.hostName ? `[${gig.hostName}] ` : '';
+  // Build title: "Project Name - Gig Title" or just "Gig Title" for standalone gigs
+  const titlePrefix = gig.projectName ? `${gig.projectName} - ` : '';
   const title = `${titlePrefix}${gig.gigTitle}`;
 
   return {

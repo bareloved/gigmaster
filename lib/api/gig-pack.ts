@@ -15,8 +15,10 @@ interface GigRoleRow {
   role_name: string;
   musician_name: string | null;
   musician_id: string | null;
+  contact_id: string | null;
   invitation_status: string | null;
   sort_order: number | null;
+  contact: { email: string | null; phone: string | null } | null;
 }
 
 interface GigMaterialRow {
@@ -106,8 +108,13 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
         role_name,
         musician_name,
         musician_id,
+        contact_id,
         invitation_status,
-        sort_order
+        sort_order,
+        contact:musician_contacts(
+          email,
+          phone
+        )
       ),
       gig_contacts(
         id,
@@ -185,16 +192,62 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
   }
 
   // Transform lineup from gig_roles
-  const lineup: LineupMember[] = ((gig.gig_roles as GigRoleRow[]) || [])
-    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-    .map((role) => ({
+  const roles = ((gig.gig_roles as GigRoleRow[]) || [])
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+  // Batch-fetch profiles for musicians by ID or by name fallback
+  const musicianIds = roles
+    .map((r) => r.musician_id)
+    .filter((id): id is string => !!id);
+  const unlinkedNames = roles
+    .filter((r) => !r.musician_id && !r.contact_id && r.musician_name)
+    .map((r) => r.musician_name!);
+
+  type ProfileInfo = { id: string; name: string | null; avatar_url: string | null; email: string | null; phone: string | null };
+  const profileById: Record<string, ProfileInfo> = {};
+  const profileByName: Record<string, ProfileInfo> = {};
+
+  // Fetch profiles by ID
+  if (musicianIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, name, avatar_url, email, phone')
+      .in('id', musicianIds);
+    if (profiles) {
+      for (const p of profiles) profileById[p.id] = p;
+    }
+  }
+
+  // Fetch profiles by name for unlinked roles
+  if (unlinkedNames.length > 0) {
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, name, avatar_url, email, phone')
+      .in('name', unlinkedNames);
+    if (profiles) {
+      for (const p of profiles) {
+        if (p.name) profileByName[p.name] = p;
+      }
+    }
+  }
+
+  const lineup: LineupMember[] = roles.map((role) => {
+    const profile = role.musician_id
+      ? profileById[role.musician_id]
+      : (role.musician_name ? profileByName[role.musician_name] : null);
+    return {
       role: role.role_name,
       name: role.musician_name || undefined,
       notes: undefined,
       invitationStatus: role.invitation_status || undefined,
       gigRoleId: role.id,
       userId: role.musician_id || undefined,
-    }));
+      contactId: role.contact_id || undefined,
+      email: profile?.email || role.contact?.email || undefined,
+      phone: profile?.phone || role.contact?.phone || undefined,
+      avatarUrl: profile?.avatar_url || undefined,
+    };
+  });
 
   // Transform materials
   const materials: GigMaterial[] = ((gig.gig_materials as GigMaterialRow[]) || [])
@@ -276,7 +329,7 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
     owner_id: gig.owner_id,
     title: gig.title,
     status: gig.status || null,
-    band_id: gig.project_id || null,
+    band_id: gig.band_id || null,
     band_name: gig.band_name || null,
     date: gig.date || new Date().toISOString(),
     call_time: gig.call_time || (gig.start_time ? String(gig.start_time).substring(0, 5) : null),

@@ -18,7 +18,7 @@ export async function saveGigPack(data: Partial<GigPack>, isEditing: boolean) {
   type GigsInsert = Database['public']['Tables']['gigs']['Insert'];
   const gigPayload: Record<string, unknown> = {
     title: data.title,
-    project_id: data.band_id || null, // Map band_id -> project_id
+    band_id: data.band_id || null,
     date: data.date,
     call_time: data.call_time,
     on_stage_time: data.on_stage_time,

@@ -401,6 +401,7 @@ function MaterialFormInner({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // Prevent bubbling to parent gig editor form via React portal
     onSave({
       id: initial?.id ?? crypto.randomUUID(),
       label,

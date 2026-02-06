@@ -559,7 +559,7 @@ export async function getGig(id: string): Promise<GigPack | null> {
     owner_name: (gig.owner as GigOwnerProfile | null)?.name || null,
     title: gig.title,
     status: gig.status || "draft",
-    band_id: gig.project_id,
+    band_id: gig.band_id,
     band_name: gig.band_name,
     date: gig.date ? gig.date.split('T')[0] : null, // Extract date portion from ISO timestamp
     call_time: gig.call_time,
@@ -691,7 +691,7 @@ async function saveGigPackRPC(
     const gigPayload = {
       title: data.title,
       date: dateValue || new Date().toISOString(),
-      project_id: data.band_id || null,
+      band_id: data.band_id || null,
       band_name: data.band_name || null,
       call_time: data.call_time || null,
       on_stage_time: data.on_stage_time || null,
@@ -813,7 +813,7 @@ async function saveGigPackLegacy(
     const gigData = {
       title: data.title,
       date: dateValue || new Date().toISOString(),
-      project_id: data.band_id || null,
+      band_id: data.band_id || null,
       band_name: data.band_name || null,
       call_time: data.call_time || null,
       on_stage_time: data.on_stage_time || null,

@@ -56,10 +56,10 @@ export function FeedbackButton() {
       <DialogTrigger asChild>
         <Button
           size="icon"
-          className="fixed bottom-20 right-4 z-50 h-12 w-12 rounded-full shadow-lg lg:bottom-4"
+          className="fixed bottom-20 left-4 z-50 h-9 w-9 rounded-full shadow-lg lg:bottom-4"
           aria-label="Send feedback"
         >
-          <MessageSquare className="h-5 w-5" />
+          <MessageSquare className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

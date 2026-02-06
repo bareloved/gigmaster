@@ -1,33 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { useTranslations, useLocale } from "@/lib/gigpack/i18n";
 import { GigPack } from "@/lib/gigpack/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, Paperclip, ExternalLink, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, Guitar, Drum, Piano, Volume2, Radio, FileText, CheckCircle2, XCircle, HelpCircle, MinusCircle, AlertCircle } from "lucide-react";
+import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, Paperclip, ExternalLink, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, FileText } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { classifyGigVisualTheme, pickFallbackImageForTheme } from "@/lib/gigpack/gig-visual-theme";
 import { GigActivityWidget } from "@/components/dashboard/activity-widget";
+import type { GigActivityLogEntry } from "@/lib/api/gig-activity";
 import { NeedHelpSection } from "@/components/gigpack/need-help-section";
+import { HostingServiceIcon } from "@/components/shared/hosting-service-icon";
+import type { GigMaterialKind } from "@/lib/gigpack/types";
 
-function getStatusIcon(status?: string) {
+function getInitials(name: string): string {
+  if (!name.trim()) return "?";
+  const words = name.trim().split(/\s+/);
+  if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
+function getStatusColor(status?: string): string {
   switch (status) {
-    case "accepted":
-      return <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />;
-    case "declined":
-      return <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />;
-    case "tentative":
-      return <HelpCircle className="h-3.5 w-3.5 text-amber-500 shrink-0" />;
-    case "needs_sub":
-      return <AlertCircle className="h-3.5 w-3.5 text-orange-500 shrink-0" />;
-    case "replaced":
-      return <MinusCircle className="h-3.5 w-3.5 text-muted-foreground/50 shrink-0" />;
-    default: // pending, invited, or undefined
-      return <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />;
+    case "accepted": return "bg-green-500";
+    case "invited":
+    case "pending": return "bg-yellow-500";
+    case "declined": return "bg-red-500";
+    case "needs_sub": return "bg-orange-500";
+    case "tentative": return "bg-yellow-400";
+    default: return "bg-gray-400";
   }
 }
+
+const MATERIAL_KIND_ICON: Record<GigMaterialKind, { icon: React.ElementType; color: string }> = {
+  rehearsal: { icon: Mic, color: "text-primary" },
+  performance: { icon: Star, color: "text-secondary" },
+  charts: { icon: Music, color: "text-accent" },
+  reference: { icon: Headphones, color: "text-[hsl(var(--chart-4))]" },
+  other: { icon: Paperclip, color: "text-muted-foreground" },
+};
 
 interface MinimalLayoutProps {
   gigPack: Omit<GigPack, "internal_notes" | "owner_id">;
@@ -97,33 +112,6 @@ export function MinimalLayout({ gigPack, openMaps }: MinimalLayoutProps) {
     }
   };
 
-  const getInstrumentIcon = (role: string | null | undefined) => {
-    if (!role) return null;
-    const lowerRole = role.toLowerCase();
-    if (lowerRole.includes('guitar') || lowerRole.includes('lead') || lowerRole.includes('rhythm')) {
-      return <Guitar className="h-4 w-4" />;
-    }
-    if (lowerRole.includes('bass') || lowerRole.includes('electric bass') || lowerRole.includes('upright bass')) {
-      return <Radio className="h-4 w-4" />;
-    }
-    if (lowerRole.includes('violin') || lowerRole.includes('fiddle') || lowerRole.includes('strings') || lowerRole.includes('cello')) {
-      return <Music className="h-4 w-4" />;
-    }
-    if (lowerRole.includes('drum') || lowerRole.includes('percussion') || lowerRole.includes('drummer')) {
-      return <Drum className="h-4 w-4" />;
-    }
-    if (lowerRole.includes('piano') || lowerRole.includes('keyboard') || lowerRole.includes('keys')) {
-      return <Piano className="h-4 w-4" />;
-    }
-    if (lowerRole.includes('trumpet') || lowerRole.includes('horn') || lowerRole.includes('brass') ||
-        lowerRole.includes('sax') || lowerRole.includes('woodwind') || lowerRole.includes('reed')) {
-      return <Volume2 className="h-4 w-4" />;
-    }
-    if (lowerRole.includes('vocal') || lowerRole.includes('singer') || lowerRole.includes('voice') || lowerRole.includes('lead singer')) {
-      return <Mic className="h-4 w-4" />;
-    }
-    return <Music className="h-4 w-4" />;
-  };
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return null;
@@ -407,43 +395,58 @@ export function MinimalLayout({ gigPack, openMaps }: MinimalLayoutProps) {
           <div className="space-y-6">
             {gigPack.lineup && gigPack.lineup.length > 0 && (
               <div className="bg-card border rounded-lg p-6 shadow-sm">
-                <div className={`flex items-center gap-3 mb-4`}>
+                <div className="flex items-center gap-3 mb-4">
                   <Users className="h-5 w-5" style={{ color: accentColor }} />
                   <h3 className="font-semibold text-lg">{t("whosPlaying")}</h3>
+                  <Badge variant="secondary" className="text-xs">{gigPack.lineup.filter(m => m.name?.trim()).length}</Badge>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {gigPack.lineup.map((member, index) => (
-                    <div
-                      key={index}
-                      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/30 border border-border/60"
-                    >
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="flex items-center">
-                            {getStatusIcon(member.invitationStatus)}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="capitalize">
-                            {member.invitationStatus?.replace("_", " ") || "pending"}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                      {member.name && (
-                        <span className="text-[13px] font-semibold leading-none">
-                          {member.name}
-                        </span>
-                      )}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="text-muted-foreground/80">{getInstrumentIcon(member.role)}</span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{member.role}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  ))}
+                <div className="rounded-lg border bg-card">
+                  {gigPack.lineup.map((member, index) => {
+                    if (!member.name?.trim()) return null;
+                    return (
+                      <div
+                        key={`${member.name}-${index}`}
+                        className="flex items-center gap-3 py-2.5 px-3 hover:bg-muted/50 transition-colors first:rounded-t-lg last:rounded-b-lg"
+                      >
+                        {/* Avatar with status dot */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="relative shrink-0">
+                              <Avatar className="h-10 w-10">
+                                <AvatarImage src={member.avatarUrl || undefined} />
+                                <AvatarFallback className="text-sm bg-primary/10 text-primary">
+                                  {getInitials(member.name!)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span
+                                className={cn(
+                                  "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background",
+                                  getStatusColor(member.invitationStatus)
+                                )}
+                              />
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="capitalize">
+                              {member.invitationStatus?.replace("_", " ") || "pending"}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        {/* Name and secondary info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{member.name}</p>
+                          {(member.role || member.email) && (
+                            <p className="text-xs text-muted-foreground truncate">
+                              {member.role}
+                              {member.role && member.email && <span className="text-border"> · </span>}
+                              {member.email}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -551,36 +554,49 @@ export function MinimalLayout({ gigPack, openMaps }: MinimalLayoutProps) {
             )}
             {gigPack.materials && gigPack.materials.length > 0 && (
               <div className="bg-card border rounded-lg p-6 shadow-sm">
-                <div className={`flex items-center gap-3 mb-4`}>
+                <div className="flex items-center gap-3 mb-4">
                   <Paperclip className="h-5 w-5" style={{ color: accentColor }} />
                   <h3 className="font-semibold text-lg">{t("materials")}</h3>
                   <Badge variant="secondary" className="text-xs">{gigPack.materials.length}</Badge>
                 </div>
-                <div className="grid gap-3">
-                  {gigPack.materials.map((material) => (
-                    <div key={material.id} className="p-3 bg-muted/30 rounded-lg">
-                      <div className={`flex items-start justify-between gap-2 mb-2`}>
-                        <div className={`font-semibold text-sm flex-1 ${activeLocale === 'he' ? 'text-right' : ''}`}>{material.label}</div>
-                        <Badge variant="outline" className="text-xs shrink-0">
-                          {material.kind === "rehearsal" && t("materialTypeRehearsal")}
-                          {material.kind === "performance" && t("materialTypePerformance")}
-                          {material.kind === "charts" && t("materialTypeCharts")}
-                          {material.kind === "reference" && t("materialTypeReference")}
-                          {material.kind === "other" && t("materialTypeOther")}
-                        </Badge>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full text-xs"
-                        onClick={() => window.open(material.url, '_blank', 'noopener,noreferrer')}
-                        style={{ borderColor: accentColor + '40', color: accentColor }}
+                <div className="rounded-lg border bg-card">
+                  {gigPack.materials.map((material) => {
+                    const kindConfig = MATERIAL_KIND_ICON[material.kind as GigMaterialKind] ?? MATERIAL_KIND_ICON.other;
+                    const KindIcon = kindConfig.icon;
+                    const hostname = material.url ? (() => { try { return new URL(material.url).hostname; } catch { return null; } })() : null;
+
+                    return (
+                      <a
+                        key={material.id}
+                        href={material.url || undefined}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group flex items-center gap-3 py-2.5 px-3 hover:bg-muted/50 transition-colors cursor-pointer first:rounded-t-lg last:rounded-b-lg"
                       >
-                        <ExternalLink className={`h-3 w-3 ${activeLocale === 'he' ? 'ml-2' : 'mr-2'}`} />
-                        {t("openMaterial")}
-                      </Button>
-                    </div>
-                  ))}
+                        <div className="shrink-0">
+                          <KindIcon className={`h-5 w-5 ${kindConfig.color}`} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">
+                            {material.label || t(`materialType${material.kind.charAt(0).toUpperCase()}${material.kind.slice(1)}` as never)}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+                            <span>{t(`materialType${material.kind.charAt(0).toUpperCase()}${material.kind.slice(1)}` as never)}</span>
+                            {hostname && (
+                              <>
+                                <span className="text-border">·</span>
+                                <span className="inline-flex items-center gap-1 truncate">
+                                  <HostingServiceIcon url={material.url!} className="h-3 w-3 shrink-0" />
+                                  <span className="truncate">{hostname}</span>
+                                </span>
+                              </>
+                            )}
+                          </p>
+                        </div>
+                        <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -597,7 +613,7 @@ export function MinimalLayout({ gigPack, openMaps }: MinimalLayoutProps) {
         )}
 
         {/* Updates / Activity Log — reuses the dashboard widget scoped to this gig */}
-        <GigActivityWidget gigId={gigPack.id} limit={10} showViewAll className="mt-8 shadow-sm" />
+        <GigActivityWidget gigId={gigPack.id} limit={10} showViewAll className="mt-8 shadow-sm" initialData={gigPack.activity as GigActivityLogEntry[] | undefined} />
         <div className="mt-12 text-center text-xs text-muted-foreground/60">
           <p>
             Powered by <span className="font-semibold" style={{ color: accentColor }}>GigPack</span>

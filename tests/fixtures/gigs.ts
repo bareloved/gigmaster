@@ -18,7 +18,6 @@ export const mockGig: Gig = {
   venue_maps_url: null,
   status: "confirmed",
   owner_id: "test-user-id-123",
-  project_id: null,
   band_id: null,
   band_name: "The Jazz Quartet",
   band_logo_url: null,
