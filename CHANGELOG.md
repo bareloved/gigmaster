@@ -4,8 +4,12 @@ All notable changes to GigMaster are documented here. Update this file with ever
 
 ## [Unreleased]
 
+### Added
+- "Decline Gig" action for accepted musicians on the All Gigs page via the 3-dot menu
+
 ### Changed
 - "Duplicate Gig" now opens the full editor with all fields pre-filled (lineup, setlist, schedule, materials, packing, branding) instead of a simple title/date dialog
+- Compacted player-only gig cards — dropdown sits inline instead of taking a separate action row
 
 ### Added
 - `.env.example` — Environment variables template
