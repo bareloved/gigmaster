@@ -170,6 +170,8 @@ export interface RecentMusician {
   linkedUserId?: string | null;
   lastGigDate: string;
   timesWorkedTogether: number;
+  email?: string | null;
+  phone?: string | null;
 }
 
 /**
@@ -242,9 +244,36 @@ export async function getRecentMusicians(limit: number = 10): Promise<RecentMusi
         linkedUserId: role.musician_id || null,
         lastGigDate: gigDate,
         timesWorkedTogether: 1,
+        email: null,
+        phone: null,
       });
     }
   });
+
+  // Enrich with email/phone from profiles for musicians with a user account
+  const musicianIds = Array.from(musicianMap.values())
+    .filter((m) => m.userId)
+    .map((m) => m.userId!);
+
+  if (musicianIds.length > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, email, phone")
+      .in("id", musicianIds);
+
+    if (profiles) {
+      const profileMap = new Map(profiles.map((p) => [p.id, p]));
+      for (const musician of musicianMap.values()) {
+        if (musician.userId) {
+          const profile = profileMap.get(musician.userId);
+          if (profile) {
+            musician.email = profile.email || null;
+            musician.phone = profile.phone || null;
+          }
+        }
+      }
+    }
+  }
 
   // Sort by most recent gig date first, then by frequency
   return Array.from(musicianMap.values())

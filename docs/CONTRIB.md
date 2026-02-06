@@ -1,6 +1,6 @@
 # Contributing Guide
 
-> Auto-generated from `package.json` and `ENVIRONMENT_VARIABLES.md` on 2026-02-01.
+> Auto-generated from `package.json` and `.env.example` on 2026-02-05.
 
 ## Prerequisites
 

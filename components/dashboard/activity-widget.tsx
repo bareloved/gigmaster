@@ -29,6 +29,8 @@ interface GigActivityWidgetProps {
   limit?: number;
   showViewAll?: boolean;
   className?: string;
+  /** Pre-fetched activity data (skips client-side fetch — used for public/unauthenticated views) */
+  initialData?: GigActivityLogEntry[];
 }
 
 export function GigActivityWidget({
@@ -36,12 +38,18 @@ export function GigActivityWidget({
   limit = 10,
   showViewAll = false,
   className = "",
+  initialData,
 }: GigActivityWidgetProps) {
-  const [activities, setActivities] = useState<GigActivityLogEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const hasInitialData = !!initialData;
+  const [activities, setActivities] = useState<GigActivityLogEntry[]>(
+    initialData ? initialData.filter((a) => !HIDDEN_ACTIVITY_TYPES.has(a.activity_type)) : []
+  );
+  const [loading, setLoading] = useState(!hasInitialData);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (hasInitialData) return; // Skip fetch when data is pre-loaded
+
     async function loadActivity() {
       try {
         setLoading(true);
@@ -60,7 +68,7 @@ export function GigActivityWidget({
     }
 
     loadActivity();
-  }, [gigId, limit]);
+  }, [gigId, limit, hasInitialData]);
 
   if (loading) {
     return (

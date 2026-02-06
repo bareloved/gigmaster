@@ -204,7 +204,7 @@ const MESSAGES: MessageTree = {
     venueAddressPlaceholder: "123 Dizengoff St, Tel Aviv",
     venueMapsUrl: "Maps link",
     venueMapsUrlPlaceholder: "https://maps.google.com/...",
-    lineup: "Who's playing",
+    lineup: "Lineup",
     searchMusicians: "Search musicians...",
     addMember: "Add another",
     rolePlaceholder: "Role",
@@ -317,6 +317,12 @@ const MESSAGES: MessageTree = {
         other: "Other"
       },
       addButton: "Add material",
+      addFirst: "Add your first material",
+      emptyTitle: "No materials yet",
+      edit: "Edit",
+      save: "Save",
+      cancel: "Cancel",
+      openLink: "Open link",
       open: "Open",
       remove: "Remove"
     },

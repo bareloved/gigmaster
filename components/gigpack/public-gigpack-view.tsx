@@ -9,6 +9,7 @@ import { MinimalLayout } from "@/components/gigpack/layouts/minimal-layout";
 // import { RehearsalView } from "@/components/gigpack/rehearsal-view";
 import { DarkModeToggle as ThemeToggle } from "@/components/layout/dark-mode-toggle";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { RefreshCw } from "lucide-react";
 
 class PublicGigPackErrorBoundary extends React.Component<
   { children: React.ReactNode; slug: string },
@@ -103,9 +104,14 @@ export function PublicGigPackView({ initialGigPack, slug, locale = "en" }: Publi
       
       <div className="fixed bottom-4 right-4 z-50">
         <div className="bg-card border rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 text-xs text-muted-foreground">
+          <RefreshCw className="h-3 w-3 text-green-500" />
           <span className="hidden sm:inline">
-            GigPack
+            Live • Updated {new Date(gigPack.updated_at).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit'
+            })}
           </span>
+          <span className="sm:hidden">🟢</span>
         </div>
       </div>
     </TooltipProvider>

@@ -1,6 +1,6 @@
 # Operations Runbook
 
-> Auto-generated on 2026-02-01. Update when deployment or operational procedures change.
+> Auto-generated on 2026-02-05. Update when deployment or operational procedures change.
 
 ## Deployment
 

@@ -84,7 +84,7 @@ export async function GET(
     owner_id: gig.owner_id || "",
     title: gig.title,
     status: gig.status,
-    band_id: gig.project_id,
+    band_id: gig.band_id,
     band_name: gig.band_name,
     date: gig.date ? gig.date.split('T')[0] : null,
     call_time: gig.call_time,

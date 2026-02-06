@@ -155,7 +155,7 @@ export function TimePicker({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={false}>
       <PopoverAnchor asChild>
         <div
           ref={containerRef}
@@ -169,6 +169,7 @@ export function TimePicker({
           <input
             ref={inputRef}
             type="text"
+            inputMode="numeric"
             name={name}
             id={id}
             value={inputValue}
@@ -191,7 +192,8 @@ export function TimePicker({
         <div
           ref={scrollContainerRef}
           onWheel={handleWheel}
-          className="max-h-[280px] overflow-y-auto p-1"
+          className="max-h-[280px] overflow-y-auto overscroll-contain p-1"
+          style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
         >
           {TIME_SLOTS.map((time) => {
             const isSelected = value === time

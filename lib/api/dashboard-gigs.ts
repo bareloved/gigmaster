@@ -22,6 +22,7 @@ interface DashboardRpcRow {
   gig_type: string | null;
   hero_image_url: string | null;
   role_stats?: { total: number; invited: number; accepted: number; declined: number; pending: number } | null;
+  band_name: string | null;
 }
 
 /**
@@ -103,6 +104,7 @@ export async function listDashboardGigs(
         invitationStatus: row.invitation_status,
         hostId: row.host_id,
         hostName: row.host_name,
+        projectName: row.band_name,
         heroImageUrl: row.hero_image_url,
         gigType: row.gig_type,
         roleStats: row.role_stats,
@@ -163,6 +165,9 @@ async function listDashboardGigsFallback(
         id,
         name
       ),
+      project:bands(
+        name
+      ),
       gig_roles (
         id,
         role_name,
@@ -201,6 +206,8 @@ async function listDashboardGigsFallback(
 
       const ownerData = Array.isArray(gig.owner) ? gig.owner[0] : gig.owner;
       const hostName = ownerData?.name || null;
+      const projectData = Array.isArray(gig.project) ? gig.project[0] : gig.project;
+      const projectName = projectData?.name || null;
 
       let roleStats = null;
       if (isManager) {
@@ -229,6 +236,7 @@ async function listDashboardGigsFallback(
         invitationStatus: userRole?.invitation_status || null,
         hostId: gig.owner_id,
         hostName,
+        projectName,
         heroImageUrl: gig.hero_image_url,
         gigType: gig.gig_type,
         roleStats,

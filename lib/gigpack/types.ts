@@ -21,6 +21,12 @@ export interface LineupMember {
   invitationStatus?: string;
   /** Gig role ID from the database (for tracking existing roles) */
   gigRoleId?: string;
+  /** Email for display (transient, not persisted to DB) */
+  email?: string | null;
+  /** Phone for display (transient, not persisted to DB) */
+  phone?: string | null;
+  /** Avatar URL from profile (transient, not persisted to DB) */
+  avatarUrl?: string | null;
 }
 
 // Structured Setlist Types (Setlist v2)
@@ -116,8 +122,8 @@ export interface GigPack {
   owner_name?: string | null; // Added for display
   title: string;
   status: string | null; // Added for display
-  band_id: string | null; // project_id
-  band_name: string | null; // project name (joined)
+  band_id: string | null;
+  band_name: string | null;
   date: string | null;
   call_time: string | null;
   on_stage_time: string | null; // from start_time? or explicit column
@@ -156,6 +162,19 @@ export interface GigPack {
   is_external?: boolean;
   external_event_url?: string | null;
   schedule_notes?: Array<{ time: string; label: string; notes?: string }> | null;
+  // Activity log (pre-fetched for public views)
+  activity?: GigPackActivity[] | null;
+}
+
+export interface GigPackActivity {
+  id: string;
+  gig_id: string;
+  user_id: string | null;
+  activity_type: string;
+  description: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  user?: { name: string | null; avatar_url: string | null };
 }
 
 export type GigPackInsert = Omit<GigPack, "id" | "created_at" | "updated_at">;

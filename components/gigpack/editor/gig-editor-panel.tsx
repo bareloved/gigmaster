@@ -34,10 +34,9 @@ import {
   Shirt,
   ParkingCircle,
   Paperclip,
-  Link2,
   Clipboard,
 } from "lucide-react";
-import { GigPack, LineupMember, PackingChecklistItem, GigMaterial, GigMaterialKind, GigScheduleItem, Band } from "@/lib/gigpack/types";
+import { GigPack, LineupMember, PackingChecklistItem, GigMaterial, GigScheduleItem, Band } from "@/lib/gigpack/types";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { uploadImage, deleteImage, getPathFromUrl, validateImageFile } from "@/lib/utils/image-upload";
@@ -46,8 +45,8 @@ import { useSaveGigPack } from "@/hooks/use-gig-mutations";
 import { Calendar } from "@/components/ui/calendar";
 import { TimePicker } from "@/components/gigpack/ui/time-picker";
 import { VenueAutocomplete } from "@/components/gigpack/ui/venue-autocomplete";
-import { LineupMemberSearch } from "@/components/gigpack/ui/lineup-member-search";
-import { LineupMemberPill } from "@/components/gigpack/ui/lineup-member-pill";
+import { LineupBuilder } from "@/components/gigpack/ui/lineup-builder";
+import type { SelectedMember } from "@/components/gigpack/ui/lineup-search-input";
 import { GigTypeSelect } from "@/components/gigpack/ui/gig-type-select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -74,6 +73,7 @@ import { SetlistPDFUpload } from "@/components/gigpack/shared/setlist-pdf-upload
 import { GigPackTemplate, applyTemplateToFormDefaults } from "@/lib/gigpack/templates";
 import { useGigDraft, useGigDraftAutoSave, type GigDraftFormData } from "@/hooks/use-gig-draft";
 import { GigContactsManager, type PendingContact } from "@/components/gig-contacts/gig-contacts-manager";
+import { MaterialsEditor } from "@/components/gigpack/editor/materials-editor";
 import { createGigContact } from "@/lib/api/gig-contacts";
 import { EmailCollectionModal } from "@/components/gigs/email-collection-modal";
 
@@ -139,7 +139,7 @@ interface PanelTabsProps {
 
 function PanelTabs({ tabs, activeTab, onTabChange }: PanelTabsProps) {
   return (
-    <div className="flex items-center gap-1 border-b border-border overflow-x-auto">
+    <div className="flex items-center gap-1 border-b border-border overflow-x-auto justify-center">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
@@ -156,7 +156,7 @@ function PanelTabs({ tabs, activeTab, onTabChange }: PanelTabsProps) {
             )}
           >
             {tab.icon}
-            <span className="hidden sm:inline">{tab.label}</span>
+            <span className={cn("sm:inline", isActive ? "inline" : "hidden")}>{tab.label}</span>
             {isActive && (
               <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
             )}
@@ -642,13 +642,7 @@ export function GigEditorPanel({
   };
 
   // Add member from search (My Circle or System Users)
-  const addLineupMemberFromSearch = (member: {
-    name: string;
-    role: string;
-    userId?: string;
-    linkedUserId?: string | null;
-    contactId?: string;
-  }) => {
+  const addLineupMemberFromSearch = (member: SelectedMember) => {
     // Build the lineup member with user/contact IDs for proper notification handling
     const newMember: LineupMember = {
       role: member.role,
@@ -657,6 +651,8 @@ export function GigEditorPanel({
       userId: member.userId,
       linkedUserId: member.linkedUserId,
       contactId: member.contactId,
+      email: member.email,
+      phone: member.phone,
     };
 
     // Check if we have an empty row to fill first
@@ -1511,32 +1507,14 @@ export function GigEditorPanel({
         <div className="mt-4 min-h-[200px]">
           {/* Lineup Tab */}
           {activeTab === "lineup" && (
-            <div className="space-y-3">
-              {lineup.map((member, index) => (
-                <LineupMemberPill
-                  key={index}
-                  name={member.name || ""}
-                  role={member.role || ""}
-                  notes={member.notes || ""}
-                  invitationStatus={member.invitationStatus}
-                  onNameChange={(name) => updateLineupMember(index, "name", name)}
-                  onRoleChange={(role) => updateLineupMember(index, "role", role)}
-                  onNotesChange={(notes) => updateLineupMember(index, "notes", notes)}
-                  onRemove={() => removeLineupMember(index)}
-                  disabled={isLoading}
-                  showRemove={true}
-                />
-              ))}
-              <div className="w-full">
-                <LineupMemberSearch
-                  onSelectMember={addLineupMemberFromSearch}
-                  placeholder={t("searchMusicians")}
-                  disabled={isLoading}
-                  className="w-full"
-                  currentLineup={lineup}
-                />
-              </div>
-            </div>
+            <LineupBuilder
+              lineup={lineup}
+              onAddMember={addLineupMemberFromSearch}
+              onUpdateMember={updateLineupMember}
+              onRemoveMember={removeLineupMember}
+              placeholder={t("searchMusicians")}
+              disabled={isLoading}
+            />
           )}
 
           {/* Setlist Tab */}
@@ -1546,21 +1524,8 @@ export function GigEditorPanel({
                 {t("musicSetlist")}
               </label>
 
-              {/* Toggle: Type it / Upload PDF */}
+              {/* Toggle: Upload PDF / Type it */}
               <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
-                <button
-                  type="button"
-                  onClick={() => setSetlistMode("type")}
-                  className={cn(
-                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                    setlistMode === "type"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <FileText className="inline-block mr-1.5 h-3.5 w-3.5" />
-                  Type it
-                </button>
                 <button
                   type="button"
                   onClick={() => setSetlistMode("pdf")}
@@ -1574,6 +1539,19 @@ export function GigEditorPanel({
                   <FileUp className="inline-block mr-1.5 h-3.5 w-3.5" />
                   Upload PDF
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setSetlistMode("type")}
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    setlistMode === "type"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <FileText className="inline-block mr-1.5 h-3.5 w-3.5" />
+                  Type it
+                </button>
               </div>
 
               {setlistMode === "type" ? (
@@ -1585,7 +1563,7 @@ export function GigEditorPanel({
                     name="setlist"
                     value={setlistText}
                     onChange={(e) => setSetlistText(e.target.value)}
-                    rows={16}
+                    rows={10}
                     placeholder={t("setlistPlaceholder")}
                     disabled={isLoading}
                     className="text-base font-semibold"
@@ -1961,120 +1939,11 @@ export function GigEditorPanel({
 
           {/* Materials Tab */}
           {activeTab === "materials" && (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                {t("materials.description")}
-              </p>
-
-              {/* Materials List */}
-              <div className="space-y-3">
-                {materials.map((material, index) => (
-                  <div key={material.id} className="space-y-2 rounded-md border bg-background p-3">
-                    <div className="flex gap-2">
-                      {/* Label Input */}
-                      <Input
-                        name={`materials[${index}].label`}
-                        className="flex-1"
-                        value={material.label}
-                        onChange={(e) => {
-                          const newMaterials = [...materials];
-                          newMaterials[index] = { ...material, label: e.target.value };
-                          setMaterials(newMaterials);
-                        }}
-                        placeholder={t("materials.labelPlaceholder")}
-                        disabled={isLoading}
-                      />
-
-                      {/* Kind Select */}
-                      <Select
-                        name={`materials[${index}].kind`}
-                        value={material.kind}
-                        onValueChange={(value: GigMaterialKind) => {
-                          const newMaterials = [...materials];
-                          newMaterials[index] = { ...material, kind: value };
-                          setMaterials(newMaterials);
-                        }}
-                        disabled={isLoading}
-                      >
-                        <SelectTrigger className="w-[180px]" dir={locale === "he" ? "rtl" : "ltr"}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent dir={locale === "he" ? "rtl" : "ltr"}>
-                          <SelectItem value="rehearsal">{t("materials.type.rehearsal")}</SelectItem>
-                          <SelectItem value="performance">{t("materials.type.performance")}</SelectItem>
-                          <SelectItem value="charts">{t("materials.type.charts")}</SelectItem>
-                          <SelectItem value="reference">{t("materials.type.reference")}</SelectItem>
-                          <SelectItem value="other">{t("materials.type.other")}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* URL Input */}
-                    <Input
-                      name={`materials[${index}].url`}
-                      value={material.url}
-                      onChange={(e) => {
-                        const newMaterials = [...materials];
-                        newMaterials[index] = { ...material, url: e.target.value };
-                        setMaterials(newMaterials);
-                      }}
-                      placeholder={t("materials.urlPlaceholder")}
-                      type="url"
-                      disabled={isLoading}
-                    />
-
-                    {/* Actions */}
-                    <div className="flex justify-between items-center text-xs">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (material.url) {
-                            window.open(material.url, '_blank', 'noopener,noreferrer');
-                          }
-                        }}
-                        disabled={!material.url || isLoading}
-                        className="text-muted-foreground hover:text-foreground disabled:opacity-50 flex items-center gap-1"
-                      >
-                        <Link2 className="h-3 w-3" />
-                        {t("materials.open")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newMaterials = materials.filter((_, i) => i !== index);
-                          setMaterials(newMaterials);
-                        }}
-                        disabled={isLoading}
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        {t("materials.remove")}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Add Material Button */}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const newMaterial: GigMaterial = {
-                    id: crypto.randomUUID(),
-                    label: "",
-                    url: "",
-                    kind: "other",
-                  };
-                  setMaterials([...materials, newMaterial]);
-                }}
-                disabled={isLoading}
-                className="mt-2"
-              >
-                <Plus className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
-                {t("materials.addButton")}
-              </Button>
-            </div>
+            <MaterialsEditor
+              value={materials}
+              onChange={setMaterials}
+              disabled={isLoading}
+            />
           )}
 
         </div>
