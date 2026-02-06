@@ -295,7 +295,9 @@ export function DashboardGigItemGrid({
   // Determine which actions to show
   const showPlayerActions = gig.isPlayer && gig.playerGigRoleId;
   const showInvitationActions = showPlayerActions && gig.invitationStatus === "invited" && !isPastGig;
+  const showWithdrawAction = showPlayerActions && gig.invitationStatus === "accepted" && !isPastGig;
   const showManagerActions = gig.isManager && !isPastGig;
+  const isPlayerOnly = gig.isPlayer && !gig.isManager;
 
   // Determine gig URL: external gigs always go to pack, managers see full detail, players see pack
   const gigUrl = gig.isManager && !gig.isExternal
@@ -314,7 +316,7 @@ export function DashboardGigItemGrid({
 
   return (
     <>
-      <Card className={`overflow-hidden hover:bg-muted/50 transition-colors group h-full flex flex-col ${isPastGig ? 'opacity-70 saturate-75' : ''}`}>
+      <Card className={`overflow-hidden hover:bg-muted/50 transition-colors group h-full flex flex-col relative ${isPastGig ? 'opacity-70 saturate-75' : ''}`}>
         {onClick ? (
           <div
             onClick={() => onClick(gig)}
@@ -347,7 +349,8 @@ export function DashboardGigItemGrid({
           </Link>
         )}
 
-        {/* Action Buttons - outside the clickable area */}
+        {/* Action Buttons - only full row for manager gigs */}
+        {!isPlayerOnly && (
         <div className="p-2.5 sm:p-3 pt-0 mt-auto flex gap-1.5 sm:gap-2">
           {/* Gig Pack Button (only for hosts - players click card to go to pack) */}
           {gig.isManager && (
@@ -399,6 +402,13 @@ export function DashboardGigItemGrid({
                   </>
                 )}
 
+                {showWithdrawAction && (
+                  <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
+                    <X className="h-4 w-4 mr-2 text-red-600" />
+                    Decline Gig
+                  </DropdownMenuItem>
+                )}
+
                 {/* Separator between player and manager actions */}
                 {showPlayerActions && showManagerActions && <DropdownMenuSeparator />}
 
@@ -438,6 +448,40 @@ export function DashboardGigItemGrid({
             </DropdownMenu>
           )}
         </div>
+        )}
+
+        {/* Player-only: compact dropdown at bottom-right */}
+        {isPlayerOnly && (showInvitationActions || showWithdrawAction) && (
+          <div className="absolute bottom-2 right-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={(e) => e.stopPropagation()}>
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                {showInvitationActions && (
+                  <>
+                    <DropdownMenuItem onClick={handleAcceptInvitation}>
+                      <Check className="h-4 w-4 mr-2 text-green-600" />
+                      Accept Invitation
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
+                      <X className="h-4 w-4 mr-2 text-red-600" />
+                      Decline Invitation
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {showWithdrawAction && (
+                  <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
+                    <X className="h-4 w-4 mr-2 text-red-600" />
+                    Decline Gig
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
       </Card>
 
       {/* Conflict Warning Dialog */}

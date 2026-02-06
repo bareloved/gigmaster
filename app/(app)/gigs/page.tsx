@@ -231,6 +231,7 @@ export default function AllGigsPage() {
             hostName,
             heroImageUrl: gig.hero_image_url || null,
             gigType: gig.gig_type || null,
+            playerGigRoleId: playerRole?.id || null,
           };
         });
 
