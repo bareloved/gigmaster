@@ -4,6 +4,9 @@ All notable changes to GigMaster are documented here. Update this file with ever
 
 ## [Unreleased]
 
+### Changed
+- "Duplicate Gig" now opens the full editor with all fields pre-filled (lineup, setlist, schedule, materials, packing, branding) instead of a simple title/date dialog
+
 ### Added
 - `.env.example` — Environment variables template
 
