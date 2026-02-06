@@ -15,7 +15,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Plus, UserPlus } from "lucide-react";
+import { Plus, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** Member data returned from search selection */
@@ -218,7 +218,6 @@ export function LineupSearchInput({
     <div ref={containerRef} className={cn("relative", className)}>
       <Command shouldFilter={false} className="border rounded-lg">
         <div className="flex items-center border-b px-3">
-          <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
           <CommandInput
             ref={inputRef}
             placeholder={placeholder}
