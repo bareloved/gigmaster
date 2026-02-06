@@ -215,8 +215,8 @@ export function TimePicker({
         <div
           ref={scrollContainerRef}
           onWheel={handleWheel}
+          onTouchMove={(e) => e.stopPropagation()}
           className="max-h-[280px] overflow-y-auto overscroll-contain p-1"
-          style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
         >
           {TIME_SLOTS.map((time) => {
             const isSelected = value === time
