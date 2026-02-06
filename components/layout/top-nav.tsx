@@ -10,18 +10,10 @@ import {
   // DollarSign, // FROZEN: Money page
   // Calendar, // FROZEN: Calendar page
   // Users, // FROZEN: My Circle page
-  MoreHorizontal,
-  History,
   Mail,
   Guitar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { NotificationsDropdown } from "@/components/layout/notifications-dropdown";
 import { DarkModeToggle } from "@/components/layout/dark-mode-toggle";
 import { UserMenu } from "@/components/layout/user-menu";
@@ -50,29 +42,6 @@ const mainNavItems = [
   },
 ];
 
-const moreNavItems = [
-  // FROZEN: Money, Calendar, My Circle
-  // {
-  //   title: "Money",
-  //   href: "/money",
-  //   icon: DollarSign,
-  // },
-  // {
-  //   title: "Calendar",
-  //   href: "/calendar",
-  //   icon: Calendar,
-  // },
-  // {
-  //   title: "My Circle",
-  //   href: "/my-circle",
-  //   icon: Users,
-  // },
-  {
-    title: "History",
-    href: "/history",
-    icon: History,
-  },
-];
 
 export function TopNav() {
   const pathname = usePathname();
@@ -152,28 +121,6 @@ export function TopNav() {
                 }}
               />
 
-              {/* More dropdown for less-used items */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="gap-2">
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span>More</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="center">
-                  {moreNavItems.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <DropdownMenuItem key={item.href} asChild>
-                        <Link href={item.href} className="flex items-center gap-2 cursor-pointer">
-                          <Icon className="h-4 w-4" />
-                          {item.title}
-                        </Link>
-                      </DropdownMenuItem>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
 

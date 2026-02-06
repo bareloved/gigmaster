@@ -13,6 +13,8 @@ import {
   X,
   Grid3x3,
   List,
+  CalendarDays,
+  History,
 } from "lucide-react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -58,6 +60,7 @@ const GigEditorPanel = dynamic(
 );
 
 type ViewMode = "list" | "grid";
+type TimeFilter = "upcoming" | "previous";
 
 export default function AllGigsPage() {
   const { user } = useUser();
@@ -70,6 +73,7 @@ export default function AllGigsPage() {
     }
     return "grid";
   });
+  const [timeFilter, setTimeFilter] = useState<TimeFilter>("upcoming");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
 
@@ -121,14 +125,16 @@ export default function AllGigsPage() {
     fetchNextPage,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["all-gigs", user?.id],
+    queryKey: ["all-gigs", user?.id, timeFilter],
     queryFn: async ({ pageParam = 0 }) => {
       const supabase = createClient();
       const limit = 20;
       const from = pageParam * limit;
       const to = from + limit - 1;
+      const today = new Date().toISOString().split("T")[0];
+      const isUpcoming = timeFilter === "upcoming";
 
-      const { data: gigs, error } = await supabase
+      let query = supabase
         .from("gigs")
         .select(
           `
@@ -156,10 +162,15 @@ export default function AllGigsPage() {
             payment_status
           )
         `
-        )
-        .gte("date", new Date().toISOString().split("T")[0])
-        .order("date", { ascending: true })
-        .range(from, to);
+        );
+
+      if (isUpcoming) {
+        query = query.gte("date", today).order("date", { ascending: true });
+      } else {
+        query = query.lt("date", today).order("date", { ascending: false });
+      }
+
+      const { data: gigs, error } = await query.range(from, to);
 
       if (error) throw error;
 
@@ -220,6 +231,7 @@ export default function AllGigsPage() {
             hostName,
             heroImageUrl: gig.hero_image_url || null,
             gigType: gig.gig_type || null,
+            playerGigRoleId: playerRole?.id || null,
           };
         });
 
@@ -290,27 +302,50 @@ export default function AllGigsPage() {
       groups[monthKey].gigs.push(gig);
     });
 
-    // Return sorted by month key (chronological order)
+    // Sort chronologically for upcoming, reverse for previous
     return Object.entries(groups)
-      .sort(([a], [b]) => a.localeCompare(b))
+      .sort(([a], [b]) => timeFilter === "upcoming" ? a.localeCompare(b) : b.localeCompare(a))
       .map(([key, value]) => ({ key, ...value }));
-  }, [filteredGigs]);
+  }, [filteredGigs, timeFilter]);
 
   return (
     <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-        <div>
+      {/* Header + Toggle */}
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex-1">
           <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">All Gigs</h2>
           <p className="text-xs sm:text-sm text-muted-foreground">
             Manage all your gigs in one place
           </p>
         </div>
-        <Button onClick={handleCreateGig} className="gap-2 h-9 sm:h-10 text-sm">
-          <Plus className="h-4 w-4" />
-          <span className="hidden xs:inline">Create Gig</span>
-          <span className="xs:hidden">New</span>
-        </Button>
+        {/* Upcoming / Previous Toggle - centered */}
+        <div className="flex items-center gap-1 border rounded-md p-0.5 sm:p-1">
+          <Button
+            variant={timeFilter === "previous" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setTimeFilter("previous")}
+            className="gap-1.5 h-7 sm:h-8 px-2.5 sm:px-3 text-xs sm:text-sm text-muted-foreground"
+          >
+            <History className="h-3.5 w-3.5" />
+            Previous
+          </Button>
+          <Button
+            variant={timeFilter === "upcoming" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setTimeFilter("upcoming")}
+            className="gap-1.5 h-7 sm:h-8 px-2.5 sm:px-3 text-xs sm:text-sm"
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+            Upcoming
+          </Button>
+        </div>
+        <div className="flex-1 flex justify-end">
+          <Button onClick={handleCreateGig} className="gap-2 h-9 sm:h-10 text-sm">
+            <Plus className="h-4 w-4" />
+            <span className="hidden xs:inline">Create Gig</span>
+            <span className="xs:hidden">New</span>
+          </Button>
+        </div>
       </div>
 
       {/* Filters - Search and View Controls */}
@@ -356,17 +391,6 @@ export default function AllGigsPage() {
         </div>
       </div>
 
-      {/* Link to History */}
-      <div className="flex items-center justify-start">
-        <Button
-          variant="link"
-          onClick={() => router.push('/history')}
-          className="text-sm text-muted-foreground hover:text-foreground px-0 h-auto py-1"
-        >
-          View past gigs →
-        </Button>
-      </div>
-
       {/* Gigs List/Grid */}
       {isLoading ? (
         <div className="space-y-2 sm:space-y-3">
@@ -379,23 +403,29 @@ export default function AllGigsPage() {
           <CardContent className="py-8 sm:py-12 px-0">
             <div className="flex flex-col items-center text-center">
               <Music className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-3 sm:mb-4" />
-              <h3 className="text-base sm:text-lg font-semibold mb-1">No gigs found</h3>
+              <h3 className="text-base sm:text-lg font-semibold mb-1">
+                {timeFilter === "upcoming" ? "No upcoming gigs" : "No previous gigs"}
+              </h3>
               <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                 {searchQuery
-                  ? "Try adjusting your filters or search query."
-                  : "Create your first gig to get started."}
+                  ? "Try adjusting your search query."
+                  : timeFilter === "upcoming"
+                    ? "Create your first gig to get started."
+                    : "Your past gigs will appear here."}
               </p>
-              <Button onClick={handleCreateGig} size="sm" className="gap-2 h-9">
-                <Plus className="h-4 w-4" />
-                Create Gig
-              </Button>
+              {timeFilter === "upcoming" && (
+                <Button onClick={handleCreateGig} size="sm" className="gap-2 h-9">
+                  <Plus className="h-4 w-4" />
+                  Create Gig
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
       ) : (
         <>
           {gigsByMonth.map((monthGroup) => (
-            <div key={monthGroup.key} className="space-y-2 sm:space-y-3">
+            <div key={monthGroup.key} className={`space-y-2 sm:space-y-3 ${timeFilter === "previous" ? "opacity-75" : ""}`}>
               {/* Month Header */}
               <h3 className="text-base sm:text-lg font-semibold text-muted-foreground sticky top-0 bg-background py-1.5 sm:py-2 z-10">
                 {monthGroup.label}
