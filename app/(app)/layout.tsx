@@ -25,7 +25,7 @@ export default function AppLayout({
         </main>
 
         {/* Footer - hidden on mobile where bottom nav is shown */}
-        <div className="hidden lg:block">
+        <div className="hidden lg:block mt-12">
           <AppFooter />
         </div>
 
