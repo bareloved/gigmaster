@@ -30,9 +30,9 @@ export function TopNav() {
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background">
-      <div className="flex h-16 items-center px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div className="flex h-16 items-center px-4 sm:px-5 lg:px-6">
         {/* Logo — swaps between full and compact on scroll */}
-        <Link href="/dashboard" className="relative flex items-center justify-center shrink-0 w-[130px] sm:w-[150px] lg:w-[180px]">
+        <Link href="/dashboard" className="relative flex items-center justify-start shrink-0 w-[75px] sm:w-[92px] lg:w-[112px] overflow-visible">
           {/* Full logo (at top) */}
           <Image
             src="/gigmasterlogo.png"
@@ -49,17 +49,17 @@ export function TopNav() {
           <Image
             src="/logos/textlogo.png"
             alt="GigMaster"
-            width={200}
-            height={60}
+            width={400}
+            height={120}
             className={cn(
-              "absolute left-0 top-1/2 -translate-y-1/2 object-contain w-[130px] sm:w-[150px] lg:w-[180px] h-auto transition-opacity duration-300",
+              "absolute left-0 top-1/2 -translate-y-1/2 object-contain w-[160px] sm:w-[190px] lg:w-[220px] h-auto transition-opacity duration-300",
               scrolled ? "opacity-100" : "opacity-0 pointer-events-none"
             )}
           />
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden lg:flex items-center gap-1 ml-1">
+        <div className="hidden lg:flex items-center gap-1 ml-4">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
