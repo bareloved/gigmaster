@@ -7,7 +7,6 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   // DollarSign, // FROZEN: Money page
-  User,
   LogOut,
   // Users, // FROZEN: My Circle page
   History,
@@ -90,7 +89,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href="/dashboard">
+              <Link href="/gigs">
                 <Image src="/gigmasterlogo.png" alt="GigMaster" width={88} height={70} className="w-auto" priority />
                 <span className="font-semibold">GigMaster</span>
               </Link>
@@ -104,13 +103,11 @@ export function AppSidebar() {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {/* Dashboard */}
+              {/* Dashboard — disabled, pending redesign */}
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/dashboard"}>
-                  <Link href="/dashboard" prefetch={false}>
-                    <LayoutDashboard />
-                    <span>Dashboard</span>
-                  </Link>
+                <SidebarMenuButton disabled className="opacity-40 cursor-not-allowed">
+                  <LayoutDashboard />
+                  <span>Dashboard</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
@@ -206,13 +203,7 @@ export function AppSidebar() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/profile" prefetch={false}>
-                    <User className="mr-2 h-4 w-4" />
-                    Profile
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/settings/calendar" prefetch={false}>
+                  <Link href="/settings" prefetch={false}>
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
                   </Link>

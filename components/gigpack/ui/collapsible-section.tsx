@@ -31,7 +31,7 @@ export function CollapsibleSection({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="gig-section-header w-full justify-between hover:text-primary transition-colors group"
+        className="flex items-center w-full justify-between text-xs font-medium text-muted-foreground mb-3 hover:text-primary transition-colors group"
       >
         <div className="flex items-center gap-2">
           {icon}

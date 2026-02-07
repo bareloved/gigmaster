@@ -57,7 +57,7 @@ function SignUpForm() {
     }
 
     if (data.user && data.user.confirmed_at) {
-      const redirectTo = searchParams.get("redirectTo") || "/dashboard";
+      const redirectTo = searchParams.get("redirectTo") || "/gigs";
       router.push(redirectTo);
       router.refresh();
     }

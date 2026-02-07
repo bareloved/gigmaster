@@ -25,7 +25,7 @@ export function GigEditorWrapper({ gig, isDuplicating, loading }: GigEditorWrapp
     if (gigPack.id) {
       router.push(`/gigs/${gigPack.id}/pack`);
     } else {
-      router.push("/dashboard");
+      router.push("/gigs");
     }
   };
 
@@ -43,7 +43,7 @@ export function GigEditorWrapper({ gig, isDuplicating, loading }: GigEditorWrapp
         loading={loading}
         onCreateSuccess={handleSuccess}
         onUpdateSuccess={handleSuccess}
-        onDelete={() => router.push("/dashboard")}
+        onDelete={() => router.push("/gigs")}
       />
     </div>
   );

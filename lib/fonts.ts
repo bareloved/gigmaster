@@ -1,56 +1,36 @@
 import localFont from "next/font/local";
-import { Bebas_Neue, Manrope, JetBrains_Mono } from "next/font/google";
 
 // ==============================================================================
-// VINTAGE STAGE DESIGN SYSTEM - TYPOGRAPHY
-// Bold display fonts meet warm, readable body text
+// CLEAN MINIMAL DESIGN - TYPOGRAPHY
+// Helvetica Now Display for everything, Noto Sans Hebrew for Hebrew characters
 // ==============================================================================
 
-// Display Font: Bebas Neue - Concert poster energy, bold and condensed
-export const bebasNeue = Bebas_Neue({
-  weight: "400",
-  subsets: ["latin"],
-  variable: "--font-bebas",
-  display: "swap",
-  preload: true,
-  fallback: ["Impact", "Arial Black", "sans-serif"],
-});
-
-// Body Font: Manrope - Warm, modern, highly readable
-export const manrope = Manrope({
-  weight: ["400", "500", "600", "700", "800"],
-  subsets: ["latin"],
-  variable: "--font-manrope",
-  display: "swap",
-  preload: true,
-  fallback: ["system-ui", "sans-serif"],
-});
-
-// Monospace: JetBrains Mono - For data, dates, numbers, code
-export const jetBrainsMono = JetBrains_Mono({
-  weight: ["400", "500", "600", "700"],
-  subsets: ["latin"],
-  variable: "--font-mono",
-  display: "swap",
-  preload: false,
-  fallback: ["Consolas", "Monaco", "monospace"],
-});
-
-// Secondary/Display fonts - Load on demand for setlist/print views
-export const anton = localFont({
+// Primary Font: Helvetica Now Display
+export const helveticaNow = localFont({
   src: [
     {
-      path: "../public/fonts/anton-sc-400.woff2",
+      path: "../public/fonts/HelveticaNowDisplay-Light.woff2",
+      weight: "300",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/HelveticaNowDisplay-Regular.woff2",
       weight: "400",
       style: "normal",
     },
+    {
+      path: "../public/fonts/HelveticaNowDisplay-Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
   ],
-  variable: "--font-anton",
+  variable: "--font-helvetica-now",
   display: "swap",
-  preload: false, // Don't preload - used only in specific views
-  fallback: ["system-ui", "serif"],
+  preload: true,
+  fallback: ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
 });
 
+// Hebrew characters support
 export const notoSansHebrew = localFont({
   src: [
     {
@@ -61,6 +41,5 @@ export const notoSansHebrew = localFont({
   ],
   variable: "--font-noto-sans-hebrew",
   display: "swap",
-  preload: false, // Don't preload - used only for Hebrew content
+  preload: false,
 });
-

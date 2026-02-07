@@ -8,10 +8,9 @@ import { useTranslations } from "@/hooks/use-translations";
 import { Band } from "@/lib/types/gigpack";
 import { listUserBands, deleteBand } from "@/lib/api/bands";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Plus, Edit, Trash2, ImageIcon } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Plus, Edit, Trash2, ImageIcon, Music } from "lucide-react";
 import { BandEditorPanel } from "@/components/bands/band-editor-panel";
-import { HandDrawnSquiggle, HandDrawnStar } from "@/components/gigpack/hand-drawn/accents";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -26,13 +25,12 @@ import {
 const BandCardSkeleton = () => (
   <Card className="overflow-hidden">
     <Skeleton className="aspect-video w-full" />
-    <div className="p-4 space-y-3">
-      <Skeleton className="h-6 w-3/4" />
-      <Skeleton className="h-4 w-full" />
-      <Skeleton className="h-4 w-2/3" />
-      <div className="flex gap-2 pt-4">
-        <Skeleton className="h-9 flex-1" />
-        <Skeleton className="h-9 w-9" />
+    <div className="p-3 sm:p-4 space-y-2">
+      <Skeleton className="h-5 w-3/4" />
+      <Skeleton className="h-3.5 w-full" />
+      <div className="flex gap-2 pt-2">
+        <Skeleton className="h-8 flex-1" />
+        <Skeleton className="h-8 w-8" />
       </div>
     </div>
   </Card>
@@ -117,63 +115,51 @@ export default function BandsPage() {
   }
 
   return (
-    <div className="space-y-8 p-8">
-      {/* Dashboard Header */}
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-3">
-          <div className="inline-flex items-center gap-3 mb-2 relative">
-            <HandDrawnSquiggle className="text-primary" />
-            <span className="text-xs uppercase tracking-widest font-bold text-muted-foreground">
-              YOUR BANDS
-            </span>
-            <HandDrawnStar className="text-primary/40 absolute -top-2 -right-6 w-4 h-4 hand-drawn-float" style={{ animationDelay: '0s' }} />
-            <HandDrawnStar className="text-primary/30 absolute -bottom-1 -right-10 w-3 h-3 hand-drawn-float" style={{ animationDelay: '2s' }} />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+    <div className="space-y-4 sm:space-y-5 lg:space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex-1">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">
             {t("pageTitle")}
-          </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl">
+          </h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             {t("pageDescription")}
           </p>
         </div>
-        <Button
-          onClick={handleCreateNew}
-          size="lg"
-          className="sm:w-auto shadow-lg hover:shadow-xl transition-shadow"
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          {t("createButton")}
+        <Button onClick={handleCreateNew} className="gap-2 h-9 sm:h-10 text-sm">
+          <Plus className="h-4 w-4" />
+          <span className="hidden xs:inline">{t("createButton")}</span>
+          <span className="xs:hidden">New</span>
         </Button>
       </div>
 
       {/* Bands Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <BandCardSkeleton key={i} />
           ))}
         </div>
       ) : bands.length === 0 ? (
-        <Card className="border-2 border-dashed bg-card/50">
-          <div className="flex flex-col items-center justify-center py-16 space-y-4">
-            <div className="rounded-full bg-muted p-4">
-              <ImageIcon className="h-10 w-10 text-muted-foreground" />
-            </div>
-            <div className="text-center space-y-2">
-              <p className="text-lg font-medium text-muted-foreground">
-                You haven&apos;t created any bands yet.
+        <Card className="p-3 sm:p-4 lg:p-6">
+          <CardContent className="py-8 sm:py-12 px-0">
+            <div className="flex flex-col items-center text-center">
+              <Music className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mb-3 sm:mb-4" />
+              <h3 className="text-base sm:text-lg font-semibold mb-1">No bands yet</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
+                Create your first band to get started.
               </p>
-              <Button onClick={handleCreateNew} variant="outline" className="mt-2">
-                <Plus className="mr-2 h-4 w-4" />
+              <Button onClick={handleCreateNew} size="sm" className="gap-2 h-9">
+                <Plus className="h-4 w-4" />
                 {t("createButton")}
               </Button>
             </div>
-          </div>
+          </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {bands.map((band) => (
-            <Card key={band.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+            <Card key={band.id} className="overflow-hidden hover:shadow-md transition-shadow">
               {/* Band Logo/Hero */}
               <div className="relative aspect-video bg-muted">
                 {band.hero_image_url ? (
@@ -196,37 +182,38 @@ export default function BandsPage() {
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-full">
-                    <ImageIcon className="h-16 w-16 text-muted-foreground opacity-30" />
+                    <ImageIcon className="h-12 w-12 text-muted-foreground opacity-30" />
                   </div>
                 )}
               </div>
 
               {/* Band Info */}
-              <div className="p-4">
-                <h3 className="font-semibold text-lg mb-1">{band.name}</h3>
+              <div className="p-3 sm:p-4">
+                <h3 className="font-semibold text-sm sm:text-base mb-0.5">{band.name}</h3>
                 {band.description && (
-                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-3 line-clamp-2">
                     {band.description}
                   </p>
                 )}
 
                 {/* Actions */}
-                <div className="flex gap-2 mt-4">
+                <div className="flex gap-2 mt-3">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleEdit(band)}
-                    className="flex-1"
+                    className="flex-1 h-8 text-xs sm:text-sm"
                   >
-                    <Edit className="mr-2 h-4 w-4" />
+                    <Edit className="mr-1.5 h-3.5 w-3.5" />
                     {t("editButton")}
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleDeleteClick(band)}
+                    className="h-8 w-8 p-0"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>

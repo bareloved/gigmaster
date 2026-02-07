@@ -913,6 +913,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          archived_at: string | null
           created_at: string | null
           gig_id: string | null
           gig_role_id: string | null
@@ -926,6 +927,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string | null
           gig_id?: string | null
           gig_role_id?: string | null
@@ -939,6 +941,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived_at?: string | null
           created_at?: string | null
           gig_id?: string | null
           gig_role_id?: string | null
@@ -971,7 +974,6 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
-          calendar_ics_token: string | null
           created_at: string
           default_country_code: string | null
           email: string | null
@@ -983,7 +985,6 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
-          calendar_ics_token?: string | null
           created_at?: string
           default_country_code?: string | null
           email?: string | null
@@ -995,7 +996,6 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
-          calendar_ics_token?: string | null
           created_at?: string
           default_country_code?: string | null
           email?: string | null
@@ -1230,6 +1230,12 @@ export type Database = {
           status: string
           total_count: number
         }[]
+      }
+      delete_user_account: {
+        Args: {
+          target_user_id: string
+        }
+        Returns: undefined
       }
       save_gig_pack: {
         Args: {

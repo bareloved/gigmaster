@@ -1,6 +1,6 @@
 # Operations Runbook
 
-> Auto-generated on 2026-02-05. Update when deployment or operational procedures change.
+> Auto-generated on 2026-02-07. Update when deployment or operational procedures change.
 
 ## Deployment
 
@@ -38,15 +38,30 @@ Migrations are applied **manually** via Supabase Dashboard SQL Editor. There is 
 
 See `docs/deployment/migration-testing-checklist.md` for the full testing protocol.
 
+## Key Routes & Navigation
+
+| Route | Purpose | Status |
+|-------|---------|--------|
+| `/gigs` | Main landing page (default after sign-in) | Active |
+| `/gigs/[id]/pack` | Gig detail/pack view | Active |
+| `/bands` | Band management | Active |
+| `/settings` | Unified settings (Profile, General, Calendar, Account) | Active |
+| `/settings?tab=calendar` | Calendar settings (deep-link for OAuth callback) | Active |
+| `/invitations` | Invitation management | Active |
+| `/history` | Past gigs | Active |
+| `/dashboard` | Dashboard | Disabled (pending redesign) |
+| `/profile` | Old profile page | 301 redirect to `/settings` |
+
 ## Monitoring
 
 ### What to check after deploy
 
 - [ ] App loads at production URL (no white screen)
-- [ ] Sign in works
-- [ ] Dashboard loads gigs
+- [ ] Sign in works and redirects to `/gigs`
+- [ ] Gigs list loads
 - [ ] Creating a gig works
-- [ ] Calendar ICS feed responds (`/api/calendar.ics?token=...`)
+- [ ] Settings page loads all 4 tabs (Profile, General, Calendar, Account)
+- [ ] Google Calendar OAuth flow lands on Calendar tab
 
 ### Logs
 
@@ -61,7 +76,6 @@ See `docs/deployment/migration-testing-checklist.md` for the full testing protoc
 | Page load | Browser | < 2s |
 | API response | Vercel Functions logs | < 500ms |
 | Database queries | Supabase Logs Explorer | < 200ms |
-| ICS feed | `curl /api/calendar.ics?token=...` | < 1s, valid ICS |
 
 ## Common Issues and Fixes
 
@@ -86,7 +100,7 @@ See `docs/troubleshooting/rls-debugging-saga.md`.
 **Fix:**
 1. Verify `GOOGLE_CALENDAR_REDIRECT_URI` matches the Google Cloud Console config exactly
 2. Check token expiry in `calendar_connections` table
-3. User can disconnect and reconnect in Settings > Calendar
+3. User can disconnect and reconnect in Settings > Calendar tab
 
 ### Stale cache / cross-user data leak
 
@@ -105,6 +119,14 @@ queryKey: ['gigs', user?.id]
 
 **Cause:** `NEXT_PUBLIC_APP_URL` not set or `RESEND_API_KEY` missing.
 **Fix:** Set both in Vercel environment variables and redeploy.
+
+### Account deletion fails
+
+**Cause:** Missing `SUPABASE_SERVICE_ROLE_KEY` or RPC function not deployed.
+**Fix:**
+1. Verify `SUPABASE_SERVICE_ROLE_KEY` is set in Vercel env vars
+2. Check the `delete_user_account` RPC exists: `SELECT proname FROM pg_proc WHERE proname = 'delete_user_account';`
+3. Check API logs at `/api/account/delete`
 
 ## Rollback Procedures
 

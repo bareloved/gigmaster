@@ -6,15 +6,39 @@ All notable changes to GigMaster are documented here. Update this file with ever
 
 ### Added
 - "Decline Gig" action for accepted musicians on the All Gigs page via the 3-dot menu
+- `.env.example` — Environment variables template
 
 ### Changed
 - "Duplicate Gig" now opens the full editor with all fields pre-filled (lineup, setlist, schedule, materials, packing, branding) instead of a simple title/date dialog
 - Compacted player-only gig cards — dropdown sits inline instead of taking a separate action row
 
-### Added
-- `.env.example` — Environment variables template
-
 ---
+
+## 2026-02-07
+
+### Added
+- Unified `/settings` page with left sidebar nav (Profile, General, Calendar, Account)
+- Working "Delete Account" with confirmation dialog, database cleanup RPC, and auth user deletion
+- `/profile` → `/settings` permanent 301 redirect
+- Switch toggle component (shadcn)
+
+### Changed
+- `/gigs` is now the main landing page (replaces `/dashboard`)
+- Dashboard grayed out in all navbars (pending redesign)
+- All auth redirects (sign-in, sign-up, callback, reset password) now point to `/gigs`
+- Calendar tab redesigned to match other settings tabs (clean Card layout, no Alert components)
+- Calendar invites toggle changed from button to Switch
+- Profile form: display name and main instrument share a row
+- Renamed package from "ensemble" to "gigmaster"
+- Updated `docs/CONTRIB.md` and `docs/RUNBOOK.md` with current routes and account deletion docs
+
+### Fixed
+- Critical UserProvider bug: profile query now filters by authenticated user ID instead of returning a random profile
+- Profile form saves now call `refetchUser()` instead of `router.refresh()` (fixes stale data after save)
+
+### Removed
+- Standalone `/profile` page (merged into `/settings`)
+- ICS calendar feed references from runbook
 
 ## 2026-02-05
 

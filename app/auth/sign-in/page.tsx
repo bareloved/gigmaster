@@ -38,7 +38,7 @@ function SignInForm() {
       setError(error.message);
       setLoading(false);
     } else {
-      const redirectTo = searchParams.get("redirectTo") || "/dashboard";
+      const redirectTo = searchParams.get("redirectTo") || "/gigs";
       router.push(redirectTo);
       router.refresh();
     }

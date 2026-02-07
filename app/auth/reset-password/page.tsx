@@ -80,7 +80,7 @@ export default function ResetPasswordPage() {
       setLoading(false);
       // Redirect to dashboard after a short delay
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push("/gigs");
       }, 2000);
     }
   };

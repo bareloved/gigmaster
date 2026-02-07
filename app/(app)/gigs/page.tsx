@@ -348,44 +348,44 @@ export default function AllGigsPage() {
         </div>
       </div>
 
-      {/* Filters - Search and View Controls */}
-      <div className="flex items-center justify-between gap-2 sm:gap-3 pb-2 border-b">
+      {/* View Toggle + Search */}
+      <div className="flex items-center justify-between">
         {/* View Mode Toggle */}
         <div className="flex items-center gap-1 border rounded-md p-0.5 sm:p-1">
-          <Button
-            variant={viewMode === "list" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => { setViewMode("list"); localStorage.setItem("gigs-view-mode", "list"); }}
-            className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-          >
-            <List className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === "grid" ? "secondary" : "ghost"}
-            size="sm"
-            onClick={() => { setViewMode("grid"); localStorage.setItem("gigs-view-mode", "grid"); }}
-            className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-          >
-            <Grid3x3 className="h-4 w-4" />
-          </Button>
+        <Button
+          variant={viewMode === "list" ? "secondary" : "ghost"}
+          size="sm"
+          onClick={() => { setViewMode("list"); localStorage.setItem("gigs-view-mode", "list"); }}
+          className="h-7 w-7 sm:h-8 sm:w-8 p-0"
+        >
+          <List className="h-4 w-4" />
+        </Button>
+        <Button
+          variant={viewMode === "grid" ? "secondary" : "ghost"}
+          size="sm"
+          onClick={() => { setViewMode("grid"); localStorage.setItem("gigs-view-mode", "grid"); }}
+          className="h-7 w-7 sm:h-8 sm:w-8 p-0"
+        >
+          <Grid3x3 className="h-4 w-4" />
+        </Button>
         </div>
 
         {/* Search */}
-        <div className="relative flex-1 max-w-[200px] sm:max-w-[250px]">
-          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative w-48 sm:w-56">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search..."
+            placeholder="Search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 pr-8 h-8 sm:h-9 text-sm"
+            className="pl-9 pr-8 h-9 sm:h-10 text-sm rounded-full border-border bg-card"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3.5 w-3.5" />
             </button>
           )}
         </div>

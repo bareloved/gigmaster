@@ -143,7 +143,7 @@ export default function CalendarImportPage() {
         setIsConnected(false);
         toast.error("Google Calendar connection expired. Redirecting to reconnect...");
         setTimeout(() => {
-          router.push("/settings/calendar");
+          router.push("/settings?tab=calendar");
         }, 2000);
       } else {
         toast.error(errorMessage);
@@ -298,7 +298,7 @@ export default function CalendarImportPage() {
           </AlertDescription>
         </Alert>
 
-        <Button onClick={() => router.push("/settings/calendar")}>
+        <Button onClick={() => router.push("/settings?tab=calendar")}>
           Go to Calendar Settings
         </Button>
       </div>

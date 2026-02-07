@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { bebasNeue, manrope, jetBrainsMono, notoSansHebrew, anton } from "@/lib/fonts";
+import { helveticaNow, notoSansHebrew } from "@/lib/fonts";
 import "./globals.css";
 import { QueryProvider } from "@/lib/providers/query-provider";
 import { ThemeProvider } from "@/lib/providers/theme-provider";
@@ -51,7 +51,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${manrope.className} ${bebasNeue.variable} ${jetBrainsMono.variable} ${anton.variable} ${notoSansHebrew.variable}`}
+        className={`${helveticaNow.className} ${helveticaNow.variable} ${notoSansHebrew.variable}`}
         suppressHydrationWarning
       >
         <ThemeProvider>
