@@ -4,129 +4,96 @@
 
 @layer base {
   :root {
-    /* Clean Light Mode - Subtle warmth, not beige */
-    --background: 40 12% 96%;  /* Very light warm gray */
-    --foreground: 220 25% 18%;  /* Soft dark text */
-    --card: 40 8% 99%;  /* Almost white with hint of warmth */
-    --card-foreground: 220 25% 18%;
-    --popover: 40 8% 99%;
-    --popover-foreground: 220 25% 18%;
-    --primary: 355 72% 50%;  /* Stage Red */
+    /* Clean Minimal - Warm neutrals + copper accent */
+    --background: 0 0% 100%;
+    --foreground: 220 20% 16%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 16%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 16%;
+    --primary: 25 60% 45%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 25 90% 52%;  /* Warm Amber */
-    --secondary-foreground: 0 0% 100%;
-    --muted: 40 8% 92%;  /* Light gray with subtle warmth */
-    --muted-foreground: 220 15% 45%;
-    --accent: 175 55% 42%;  /* Teal */
-    --accent-foreground: 0 0% 100%;
-    --destructive: 355 72% 50%;
+    --secondary: 40 10% 96%;
+    --secondary-foreground: 220 20% 16%;
+    --muted: 40 10% 96%;
+    --muted-foreground: 220 10% 46%;
+    --accent: 40 10% 96%;
+    --accent-foreground: 220 20% 16%;
+    --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 40 10% 88%;  /* Subtle warm border */
-    --input: 40 8% 94%;
-    --ring: 355 72% 50%;
+    --border: 40 8% 90%;
+    --input: 40 8% 90%;
+    --ring: 25 60% 45%;
     --radius: 0.75rem;
 
-    /* Chart colors */
-    --chart-1: 355 72% 50%;
-    --chart-2: 25 90% 52%;
-    --chart-3: 175 55% 42%;
-    --chart-4: 220 45% 38%;
-    --chart-5: 340 70% 55%;
+    /* Chart colors - copper + neutrals */
+    --chart-1: 25 60% 45%;
+    --chart-2: 25 40% 60%;
+    --chart-3: 220 10% 46%;
+    --chart-4: 220 15% 35%;
+    --chart-5: 25 30% 70%;
 
     /* Sidebar colors */
-    --sidebar-background: 40 10% 97%;
-    --sidebar-foreground: 220 25% 18%;
-    --sidebar-primary: 355 72% 50%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 20% 16%;
+    --sidebar-primary: 25 60% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 40 8% 94%;
-    --sidebar-accent-foreground: 220 25% 18%;
+    --sidebar-accent: 40 10% 96%;
+    --sidebar-accent-foreground: 220 20% 16%;
     --sidebar-border: 40 8% 90%;
-    --sidebar-ring: 355 72% 50%;
-
-    /* Stage lighting effects */
-    --glow-red: 355 72% 50%;
-    --glow-amber: 25 90% 52%;
-    --glow-cyan: 175 55% 42%;
-    --shadow-stage: 220 15% 25%;
-
-    /* Gig-specific colors */
-    --gig-highlight: 38 85% 52%;
-    --gig-muted: 40 6% 85%;
+    --sidebar-ring: 25 60% 45%;
   }
 
   .dark {
-    /* Dark Mode - Warm charcoal with stage lighting feel */
-    --background: 220 15% 16%;  /* Warm charcoal */
-    --foreground: 45 20% 95%;  /* Warm off-white */
-    --card: 220 15% 20%;  /* Slightly lighter cards */
-    --card-foreground: 45 20% 95%;
-    --popover: 220 15% 18%;
-    --popover-foreground: 45 20% 95%;
-    --primary: 355 75% 55%;  /* Stage Red */
+    /* Dark Mode - Warm charcoal + copper accent */
+    --background: 220 15% 12%;
+    --foreground: 40 10% 93%;
+    --card: 220 15% 16%;
+    --card-foreground: 40 10% 93%;
+    --popover: 220 15% 16%;
+    --popover-foreground: 40 10% 93%;
+    --primary: 25 60% 55%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 30 90% 50%;  /* Warm Amber */
-    --secondary-foreground: 0 0% 100%;
-    --muted: 220 12% 28%;  /* Lighter muted */
-    --muted-foreground: 220 10% 60%;
-    --accent: 175 50% 50%;  /* Teal accent */
-    --accent-foreground: 0 0% 100%;
-    --destructive: 355 75% 55%;
+    --secondary: 220 15% 20%;
+    --secondary-foreground: 40 10% 93%;
+    --muted: 220 15% 20%;
+    --muted-foreground: 220 10% 55%;
+    --accent: 220 15% 20%;
+    --accent-foreground: 40 10% 93%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 12% 30%;  /* Visible borders */
-    --input: 220 12% 24%;
-    --ring: 355 75% 55%;
+    --border: 220 15% 22%;
+    --input: 220 15% 22%;
+    --ring: 25 60% 55%;
 
     /* Chart colors - dark mode */
-    --chart-1: 355 75% 58%;
-    --chart-2: 30 90% 55%;
-    --chart-3: 175 50% 55%;
-    --chart-4: 220 40% 50%;
-    --chart-5: 340 70% 58%;
+    --chart-1: 25 60% 55%;
+    --chart-2: 25 40% 65%;
+    --chart-3: 220 10% 55%;
+    --chart-4: 220 15% 45%;
+    --chart-5: 25 30% 75%;
 
     /* Sidebar colors - dark mode */
-    --sidebar-background: 220 15% 14%;
-    --sidebar-foreground: 45 20% 95%;
-    --sidebar-primary: 355 75% 55%;
+    --sidebar-background: 220 15% 10%;
+    --sidebar-foreground: 40 10% 93%;
+    --sidebar-primary: 25 60% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 12% 24%;
-    --sidebar-accent-foreground: 45 20% 95%;
-    --sidebar-border: 220 12% 26%;
-    --sidebar-ring: 355 75% 55%;
-
-    /* Enhanced glow effects for dark mode */
-    --glow-red: 355 75% 55%;
-    --glow-amber: 30 90% 50%;
-    --glow-cyan: 175 50% 50%;
-    --shadow-stage: 220 20% 8%;
-
-    /* Gig-specific colors - dark mode */
-    --gig-highlight: 38 92% 55%;
-    --gig-muted: 222 12% 32%;
+    --sidebar-accent: 220 15% 18%;
+    --sidebar-accent-foreground: 40 10% 93%;
+    --sidebar-border: 220 15% 22%;
+    --sidebar-ring: 25 60% 55%;
   }
 
   * {
     @apply border-border;
   }
 
-  html,
-  body {
-    overflow-x: hidden;
+  html {
+    overflow-x: clip;
   }
 
   body {
     @apply bg-background text-foreground;
-    position: relative;
-  }
-
-  /* Subtle film grain overlay on body */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.04'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 9999;
-    mix-blend-mode: overlay;
   }
 }
 
@@ -140,130 +107,12 @@
     scrollbar-width: none;
   }
 
-  /* ========================================================================
-     VINTAGE STAGE DESIGN SYSTEM
-     Custom utilities that require CSS features not available in Tailwind
-     ======================================================================== */
-
-  /* Film Grain Texture - uses SVG background (can't be in Tailwind) */
-  .film-grain {
-    position: relative;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.06'/%3E%3C/svg%3E");
-  }
-  .dark .film-grain {
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.10'/%3E%3C/svg%3E");
-  }
-
-  /* Diagonal accent - uses pseudo-element (can't be in Tailwind) */
-  .diagonal-accent {
-    position: relative;
-  }
-  .diagonal-accent::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 4px;
-    height: 100%;
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
-    transform: skewX(-5deg);
-  }
-
-  /* Ticket-style cards - uses pseudo-element circles (can't be in Tailwind) */
-  .ticket-card {
-    position: relative;
-    background: linear-gradient(135deg,
-      hsl(var(--card)) 0%,
-      hsl(var(--card)) 95%,
-      hsl(var(--muted)) 100%);
-    border-left: 4px solid hsl(var(--primary));
-  }
-  .ticket-card::before,
-  .ticket-card::after {
-    content: '';
-    position: absolute;
-    left: -2px;
-    width: 12px;
-    height: 12px;
-    background: hsl(var(--background));
-    border-radius: 50%;
-  }
-  .ticket-card::before {
-    top: -6px;
-  }
-  .ticket-card::after {
-    bottom: -6px;
-  }
-
-  /* Poster gradients - multi-stop gradients (easier in CSS) */
-  .poster-gradient-red {
-    background: linear-gradient(135deg,
-      hsl(var(--primary) / 0.95) 0%,
-      hsl(var(--primary) / 0.85) 50%,
-      hsl(var(--secondary) / 0.9) 100%);
-  }
-  .poster-gradient-warm {
-    background: linear-gradient(145deg,
-      hsl(var(--card)) 0%,
-      hsl(var(--card)) 40%,
-      hsl(var(--muted) / 0.3) 70%,
-      hsl(var(--card)) 100%);
-  }
-  .poster-gradient-hero {
-    background: linear-gradient(145deg,
-      hsl(var(--primary) / 0.08) 0%,
-      hsl(var(--secondary) / 0.12) 50%,
-      hsl(var(--accent) / 0.08) 100%);
-  }
-
-  /* Concert stage border - gradient border (can't be in Tailwind) */
-  .stage-border {
-    border: 2px solid hsl(var(--border));
-    border-image: linear-gradient(
-      135deg,
-      hsl(var(--primary)) 0%,
-      hsl(var(--secondary)) 50%,
-      hsl(var(--accent)) 100%
-    ) 1;
-  }
-
-  /* Neon text effect - multi-layer text shadow (easier in CSS) */
-  .neon-text {
-    text-shadow: 0 0 10px hsl(var(--primary) / 0.5),
-                 0 0 20px hsl(var(--primary) / 0.3),
-                 0 0 30px hsl(var(--primary) / 0.2);
-  }
-
-  /* Typography utilities */
-  .display-bold {
-    font-weight: 900;
-    letter-spacing: -0.02em;
-    line-height: 1.1;
-  }
-  .mono-data {
-    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  /* Tabular numbers for data display */
+  .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
 
-  /* Hand-drawn hover effect - uses pseudo-element (can't be in Tailwind) */
-  .hand-drawn-hover {
-    @apply relative cursor-pointer transition-colors duration-200;
-  }
-  .hand-drawn-hover::after {
-    content: '';
-    position: absolute;
-    bottom: -2px;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-  .hand-drawn-hover:hover::after {
-    opacity: 1;
-  }
-
-  /* Hero image utilities */
+  /* Hero image utilities (kept — used in gig detail) */
   .hero-image-container {
     @apply relative w-full overflow-hidden;
   }
@@ -277,21 +126,9 @@
     @apply from-black/60 via-black/50 to-black/70;
   }
 
-  /* Gig-specific utilities */
-  .gig-card {
-    @apply rounded-xl border-2 bg-card shadow-sm transition-all duration-200;
-  }
-  .gig-card:hover {
-    @apply shadow-lg scale-[1.02] border-primary/30;
-  }
-  .date-pill {
-    @apply inline-flex items-center rounded-lg bg-primary/10 px-3 py-1.5 text-sm font-semibold text-primary border border-primary/20;
-  }
+  /* Section divider (simplified) */
   .section-divider {
-    @apply border-t-2 border-dashed border-border my-6;
-  }
-  .gig-section-header {
-    @apply text-xs uppercase tracking-wider font-bold text-muted-foreground mb-3 flex items-center gap-2;
+    @apply border-t border-border my-8;
   }
 
   /* Band logo sizing */
@@ -301,20 +138,7 @@
   .band-logo-small {
     @apply max-w-[80px] max-h-[60px] object-contain;
   }
-
-  /* Performance: CSS Containment */
-  .dashboard-card {
-    contain: layout;
-  }
-  .gig-item-card {
-    contain: layout;
-  }
-  .kpi-card {
-    contain: layout;
-  }
 }
-
-/* --- GIGPACK PORT STYLES --- */
 
 /* Google Sans Variable Font - Local - Hebrew characters only */
 @font-face {
@@ -324,37 +148,6 @@
   font-style: normal;
   font-display: swap;
   unicode-range: U+0590-05FF, U+FB1D-FB4F;
-}
-
-/* ==========================================================================
-   POSTER SKIN STYLES
-   Full-page background effects
-   ========================================================================== */
-
-.poster-skin-clean {
-  background-color: hsl(var(--background));
-}
-
-.poster-skin-paper {
-  background-color: hsl(var(--background));
-  background-image:
-    url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)' opacity='0.08'/%3E%3C/svg%3E");
-}
-.dark .poster-skin-paper {
-  background-color: hsl(var(--background));
-  background-image:
-    url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.04' numOctaves='5' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)' opacity='0.12'/%3E%3C/svg%3E");
-}
-
-.poster-skin-grain {
-  background-color: hsl(var(--background));
-  background-image:
-    url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.2'/%3E%3C/svg%3E");
-}
-.dark .poster-skin-grain {
-  background-color: hsl(var(--background));
-  background-image:
-    url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='0.25'/%3E%3C/svg%3E");
 }
 
 /* ==========================================================================

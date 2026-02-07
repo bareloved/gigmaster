@@ -184,7 +184,7 @@ export default function DashboardPage() {
       {/* Page Header - Concert Poster Energy */}
       <div className="flex items-start justify-between gap-4 pb-2 border-b-4 border-primary/20">
         <div>
-          <h1 className="font-display text-2xl sm:text-4xl lg:text-6xl font-bold tracking-tighter uppercase text-foreground">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-foreground">
             Dashboard
           </h1>
           <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base lg:text-lg font-medium">Get ready for your next gigs.</p>
@@ -216,7 +216,7 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           ) : nextGig ? (
-            <Card className="overflow-hidden shadow-stage-lg hover:shadow-glow-red transition-all duration-500 border-2 border-primary/20 animate-fade-in">
+            <Card className="overflow-hidden border animate-fade-in">
               <CardContent
                 className="p-4 sm:p-6 lg:p-8 relative bg-cover bg-center"
                 style={{
@@ -225,7 +225,7 @@ export default function DashboardPage() {
               >
                 {/* Card Title + Gig Selector Row */}
                 <div className="flex items-center justify-between mb-4 sm:mb-6">
-                  <h3 className="font-display text-lg sm:text-2xl lg:text-3xl font-bold tracking-tight text-primary uppercase">
+                  <h3 className="text-lg sm:text-xl lg:text-2xl font-semibold tracking-tight text-primary">
                     {todayGigs.includes(nextGig) ? "Tonight!" : "Next Up"}
                   </h3>
                   {/* Gig Selector */}
@@ -283,11 +283,11 @@ export default function DashboardPage() {
                 {/* Header Row - Square date box on all sizes */}
                 <div className="flex items-start gap-3 sm:gap-6 mb-4 sm:mb-6">
                   {/* Date Box - Square format on all screen sizes */}
-                  <div className="flex flex-shrink-0 flex-col items-center justify-center bg-primary rounded-xl px-2 py-1.5 sm:px-4 sm:py-2 lg:px-5 lg:py-3 min-w-[45px] sm:min-w-[60px] lg:min-w-[80px] shadow-stage text-primary-foreground">
-                    <div className="font-mono text-[10px] sm:text-xs lg:text-sm font-bold uppercase tracking-wider">
+                  <div className="flex flex-shrink-0 flex-col items-center justify-center bg-primary rounded-lg px-2 py-1.5 sm:px-4 sm:py-2 lg:px-5 lg:py-3 min-w-[45px] sm:min-w-[60px] lg:min-w-[80px] text-primary-foreground">
+                    <div className="text-[10px] sm:text-xs lg:text-sm font-semibold uppercase tracking-wider tabular-nums">
                       {getWeekdayAndDate(nextGig.date).weekday}
                     </div>
-                    <div className="font-display text-xl sm:text-2xl lg:text-4xl font-bold leading-none mt-0.5 sm:mt-1">
+                    <div className="text-xl sm:text-2xl lg:text-4xl font-bold leading-none mt-0.5 sm:mt-1 tabular-nums">
                       {format(parseISO(nextGig.date), "d")}
                     </div>
                   </div>
@@ -296,7 +296,7 @@ export default function DashboardPage() {
                   <div className="flex-1 min-w-0">
                     {/* Title row with badge right-aligned */}
                     <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
-                      <h2 className="flex-1 min-w-0 font-display text-xl sm:text-3xl lg:text-5xl font-bold tracking-tight leading-tight line-clamp-2">{nextGig.gigTitle}</h2>
+                      <h2 className="flex-1 min-w-0 text-xl sm:text-2xl lg:text-3xl font-semibold tracking-tight leading-tight line-clamp-2">{nextGig.gigTitle}</h2>
                       {/* Host/Invited Badge - right aligned with marquee for long names */}
                       {nextGig.isManager ? (
                         <Badge variant="outline" className="shrink-0 mt-0.5 sm:mt-2 px-2 py-0.5 text-[10px] border rounded-md bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-950 dark:border-orange-800 dark:text-orange-300">
@@ -305,7 +305,7 @@ export default function DashboardPage() {
                         </Badge>
                       ) : nextGig.hostName ? (
                         <Badge variant="outline" className="shrink-0 mt-0.5 sm:mt-2 px-0 py-0.5 text-[10px] border rounded-md bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300 max-w-[70px] sm:max-w-[90px] overflow-hidden">
-                          <span className="inline-flex items-center gap-1 animate-marquee whitespace-nowrap px-2">
+                          <span className="inline-flex items-center gap-1 whitespace-nowrap px-2 truncate">
                             <Mail className="h-3 w-3 shrink-0" />
                             {nextGig.hostName}
                           </span>
@@ -431,10 +431,10 @@ export default function DashboardPage() {
           )}
 
           {/* This Week on Stage - Ticket Style */}
-          <Card className="min-h-[300px] sm:min-h-[400px] shadow-stage border-2 animate-fade-in">
+          <Card className="min-h-[300px] sm:min-h-[400px] border animate-fade-in">
               <CardHeader className="border-b-2 border-dashed border-border/50 px-4 py-3 sm:px-6 sm:py-4">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="font-display text-xl sm:text-2xl lg:text-3xl font-bold uppercase tracking-tight">
+                  <CardTitle className="text-lg sm:text-xl lg:text-2xl font-semibold">
                     This Week on Stage
                   </CardTitle>
                 </div>
@@ -464,7 +464,7 @@ export default function DashboardPage() {
                         }}
                         className="cursor-pointer animate-fade-in"
                       >
-                        <Card className="ticket-card overflow-hidden hover:shadow-stage transition-all duration-300 hover:scale-[1.01] sm:hover:scale-[1.02] border-l-4">
+                        <Card className="overflow-hidden hover:shadow-sm transition-all duration-200 border-l-4 border-l-primary">
                           <CardContent
                             className="p-2.5 sm:p-3 relative bg-cover bg-center"
                             style={{
@@ -477,7 +477,7 @@ export default function DashboardPage() {
                                 <div className="font-mono text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase">
                                   {getWeekdayAndDate(gig.date).weekday}
                                 </div>
-                                <div className="font-display text-base sm:text-lg font-bold text-secondary leading-tight">
+                                <div className="text-base sm:text-lg font-semibold text-foreground leading-tight">
                                   {getWeekdayAndDate(gig.date).shortDate.split(" ")[1]}
                                 </div>
                               </div>

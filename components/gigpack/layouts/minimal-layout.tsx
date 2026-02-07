@@ -168,7 +168,7 @@ export function MinimalLayout({ gigPack, openMaps }: MinimalLayoutProps) {
   
   return (
     <TooltipProvider>
-      <div className={`min-h-screen poster-skin-${posterSkin}`} style={customStyle}>
+      <div className="min-h-screen bg-background" style={customStyle}>
       <div className={`container max-w-6xl mx-auto px-4 py-6 md:py-8 ${activeLocale === 'he' ? 'rtl' : ''}`} dir={activeLocale === 'he' ? 'rtl' : 'ltr'}>
         <div className="relative min-h-[400px] md:min-h-[500px] rounded-lg overflow-hidden mb-8 shadow-lg">
           <div
