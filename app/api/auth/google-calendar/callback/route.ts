@@ -20,13 +20,13 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error("Google OAuth error:", error);
       return NextResponse.redirect(
-        new URL(`/settings/calendar?error=oauth_${error}`, request.url)
+        new URL(`/settings?error=oauth_${error}`, request.url)
       );
     }
 
     if (!code) {
       return NextResponse.redirect(
-        new URL("/settings/calendar?error=missing_code", request.url)
+        new URL("/settings?error=missing_code", request.url)
       );
     }
 
@@ -78,19 +78,19 @@ export async function GET(request: NextRequest) {
     if (dbError) {
       console.error("[OAuth Callback] Failed to save calendar connection:", dbError);
       return NextResponse.redirect(
-        new URL("/settings/calendar?error=save_failed", request.url)
+        new URL("/settings?error=save_failed", request.url)
       );
     }
 
     // Success! Redirect back to settings
     const successParam = hasWriteAccess ? "connected_write" : "connected";
     return NextResponse.redirect(
-      new URL(`/settings/calendar?success=${successParam}`, request.url)
+      new URL(`/settings?success=${successParam}`, request.url)
     );
   } catch (error: unknown) {
     console.error("OAuth callback error:", error);
     return NextResponse.redirect(
-      new URL(`/settings/calendar?error=callback_failed`, request.url)
+      new URL(`/settings?error=callback_failed`, request.url)
     );
   }
 }

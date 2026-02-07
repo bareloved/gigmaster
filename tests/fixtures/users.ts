@@ -34,7 +34,6 @@ export const mockProfile: Profile = {
   default_country_code: null,
   created_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-01T00:00:00Z",
-  calendar_ics_token: null,
 };
 
 /**
@@ -67,5 +66,4 @@ export const mockProfile2: Profile = {
   default_country_code: null,
   created_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-01T00:00:00Z",
-  calendar_ics_token: null,
 };

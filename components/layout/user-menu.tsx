@@ -67,7 +67,7 @@ export function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <Link href="/settings/calendar" className="cursor-pointer">
+          <Link href="/settings" className="cursor-pointer">
             <Settings className="mr-2 h-4 w-4" />
             Settings
           </Link>
