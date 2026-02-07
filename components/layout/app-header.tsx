@@ -25,7 +25,7 @@ export function AppHeader() {
       <DarkModeToggle />
       
       {user && (
-        <Link href="/profile">
+        <Link href="/settings">
           <Avatar className="h-8 w-8 cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-primary transition-all">
             <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.name || "User"} />
             <AvatarFallback>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +34,6 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ profile, user }: ProfileFormProps) {
-  const router = useRouter();
   const { refetch: refetchUser } = useUser();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(profile?.name || "");
@@ -76,9 +74,6 @@ export function ProfileForm({ profile, user }: ProfileFormProps) {
         
         // Refetch user data from UserProvider to update avatar everywhere
         await refetchUser();
-        
-        // Refresh the page to ensure all components update
-        router.refresh();
       }
     } catch (error) {
       setMessage({ 
@@ -115,14 +110,14 @@ export function ProfileForm({ profile, user }: ProfileFormProps) {
       setMessage({ type: "error", text: error.message });
     } else {
       setMessage({ type: "success", text: "Profile updated successfully!" });
-      router.refresh();
+      await refetchUser();
     }
 
     setLoading(false);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {message && (
         <div
           className={`rounded-md p-3 text-sm ${
@@ -135,21 +130,30 @@ export function ProfileForm({ profile, user }: ProfileFormProps) {
         </div>
       )}
 
-      {/* Avatar Upload Section */}
-      <div className="space-y-2">
-        <Label>Profile Picture</Label>
-        <div className="relative w-20 h-20">
-          <Avatar 
-            className="h-20 w-20 cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={() => fileInputRef.current?.click()}
-          >
+      {/* Header */}
+      <div>
+        <h3 className="text-lg font-semibold">Profile Information</h3>
+        <p className="text-sm text-muted-foreground">
+          Customize how you appear to other musicians
+        </p>
+      </div>
+
+      {/* Avatar + Account info */}
+      <div className="flex items-center gap-4">
+        <button
+          type="button"
+          className="relative w-20 h-20 shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploadingAvatar}
+        >
+          <Avatar className="h-20 w-20 cursor-pointer hover:opacity-80 transition-opacity">
             <AvatarImage src={avatarUrl || undefined} alt={name || "User"} />
-            <AvatarFallback className="text-lg">
+            <AvatarFallback className="text-xl">
               {getUserInitials(name)}
             </AvatarFallback>
           </Avatar>
           {uploadingAvatar && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full h-20 w-20">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
               <Loader2 className="h-6 w-6 text-white animate-spin" />
             </div>
           )}
@@ -161,71 +165,70 @@ export function ProfileForm({ profile, user }: ProfileFormProps) {
             className="hidden"
             disabled={uploadingAvatar}
           />
+        </button>
+        <div>
+          <p className="text-sm text-muted-foreground">Account</p>
+          <p className="text-sm">{user.email}</p>
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" type="email" value={user.email} disabled />
-        <p className="text-xs text-muted-foreground">
-          Email cannot be changed
-        </p>
-      </div>
+      <div className="border-t" />
 
-      <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
-        <Input
-          id="name"
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          disabled={loading}
-          placeholder="Your name"
-        />
-      </div>
+      {/* Editable fields */}
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="name">Display Name</Label>
+            <Input
+              id="name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={loading}
+              placeholder="Your name"
+            />
+          </div>
 
-      <div className="space-y-2">
-        <Label>Main Instrument</Label>
-        <RoleSelect
-          value={instrument}
-          onChange={setInstrument}
-          disabled={loading}
-          className="h-9"
-        />
-      </div>
+          <div className="space-y-1.5">
+            <Label>Main Instrument</Label>
+            <RoleSelect
+              value={instrument}
+              onChange={setInstrument}
+              disabled={loading}
+              className="h-9"
+            />
+          </div>
+        </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="countryCode">Default Country Code</Label>
-        <Select value={countryCode} onValueChange={setCountryCode} disabled={loading}>
-          <SelectTrigger id="countryCode">
-            <SelectValue placeholder="Select country code" />
-          </SelectTrigger>
-          <SelectContent>
-            {COUNTRY_CODES.map((code) => (
-              <SelectItem key={code.value} value={code.value}>
-                {code.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">
-          This will be used as the default for all phone number inputs throughout the app.
-        </p>
-      </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="countryCode">Country Code</Label>
+            <Select value={countryCode} onValueChange={setCountryCode} disabled={loading}>
+              <SelectTrigger id="countryCode">
+                <SelectValue placeholder="Select country code" />
+              </SelectTrigger>
+              <SelectContent>
+                {COUNTRY_CODES.map((code) => (
+                  <SelectItem key={code.value} value={code.value}>
+                    {code.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="phone">Phone Number (for WhatsApp)</Label>
-        <Input
-          id="phone"
-          type="tel"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          disabled={loading}
-          placeholder="501234567"
-        />
-        <p className="text-xs text-muted-foreground">
-          Optional. Enter just the number (country code will be added automatically based on your default above).
-        </p>
+          <div className="space-y-1.5">
+            <Label htmlFor="phone">Phone (WhatsApp)</Label>
+            <Input
+              id="phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              disabled={loading}
+              placeholder="501234567"
+            />
+          </div>
+        </div>
       </div>
 
       <Button type="submit" disabled={loading}>

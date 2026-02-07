@@ -6,11 +6,11 @@ import { LayoutDashboard, Music, Guitar, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, disabled: true },
   { title: "Gigs", href: "/gigs", icon: Music },
   { title: "Bands", href: "/bands", icon: Guitar },
   { title: "Invitations", href: "/invitations", icon: Mail },
-];
+] as const;
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -20,8 +20,22 @@ export function BottomNav() {
       <div className="flex items-center justify-around h-16 pb-[env(safe-area-inset-bottom)]">
         {navItems.map((item) => {
           const Icon = item.icon;
+          const isDisabled = "disabled" in item && item.disabled;
           const isActive =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
+            !isDisabled &&
+            (pathname === item.href || pathname.startsWith(`${item.href}/`));
+
+          if (isDisabled) {
+            return (
+              <span
+                key={item.href}
+                className="flex flex-col items-center justify-center flex-1 h-full gap-0.5 text-muted-foreground/30 cursor-not-allowed"
+              >
+                <Icon className="h-5 w-5" />
+                <span className="text-[10px] font-medium">{item.title}</span>
+              </span>
+            );
+          }
 
           return (
             <Link

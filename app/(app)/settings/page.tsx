@@ -1,342 +1,126 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { ProfileTab } from "@/components/settings/profile-tab";
+import { GeneralTab } from "@/components/settings/general-tab";
+import { CalendarTab } from "@/components/settings/calendar-tab";
+import { AccountTab } from "@/components/settings/account-tab";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { RefreshCw, Check, Link as LinkIcon, Unlink } from "lucide-react";
-import { toast } from "sonner";
-import { useUser } from "@/lib/providers/user-provider";
+import { UserRound, Globe, CalendarDays, Shield, LogOut } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 
-function SettingsContent() {
-  const searchParams = useSearchParams();
-  const { user, isLoading: userLoading } = useUser();
+const NAV_ITEMS = [
+  { id: "profile", label: "Profile", icon: UserRound },
+  { id: "general", label: "General", icon: Globe },
+  { id: "calendar", label: "Calendar", icon: CalendarDays },
+  { id: "account", label: "Account", icon: Shield },
+] as const;
 
-  // Google Calendar connection state
-  const [isLoading, setIsLoading] = useState(true);
-  const [googleConnected, setGoogleConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isDisconnecting, setIsDisconnecting] = useState(false);
-  const [lastSynced, setLastSynced] = useState<string | null>(null);
-  const [hasWriteAccess, setHasWriteAccess] = useState(false);
-  const [sendInvitesEnabled, setSendInvitesEnabled] = useState(false);
-  const [isUpgrading, setIsUpgrading] = useState(false);
-  const [isTogglingInvites, setIsTogglingInvites] = useState(false);
+type TabId = (typeof NAV_ITEMS)[number]["id"];
 
-  // Check for OAuth callback messages
-  useEffect(() => {
-    const success = searchParams.get("success");
-    const error = searchParams.get("error");
+const VALID_TABS = NAV_ITEMS.map((item) => item.id) as unknown as TabId[];
 
-    if (success === "connected") {
-      toast.success("Google Calendar connected (read-only)");
-      setGoogleConnected(true);
-    } else if (success === "connected_write") {
-      toast.success("Google Calendar connected with full access!");
-      setGoogleConnected(true);
-      setHasWriteAccess(true);
-    } else if (error) {
-      toast.error(`Connection failed: ${error}`);
-    }
-  }, [searchParams]);
-
-  // Check Google connection on mount
-  useEffect(() => {
-    async function init() {
-      if (!user) return;
-
-      try {
-        const supabase = createClient();
-        const { data: connection } = await supabase
-          .from("calendar_connections")
-          .select("last_synced_at, write_access, send_invites_enabled")
-          .eq("user_id", user.id)
-          .eq("provider", "google")
-          .single();
-
-        if (connection) {
-          setGoogleConnected(true);
-          setLastSynced(connection.last_synced_at);
-          setHasWriteAccess(connection.write_access ?? false);
-          setSendInvitesEnabled(connection.send_invites_enabled ?? false);
-        }
-      } catch (error) {
-        console.error("Error initializing settings:", error);
-        toast.error("Failed to load settings");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    if (user && !userLoading) {
-      init();
-    }
-  }, [user, userLoading]);
-
-  const handleConnectGoogle = async () => {
-    try {
-      setIsConnecting(true);
-      const response = await fetch("/api/calendar/connect");
-      const data = await response.json();
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        toast.error("Failed to initiate connection");
-        setIsConnecting(false);
-      }
-    } catch (error) {
-      console.error("Error connecting Google Calendar:", error);
-      toast.error("Failed to connect calendar");
-      setIsConnecting(false);
-    }
-  };
-
-  const handleDisconnectGoogle = async () => {
-    if (!confirm("Disconnect Google Calendar? You'll no longer be able to import events or check for conflicts with your calendar.")) {
-      return;
-    }
-
-    try {
-      setIsDisconnecting(true);
-      const response = await fetch("/api/calendar/disconnect", {
-        method: "POST",
-      });
-
-      if (response.ok) {
-        setGoogleConnected(false);
-        setLastSynced(null);
-        toast.success("Google Calendar disconnected");
-      } else {
-        toast.error("Failed to disconnect");
-      }
-    } catch (error) {
-      console.error("Error disconnecting:", error);
-      toast.error("Failed to disconnect calendar");
-    } finally {
-      setIsDisconnecting(false);
-    }
-  };
-
-  const handleUpgradeToWriteAccess = async () => {
-    try {
-      setIsUpgrading(true);
-      const response = await fetch("/api/calendar/connect?writeAccess=true");
-      const data = await response.json();
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        toast.error("Failed to initiate upgrade");
-        setIsUpgrading(false);
-      }
-    } catch (error) {
-      console.error("Error upgrading:", error);
-      toast.error("Failed to upgrade permissions");
-      setIsUpgrading(false);
-    }
-  };
-
-  const handleToggleInvites = async () => {
-    if (!user) return;
-
-    try {
-      setIsTogglingInvites(true);
-      const supabase = createClient();
-
-      const newValue = !sendInvitesEnabled;
-      const { error } = await supabase
-        .from("calendar_connections")
-        .update({ send_invites_enabled: newValue })
-        .eq("user_id", user.id)
-        .eq("provider", "google");
-
-      if (error) throw error;
-
-      setSendInvitesEnabled(newValue);
-      toast.success(newValue ? "Calendar invites enabled" : "Calendar invites disabled");
-    } catch (error) {
-      console.error("Error toggling invites:", error);
-      toast.error("Failed to update setting");
-    } finally {
-      setIsTogglingInvites(false);
-    }
-  };
-
-  if (userLoading || isLoading) {
-    return (
-      <div className="container max-w-4xl py-8 space-y-6">
-        <div>
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-96" />
-        </div>
-        <Skeleton className="h-96 w-full" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="container max-w-4xl py-8 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-gray-600 mt-1">
-          Manage your integrations and preferences
-        </p>
-      </div>
-
-      {/* Google Calendar Connection Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LinkIcon className="h-5 w-5" />
-            Google Calendar Connection
-          </CardTitle>
-          <CardDescription>
-            Connect your Google Calendar to import events and detect conflicts with external calendar events.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {googleConnected ? (
-            <>
-              <Alert>
-                <Check className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-sm">
-                  <strong>Connected.</strong> Your Google Calendar is connected
-                  {hasWriteAccess ? " with full access" : " (read-only)"}.
-                  {lastSynced && (
-                    <span className="block text-xs text-gray-600 mt-1">
-                      Last synced: {new Date(lastSynced).toLocaleString()}
-                    </span>
-                  )}
-                </AlertDescription>
-              </Alert>
-
-              {/* Calendar Invites Toggle - only show if write access */}
-              {hasWriteAccess && (
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="send-invites" className="text-base">
-                      Send Google Calendar invites
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      When you create a gig, lineup members receive calendar invitations
-                    </p>
-                  </div>
-                  <Button
-                    id="send-invites"
-                    variant={sendInvitesEnabled ? "default" : "outline"}
-                    size="sm"
-                    onClick={handleToggleInvites}
-                    disabled={isTogglingInvites}
-                  >
-                    {isTogglingInvites ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : sendInvitesEnabled ? (
-                      "Enabled"
-                    ) : (
-                      "Disabled"
-                    )}
-                  </Button>
-                </div>
-              )}
-
-              {/* Upgrade to write access */}
-              {!hasWriteAccess && (
-                <Alert>
-                  <AlertDescription className="text-sm">
-                    <strong>Want to send calendar invites?</strong> Upgrade your connection to send
-                    Google Calendar invitations to your lineup members.
-                    <Button
-                      variant="link"
-                      size="sm"
-                      className="p-0 h-auto ml-2"
-                      onClick={handleUpgradeToWriteAccess}
-                      disabled={isUpgrading}
-                    >
-                      {isUpgrading ? "Upgrading..." : "Upgrade permissions"}
-                    </Button>
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.location.href = "/calendar/import"}
-                >
-                  Import Events
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDisconnectGoogle}
-                  disabled={isDisconnecting}
-                >
-                  {isDisconnecting ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Disconnecting...
-                    </>
-                  ) : (
-                    <>
-                      <Unlink className="h-4 w-4 mr-2" />
-                      Disconnect
-                    </>
-                  )}
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-700">
-                  <strong>Benefits of connecting:</strong>
-                </p>
-                <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
-                  <li>Import existing calendar events as gigs</li>
-                  <li>Full conflict detection (checks both GigMaster and Google Calendar)</li>
-                  <li>Read-only access (we never modify your calendar)</li>
-                </ul>
-              </div>
-
-              <Button
-                onClick={handleConnectGoogle}
-                disabled={isConnecting}
-                className="w-full sm:w-auto"
-              >
-                {isConnecting ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  <>
-                    <LinkIcon className="h-4 w-4 mr-2" />
-                    Connect Google Calendar
-                  </>
-                )}
-              </Button>
-
-              <Alert>
-                <AlertDescription className="text-xs">
-                  <strong>Privacy:</strong> We only request read-only access to your calendar.
-                  We never create, modify, or delete your calendar events.
-                </AlertDescription>
-              </Alert>
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+const TAB_CONTENT: Record<TabId, React.FC> = {
+  profile: ProfileTab,
+  general: GeneralTab,
+  calendar: CalendarTab,
+  account: AccountTab,
+};
 
 export default function SettingsPage() {
-  return <SettingsContent />;
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tabParam = searchParams.get("tab");
+  const initialTab = VALID_TABS.includes(tabParam as TabId)
+    ? (tabParam as TabId)
+    : "profile";
+
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/auth/sign-in");
+    router.refresh();
+  };
+
+  const ActiveContent = TAB_CONTENT[activeTab];
+
+  return (
+    <div className="container max-w-5xl py-8">
+      <div className="flex flex-col md:flex-row gap-8">
+        {/* Left nav */}
+        <nav className="md:w-56 shrink-0">
+          <h1 className="text-2xl font-bold mb-6 hidden md:block">Settings</h1>
+
+          {/* Mobile: horizontal scroll */}
+          <div className="flex md:hidden gap-1 overflow-x-auto pb-2 -mx-1 px-1">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={cn(
+                    "flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                    activeTab === item.id
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Desktop: vertical list */}
+          <ul className="hidden md:flex flex-col">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.id}>
+                  <button
+                    onClick={() => setActiveTab(item.id)}
+                    className={cn(
+                      "flex w-full items-center gap-3 border-b py-3 text-[15px] transition-colors",
+                      activeTab === item.id
+                        ? "text-foreground font-semibold border-b-2 border-foreground"
+                        : "text-muted-foreground hover:text-foreground border-border"
+                    )}
+                  >
+                    <Icon className="h-[18px] w-[18px]" />
+                    {item.label}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Sign out at bottom of sidebar */}
+          <div className="hidden md:block mt-8">
+            <Button
+              variant="outline"
+              className="w-full rounded-full"
+              onClick={handleSignOut}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Log Out
+            </Button>
+          </div>
+        </nav>
+
+        {/* Divider */}
+        <div className="hidden md:block w-px bg-border" />
+
+        {/* Content */}
+        <main className="flex-1 min-w-0">
+          <ActiveContent />
+        </main>
+      </div>
+    </div>
+  );
 }

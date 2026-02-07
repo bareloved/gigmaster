@@ -1231,6 +1231,12 @@ export type Database = {
           total_count: number
         }[]
       }
+      delete_user_account: {
+        Args: {
+          target_user_id: string
+        }
+        Returns: undefined
+      }
       save_gig_pack: {
         Args: {
           p_gig: Json

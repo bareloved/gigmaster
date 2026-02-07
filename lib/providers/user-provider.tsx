@@ -24,23 +24,24 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const fetchUserAndProfile = async () => {
     if (hasFetchedRef.current) return;
     hasFetchedRef.current = true;
-    
+
     try {
       const supabase = createClient();
-      
-      // OPTIMIZATION: Parallelize both API calls instead of sequential
-      const [userResult, profileResult] = await Promise.all([
-        supabase.auth.getUser(),
-        supabase.from("profiles").select("*").limit(1).maybeSingle(),
-      ]);
 
-      const authUser = userResult.data.user;
+      // Get the authenticated user first
+      const { data: { user: authUser } } = await supabase.auth.getUser();
       setUser(authUser);
       userIdRef.current = authUser?.id;
 
-      // Only set profile if it matches the current user
-      if (authUser && profileResult.data?.id === authUser.id) {
-        setProfile(profileResult.data);
+      // Then fetch their profile by ID
+      if (authUser) {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", authUser.id)
+          .maybeSingle();
+
+        setProfile(profileData);
       } else {
         setProfile(null);
       }

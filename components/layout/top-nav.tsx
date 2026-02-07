@@ -9,11 +9,11 @@ import { UserMenu } from "@/components/layout/user-menu";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { title: "Dashboard", href: "/dashboard" },
+  { title: "Dashboard", href: "/dashboard", disabled: true },
   { title: "Gigs", href: "/gigs" },
   { title: "Bands", href: "/bands" },
   { title: "Invitations", href: "/invitations" },
-];
+] as const;
 
 export function TopNav() {
   const pathname = usePathname();
@@ -32,7 +32,7 @@ export function TopNav() {
     <nav className="sticky top-0 z-50 w-full border-b bg-background">
       <div className="flex h-16 items-center px-4 sm:px-5 lg:px-6">
         {/* Logo — swaps between full and compact on scroll */}
-        <Link href="/dashboard" className="relative flex items-center justify-start shrink-0 w-[75px] sm:w-[92px] lg:w-[112px] overflow-visible">
+        <Link href="/gigs" className="relative flex items-center justify-start shrink-0 w-[75px] sm:w-[92px] lg:w-[112px] overflow-visible">
           {/* Full logo (at top) */}
           <Image
             src="/gigmasterlogo.png"
@@ -61,8 +61,21 @@ export function TopNav() {
         {/* Desktop Navigation */}
         <div className="hidden lg:flex items-center gap-1 ml-4">
           {navItems.map((item) => {
+            const isDisabled = "disabled" in item && item.disabled;
             const isActive =
-              pathname === item.href || pathname.startsWith(`${item.href}/`);
+              !isDisabled &&
+              (pathname === item.href || pathname.startsWith(`${item.href}/`));
+
+            if (isDisabled) {
+              return (
+                <span
+                  key={item.href}
+                  className="px-3 py-2 text-base font-medium rounded-md text-muted-foreground/40 cursor-not-allowed"
+                >
+                  {item.title}
+                </span>
+              );
+            }
 
             return (
               <Link
