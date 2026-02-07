@@ -5,7 +5,7 @@
 @layer base {
   :root {
     /* Clean Minimal - Warm neutrals + copper accent */
-    --background: 0 0% 100%;
+    --background: 30 33% 95%;
     --foreground: 220 20% 16%;
     --card: 0 0% 100%;
     --card-foreground: 220 20% 16%;
@@ -90,6 +90,7 @@
 
   html {
     overflow-x: clip;
+    scrollbar-gutter: stable;
   }
 
   body {

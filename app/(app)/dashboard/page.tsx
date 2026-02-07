@@ -184,10 +184,10 @@ export default function DashboardPage() {
       {/* Page Header - Concert Poster Energy */}
       <div className="flex items-start justify-between gap-4 pb-2 border-b-4 border-primary/20">
         <div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-semibold tracking-tight text-foreground">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-foreground">
             Dashboard
-          </h1>
-          <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base lg:text-lg font-medium">Get ready for your next gigs.</p>
+          </h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">Get ready for your next gigs.</p>
         </div>
       </div>
 
@@ -434,7 +434,7 @@ export default function DashboardPage() {
           <Card className="min-h-[300px] sm:min-h-[400px] border animate-fade-in">
               <CardHeader className="border-b-2 border-dashed border-border/50 px-4 py-3 sm:px-6 sm:py-4">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg sm:text-xl lg:text-2xl font-semibold">
+                  <CardTitle className="text-base sm:text-lg lg:text-xl font-semibold">
                     This Week on Stage
                   </CardTitle>
                 </div>

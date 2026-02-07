@@ -159,6 +159,25 @@ const { data } = useQuery({
 });
 ```
 
+### Radix Dropdowns - Page Shift Fix (modal={false})
+
+**Problem:** Radix UI's `DropdownMenu` defaults to `modal={true}`, which adds `overflow: hidden` to the body when opened. This removes the scrollbar and shifts the entire page left by ~15px.
+
+**Solution:** Our `components/ui/dropdown-menu.tsx` wrapper defaults `modal` to `false`. This is already handled — just use `<DropdownMenu>` normally and it won't shift the page.
+
+```typescript
+// ✅ Already handled by our wrapper — no extra props needed
+<DropdownMenu>
+  <DropdownMenuTrigger>...</DropdownMenuTrigger>
+  <DropdownMenuContent>...</DropdownMenuContent>
+</DropdownMenu>
+
+// ⚠️ Only if you explicitly NEED scroll-lock (rare):
+<DropdownMenu modal={true}>
+```
+
+**Note:** If you add other Radix overlay components (Popover, etc.) and notice the same shift, apply the same `modal={false}` pattern to their wrappers in `components/ui/`.
+
 ### Row Level Security (RLS)
 
 **Always verify:**
