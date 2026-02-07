@@ -1,6 +1,6 @@
 # Contributing Guide
 
-> Auto-generated from `package.json` and `.env.example` on 2026-02-05.
+> Auto-generated from `package.json` and `.env.example` on 2026-02-07.
 
 ## Prerequisites
 
@@ -17,7 +17,7 @@ Copy the environment variables and fill in your values:
 |----------|----------|--------------------|---------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes | Yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Yes | Supabase anonymous/public key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Yes | No | Server-side admin access, public GigPack sharing |
+| `SUPABASE_SERVICE_ROLE_KEY` | Yes | No | Server-side admin access (account deletion, public GigPack sharing) |
 | `GOOGLE_CALENDAR_CLIENT_ID` | No | No | Google Calendar OAuth integration |
 | `GOOGLE_CALENDAR_CLIENT_SECRET` | No | No | Google Calendar OAuth integration |
 | `GOOGLE_CALENDAR_REDIRECT_URI` | No | No | Google Calendar OAuth callback URL |
@@ -105,3 +105,16 @@ tests/
 - **`'use client'`** on most pages (hybrid architecture for instant navigation)
 - **TanStack Query** for all server state (always include `user?.id` in query keys)
 - All API functions in `/lib/api/*` are platform-agnostic (no Next.js imports)
+
+## Key Routes
+
+| Route | Purpose |
+|-------|---------|
+| `/gigs` | Main landing page — all gigs list |
+| `/gigs/[id]/pack` | Gig detail/pack view |
+| `/bands` | Band management |
+| `/settings` | Unified settings (Profile, General, Calendar, Account) |
+| `/settings?tab=calendar` | Calendar settings (deep-link for OAuth callback) |
+| `/invitations` | Invitation management |
+| `/history` | Past gigs |
+| `/dashboard` | Dashboard (currently disabled, pending redesign) |
