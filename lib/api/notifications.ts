@@ -97,12 +97,41 @@ export async function deleteNotification(notificationId: string): Promise<void> 
  */
 export async function clearAllNotifications(userId: string): Promise<void> {
   const supabase = createClient();
-  
+
   const { error } = await supabase
     .from('notifications')
     .delete()
     .eq('user_id', userId);
-  
+
+  if (error) throw error;
+}
+
+/**
+ * Archive a single notification (moves it to the Archive tab)
+ */
+export async function archiveNotification(notificationId: string): Promise<void> {
+  const supabase = createClient();
+
+  const { error } = await supabase
+    .from('notifications')
+    .update({ archived_at: new Date().toISOString() })
+    .eq('id', notificationId);
+
+  if (error) throw error;
+}
+
+/**
+ * Archive all non-archived notifications for a user
+ */
+export async function archiveAllNotifications(userId: string): Promise<void> {
+  const supabase = createClient();
+
+  const { error } = await supabase
+    .from('notifications')
+    .update({ archived_at: new Date().toISOString() })
+    .eq('user_id', userId)
+    .is('archived_at', null);
+
   if (error) throw error;
 }
 

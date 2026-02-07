@@ -913,6 +913,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          archived_at: string | null
           created_at: string | null
           gig_id: string | null
           gig_role_id: string | null
@@ -926,6 +927,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string | null
           gig_id?: string | null
           gig_role_id?: string | null
@@ -939,6 +941,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          archived_at?: string | null
           created_at?: string | null
           gig_id?: string | null
           gig_role_id?: string | null
