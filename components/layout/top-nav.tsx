@@ -69,7 +69,7 @@ export function TopNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                  "px-3 py-2 text-base font-medium rounded-md transition-colors",
                   isActive
                     ? "text-primary"
                     : "text-muted-foreground hover:text-primary"
