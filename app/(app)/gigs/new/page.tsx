@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useUser } from "@/lib/providers/user-provider";
@@ -9,6 +10,7 @@ import { prepareGigForDuplication } from "@/lib/gigpack/duplicate-utils";
 import { GigEditorWrapper } from "../editor-wrapper";
 
 export default function NewGigPage() {
+  useDocumentTitle("New Gig");
   const searchParams = useSearchParams();
   const duplicateId = searchParams.get("duplicate");
   const { user } = useUser();

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -43,6 +44,8 @@ export default function GigDetailPage() {
     queryKey: ['gig', gigId],
     queryFn: () => getGig(gigId),
   });
+
+  useDocumentTitle(gig?.title ?? "Gig");
 
   // Check ownership via gig.owner_id
   const isOwner = gig?.owner_id === user?.id;

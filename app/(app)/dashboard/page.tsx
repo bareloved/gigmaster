@@ -11,6 +11,7 @@
  * - Quick actions with keyboard shortcuts
  */
 
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -97,6 +98,7 @@ function getWeekdayAndDate(dateStr: string): { weekday: string; shortDate: strin
 // ========================================
 
 export default function DashboardPage() {
+  useDocumentTitle("Dashboard");
   const { user } = useUser();
   const router = useRouter();
   const queryClient = useQueryClient();

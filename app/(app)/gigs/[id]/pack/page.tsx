@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -97,6 +98,8 @@ export default function GigPackPage() {
     enabled: !!gigId,
     staleTime: 5 * 1000, // 5 seconds - data is considered stale quickly for live updates
   });
+
+  useDocumentTitle(gigPack?.title ?? "Gig Pack");
 
   // Smart polling for live updates
   const poll = useCallback(async () => {

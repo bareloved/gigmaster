@@ -14,7 +14,10 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://gigmaster.io"),
-  title: "GigMaster - Gig Brain",
+  title: {
+    template: "%s | GigMaster",
+    default: "GigMaster – Gig Brain",
+  },
   description: "Operating system for gigging musicians",
   icons: {
     apple: [

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ type ViewMode = "list" | "grid";
 type TimeFilter = "upcoming" | "previous";
 
 export default function AllGigsPage() {
+  useDocumentTitle("Gigs");
   const { user } = useUser();
   const router = useRouter();
 

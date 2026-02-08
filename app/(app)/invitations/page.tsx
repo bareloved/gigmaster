@@ -1,5 +1,6 @@
 'use client';
 
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useUser } from "@/lib/providers/user-provider";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getMyPendingInvitations, getMyDeclinedInvitations, updateMyInvitationStatus } from "@/lib/api/gig-roles";
@@ -41,6 +42,7 @@ function getWeekdayAndDate(dateStr: string): { weekday: string; shortDate: strin
 }
 
 export default function InvitationsPage() {
+  useDocumentTitle("Invitations");
   const { user } = useUser();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("pending");

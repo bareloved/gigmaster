@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/lib/providers/user-provider';
 import { listFeedback, deleteFeedback, toggleFeedbackResolved } from '@/lib/api/feedback';
@@ -155,6 +156,7 @@ function FeedbackItem({
 }
 
 export default function FeedbackPage() {
+  useDocumentTitle("Feedback");
   const { user } = useUser();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<FilterCategory>('all');

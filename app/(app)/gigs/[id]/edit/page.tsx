@@ -1,9 +1,16 @@
+import type { Metadata } from "next";
 import { GigEditorWrapper } from "../../editor-wrapper";
 import { getGig } from "../../actions";
 import { notFound } from "next/navigation";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const gig = await getGig(id);
+  return { title: gig ? `Edit: ${gig.title}` : "Edit Gig" };
 }
 
 export default async function EditGigPage({ params }: PageProps) {

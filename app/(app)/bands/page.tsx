@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/lib/providers/user-provider";
@@ -37,6 +38,7 @@ const BandCardSkeleton = () => (
 );
 
 export default function BandsPage() {
+  useDocumentTitle("Bands");
   const { user } = useUser();
   const t = useTranslations("bands");
   const { toast } = useToast();
