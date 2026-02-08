@@ -40,6 +40,12 @@ export default function NewGigPage() {
     );
   }
 
-  // Normal create flow
-  return <GigEditorWrapper mode="create" />;
+  // Normal create flow — optionally pre-select a band
+  const bandId = searchParams.get("band");
+  return (
+    <GigEditorWrapper
+      mode="create"
+      gig={bandId ? { band_id: bandId } : undefined}
+    />
+  );
 }
