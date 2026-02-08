@@ -63,7 +63,7 @@ interface TimePickerProps {
 }
 
 export function TimePicker({
-  value,
+  value: rawValue,
   onChange,
   placeholder = "--:--",
   disabled = false,
@@ -71,6 +71,8 @@ export function TimePicker({
   name,
   id,
 }: TimePickerProps) {
+  // Strip seconds from DB values like "09:15:00" → "09:15"
+  const value = rawValue?.replace(/^(\d{1,2}:\d{2}):\d{2}$/, "$1")
   const [open, setOpen] = React.useState(false)
   const [inputValue, setInputValue] = React.useState(value || "")
   const inputRef = React.useRef<HTMLInputElement>(null)
