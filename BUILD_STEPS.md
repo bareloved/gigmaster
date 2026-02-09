@@ -78,7 +78,7 @@ const { data } = useQuery({
 ## Step 0 – Project & Tooling Setup
 
 - [X] Create new Next.js (App Router) + TypeScript project  
-  - e.g. `npx create-next-app@latest gig-brain --typescript`
+  - e.g. `npx create-next-app@latest gigmaster --typescript`
 
 - [X] Install Tailwind CSS  
   - Follow Next.js + Tailwind setup guide  

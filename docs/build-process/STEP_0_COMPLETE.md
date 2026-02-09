@@ -123,7 +123,7 @@ npm run dev
 2. Open http://localhost:3000
 3. You should see:
    - Sidebar on the left (desktop) or hamburger menu (mobile)
-   - "Gig Brain" header
+   - "GigMaster" header
    - Dashboard with "As Player" / "As Manager" tabs
    - User avatar (JD) in top right
 4. Click through the navigation:

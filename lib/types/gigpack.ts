@@ -47,6 +47,7 @@ export interface Band {
   band_logo_url: string | null;
   hero_image_url: string | null;
   accent_color: string | null;
+  calendar_color: string | null;
   poster_skin: PosterSkin | null;
   default_lineup: LineupMember[];
   created_at: string;

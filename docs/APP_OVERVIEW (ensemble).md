@@ -1,7 +1,7 @@
 # App Overview (ensemble)
 
 ## 1. What this app is
-- **Ensemble (Gig Brain)** is an operating system for gigging musicians to manage their gigs, lineups, setlists, and finances in one place.
+- **GigMaster** is an operating system for gigging musicians to manage their gigs, lineups, setlists, and finances in one place.
 - **Primary Users:** Freelance Musicians, Musical Directors (MDs), and Band Leaders.
 - **Primary Workflows:**
   - **Gig Management:** Create gigs, define logistics (time, location), and build setlists.

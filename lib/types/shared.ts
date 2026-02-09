@@ -345,6 +345,7 @@ export interface DashboardGig {
   invitationStatus?: string | null;
   hostId: string | null;
   hostName: string | null;
+  bandId?: string | null;
   projectName?: string | null;
   heroImageUrl?: string | null;
   gigType?: string | null;

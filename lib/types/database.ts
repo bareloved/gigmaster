@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           accent_color: string | null
           band_logo_url: string | null
+          calendar_color: string | null
           created_at: string | null
           default_lineup: Json | null
           description: string | null
@@ -31,6 +32,7 @@ export type Database = {
         Insert: {
           accent_color?: string | null
           band_logo_url?: string | null
+          calendar_color?: string | null
           created_at?: string | null
           default_lineup?: Json | null
           description?: string | null
@@ -44,6 +46,7 @@ export type Database = {
         Update: {
           accent_color?: string | null
           band_logo_url?: string | null
+          calendar_color?: string | null
           created_at?: string | null
           default_lineup?: Json | null
           description?: string | null

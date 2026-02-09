@@ -43,8 +43,9 @@ export async function getUnreadCount(userId: string): Promise<number> {
     .from('notifications')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
-    .is('read_at', null);
-  
+    .is('read_at', null)
+    .is('archived_at', null);
+
   if (error) throw error;
   return count || 0;
 }

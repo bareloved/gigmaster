@@ -18,7 +18,7 @@ export function AppHeader() {
       <Separator orientation="vertical" className="h-6" />
       
       <div className="flex-1">
-        <h1 className="text-lg font-semibold md:text-xl">Gig Brain</h1>
+        <h1 className="text-lg font-semibold md:text-xl">GigMaster</h1>
       </div>
       
       <NotificationsDropdown />

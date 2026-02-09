@@ -34,7 +34,7 @@
 
 **Navigation:**
 - [ ] Logo displays correctly on left
-- [ ] "Gig Brain" subtitle visible
+- [ ] "GigMaster" header visible
 - [ ] Nav items visible: Dashboard, Gigs, Money, Calendar, My Circle
 - [ ] "More" dropdown shows: History (and future items)
 - [ ] Active page is highlighted with underline indicator
