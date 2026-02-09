@@ -142,6 +142,12 @@
   }
 }
 
+/* Marquee scroll for overflowing event text */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
 /* Google Sans Variable Font - Local - Hebrew characters only */
 @font-face {
   font-family: 'Google Sans Hebrew';
