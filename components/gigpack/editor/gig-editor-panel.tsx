@@ -378,6 +378,9 @@ export function GigEditorPanel({
   const [paymentNotes, setPaymentNotes] = useState(gigPack?.payment_notes || "");
   const [internalNotes, setInternalNotes] = useState(gigPack?.internal_notes || "");
   const [gigType, setGigType] = useState<string | null>(gigPack?.gig_type ?? null);
+  const [status, setStatus] = useState<"confirmed" | "tentative">(
+    gigPack?.status === "tentative" ? "tentative" : "confirmed"
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
 
@@ -509,6 +512,7 @@ export function GigEditorPanel({
     setPaymentNotes("");
     setInternalNotes("");
     setGigType(null);
+    setStatus("confirmed");
     setBandLogoUrl("");
     setHeroImageUrl("");
     setPackingChecklist([]);
@@ -545,6 +549,7 @@ export function GigEditorPanel({
     paymentNotes,
     internalNotes,
     gigType,
+    status,
     bandLogoUrl,
     heroImageUrl,
     accentColor: "",
@@ -611,6 +616,7 @@ export function GigEditorPanel({
       setPaymentNotes(draft.paymentNotes || "");
       setInternalNotes(draft.internalNotes || "");
       setGigType(draft.gigType || null);
+      setStatus(draft.status === "tentative" ? "tentative" : "confirmed");
       setBandLogoUrl(draft.bandLogoUrl || "");
       setHeroImageUrl(draft.heroImageUrl || "");
       setPackingChecklist(draft.packingChecklist || []);
@@ -808,6 +814,7 @@ export function GigEditorPanel({
         internal_notes: internalNotes || null,
         theme: "minimal" as const,
         gig_type: gigType || null,
+        status,
         // Use existing URLs (pending images will be uploaded in background)
         band_logo_url: bandLogoUrl || null,
         hero_image_url: heroImageUrl || null,
@@ -1335,20 +1342,36 @@ export function GigEditorPanel({
                 Scrollable Content Area
                 ================================================================ */}
       <div className="flex-1 overflow-y-auto px-6 pb-4 min-h-0">
-        {/* Title / Name */}
-        <InlineInput
-          name="title"
-          id="gig-title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder={t("gigTitlePlaceholderWithExample", {
-            example: getRandomGigPlaceholder(),
-          })}
-          required
-          disabled={isLoading}
-          autoFocus={false}
-          displayClassName="text-2xl font-semibold leading-snug"
-        />
+        {/* Title + Status Toggle */}
+        <div className="flex items-center gap-2">
+          <InlineInput
+            name="title"
+            id="gig-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={t("gigTitlePlaceholderWithExample", {
+              example: getRandomGigPlaceholder(),
+            })}
+            required
+            disabled={isLoading}
+            autoFocus={false}
+            displayClassName="text-2xl font-semibold leading-snug"
+            className="min-w-0"
+          />
+          <button
+            type="button"
+            onClick={() => setStatus(status === "confirmed" ? "tentative" : "confirmed")}
+            disabled={isLoading}
+            className={cn(
+              "shrink-0 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide transition-colors",
+              status === "confirmed"
+                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+            )}
+          >
+            {status === "confirmed" ? "Confirmed" : "Tentative"}
+          </button>
+        </div>
 
         {/* Band Selector */}
         <div className="mt-1 mb-6 max-w-xs">

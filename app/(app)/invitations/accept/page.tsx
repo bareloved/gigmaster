@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useSearchParams, useRouter } from 'next/navigation';
 import { acceptInvitation } from '@/lib/api/gig-invitations';
 import { Button } from '@/components/ui/button';
@@ -140,6 +141,7 @@ function AcceptInvitationContent() {
 }
 
 export default function AcceptInvitationPage() {
+  useDocumentTitle("Accept Invitation");
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-screen">

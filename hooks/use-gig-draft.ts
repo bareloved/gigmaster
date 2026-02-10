@@ -31,6 +31,7 @@ export interface GigDraftFormData {
   paymentNotes: string;
   internalNotes: string;
   gigType: string | null;
+  status?: "confirmed" | "tentative";
   bandLogoUrl: string;
   heroImageUrl: string;
   accentColor: string;

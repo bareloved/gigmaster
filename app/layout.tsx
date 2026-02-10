@@ -14,7 +14,10 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://gigmaster.io"),
-  title: "GigMaster - Gig Brain",
+  title: {
+    template: "GigMaster | %s",
+    default: "GigMaster",
+  },
   description: "Operating system for gigging musicians",
   icons: {
     apple: [
@@ -23,7 +26,7 @@ export const metadata: Metadata = {
   },
   manifest: "/logos/gigmaster_favicon_set/site.webmanifest",
   openGraph: {
-    title: "GigMaster - Gig Brain",
+    title: "GigMaster",
     description: "Operating system for gigging musicians",
     type: "website",
     images: [
@@ -37,7 +40,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "GigMaster - Gig Brain",
+    title: "GigMaster",
     description: "Operating system for gigging musicians",
     images: ["/logos/OpenGraph.png"],
   },

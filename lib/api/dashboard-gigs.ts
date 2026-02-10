@@ -22,6 +22,7 @@ interface DashboardRpcRow {
   gig_type: string | null;
   hero_image_url: string | null;
   role_stats?: { total: number; invited: number; accepted: number; declined: number; pending: number } | null;
+  band_id: string | null;
   band_name: string | null;
 }
 
@@ -104,6 +105,7 @@ export async function listDashboardGigs(
         invitationStatus: row.invitation_status,
         hostId: row.host_id,
         hostName: row.host_name,
+        bandId: row.band_id,
         projectName: row.band_name,
         heroImageUrl: row.hero_image_url,
         gigType: row.gig_type,
@@ -161,6 +163,7 @@ async function listDashboardGigsFallback(
       hero_image_url,
       gig_type,
       is_external,
+      band_id,
       owner:profiles!gigs_owner_profiles_fkey(
         id,
         name
@@ -178,6 +181,7 @@ async function listDashboardGigsFallback(
     `)
     .gte("date", fromStr)
     .lte("date", toStr)
+    .is("deleted_at", null)
     .order("date", { ascending: true })
     .order("start_time", { ascending: true })
     .limit(100);
@@ -236,6 +240,7 @@ async function listDashboardGigsFallback(
         invitationStatus: userRole?.invitation_status || null,
         hostId: gig.owner_id,
         hostName,
+        bandId: gig.band_id,
         projectName,
         heroImageUrl: gig.hero_image_url,
         gigType: gig.gig_type,
@@ -315,6 +320,7 @@ export async function listRecentPastGigs(
     `)
     .gte("date", fromStr)
     .lte("date", toStr)
+    .is("deleted_at", null)
     .order("date", { ascending: false })
     .order("start_time", { ascending: false })
     .limit(limit);
@@ -468,6 +474,7 @@ async function listAllPastGigsFallback(
       )
     `)
     .lt("date", todayStr)
+    .is("deleted_at", null)
     .order("date", { ascending: false })
     .order("start_time", { ascending: false })
     .limit(50);

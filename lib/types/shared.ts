@@ -140,9 +140,8 @@ export interface SendInvitesResponse {
  * For invitation tracking, see invitation_status on gig_roles.
  */
 export type GigStatus =
-  | 'draft'             // Gig created, roles being added
-  | 'confirmed'         // Gig confirmed, ready to go
-  | 'completed'         // Gig completed
+  | 'confirmed'         // Gig confirmed, ready to go (default)
+  | 'tentative'         // Not locked in yet
   | 'cancelled';        // Gig cancelled
 
 /**
@@ -150,7 +149,7 @@ export type GigStatus =
  * Centralizes the logic to prevent inconsistencies across the codebase.
  */
 export function isArchivedStatus(status: GigStatus | string | null | undefined): boolean {
-  return status === 'cancelled' || status === 'completed';
+  return status === 'cancelled';
 }
 
 /**
@@ -345,6 +344,7 @@ export interface DashboardGig {
   invitationStatus?: string | null;
   hostId: string | null;
   hostName: string | null;
+  bandId?: string | null;
   projectName?: string | null;
   heroImageUrl?: string | null;
   gigType?: string | null;
@@ -480,5 +480,34 @@ export interface FeedbackInsert {
   category?: FeedbackCategory;
   message: string;
   user_id?: string | null;
+}
+
+// ============================================================================
+// TRASH / SOFT-DELETE TYPES
+// ============================================================================
+
+/**
+ * Trashed gig — summary view for the trash page
+ */
+export interface TrashedGig {
+  id: string;
+  title: string;
+  date: string;
+  locationName: string | null;
+  bandName: string | null;
+  deletedAt: string;
+  daysRemaining: number;
+}
+
+/**
+ * Calculate how many days remain before a trashed gig is permanently deleted.
+ * Returns 0 if the gig should already be purged.
+ */
+export function daysUntilPermanentDeletion(deletedAt: string): number {
+  const deletedDate = new Date(deletedAt);
+  const purgeDate = new Date(deletedDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const now = new Date();
+  const msRemaining = purgeDate.getTime() - now.getTime();
+  return Math.max(0, Math.ceil(msRemaining / (24 * 60 * 60 * 1000)));
 }
 

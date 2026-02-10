@@ -58,19 +58,24 @@ interface TimePickerProps {
   placeholder?: string
   disabled?: boolean
   className?: string
+  /** Extra classes for the PopoverContent (e.g. z-index overrides) */
+  contentClassName?: string
   name?: string
   id?: string
 }
 
 export function TimePicker({
-  value,
+  value: rawValue,
   onChange,
   placeholder = "--:--",
   disabled = false,
   className,
+  contentClassName,
   name,
   id,
 }: TimePickerProps) {
+  // Strip seconds from DB values like "09:15:00" → "09:15"
+  const value = rawValue?.replace(/^(\d{1,2}:\d{2}):\d{2}$/, "$1")
   const [open, setOpen] = React.useState(false)
   const [inputValue, setInputValue] = React.useState(value || "")
   const inputRef = React.useRef<HTMLInputElement>(null)
@@ -207,7 +212,7 @@ export function TimePicker({
         </div>
       </PopoverAnchor>
       <PopoverContent
-        className="w-[100px] p-0"
+        className={cn("w-[100px] p-0", contentClassName)}
         align="start"
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}

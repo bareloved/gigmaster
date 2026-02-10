@@ -6,7 +6,12 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 import { Cross2Icon } from "@radix-ui/react-icons"
 
-const Sheet = SheetPrimitive.Root
+const Sheet = ({
+  modal = false,
+  ...props
+}: React.ComponentPropsWithoutRef<typeof SheetPrimitive.Root>) => (
+  <SheetPrimitive.Root modal={modal} {...props} />
+)
 
 const SheetTrigger = SheetPrimitive.Trigger
 
@@ -63,9 +68,17 @@ const SheetContent = React.forwardRef<
   SheetContentProps
 >(({ side = "right", className, children, ...props }, ref) => (
   <SheetPortal>
-    <SheetOverlay />
+    {/* Custom overlay div — SheetPrimitive.Overlay returns null when
+        modal={false}, so we render our own and wrap it in Close for
+        click-to-dismiss. */}
+    <SheetPrimitive.Close asChild>
+      <div className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+    </SheetPrimitive.Close>
     <SheetPrimitive.Content
       ref={ref}
+      /* Prevent outside-pointer dismissal (fixes instant-close when
+         opened from a DropdownMenu with modal={false}) */
+      onInteractOutside={(e) => e.preventDefault()}
       className={cn(sheetVariants({ side }), className)}
       {...props}
     >

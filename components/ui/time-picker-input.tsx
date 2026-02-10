@@ -33,11 +33,13 @@ function generateTimeOptions() {
 }
 
 export function TimePickerInput({
-  value,
+  value: rawValue,
   onChange,
   disabled,
   placeholder = "Pick a time",
 }: TimePickerInputProps) {
+  // Strip seconds from DB values like "09:15:00" → "09:15"
+  const value = rawValue?.replace(/^(\d{1,2}:\d{2}):\d{2}$/, "$1") ?? "";
   const [open, setOpen] = React.useState(false);
   const [manualInput, setManualInput] = React.useState(value);
   const timeOptions = generateTimeOptions();
@@ -87,6 +89,7 @@ export function TimePickerInput({
         <div className="p-3 border-b">
           <Input
             type="time"
+            step={60}
             value={manualInput}
             onChange={handleManualInputChange}
             placeholder="HH:MM"

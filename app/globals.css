@@ -91,7 +91,6 @@
   html {
     font-size: 106.25%; /* 17px base instead of 16px — scales all rem-based text up */
     overflow-x: clip;
-    scrollbar-gutter: stable;
   }
 
   body {
@@ -140,6 +139,13 @@
   .band-logo-small {
     @apply max-w-[80px] max-h-[60px] object-contain;
   }
+}
+
+/* Scroll-to-end-and-back for overflowing event text */
+@keyframes marquee {
+  0%, 15%  { transform: translateX(0); }
+  45%, 55% { transform: translateX(var(--overflow)); }
+  85%, 100% { transform: translateX(0); }
 }
 
 /* Google Sans Variable Font - Local - Hebrew characters only */

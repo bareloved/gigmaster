@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,7 @@ interface DateRange {
 }
 
 export default function CalendarImportPage() {
+  useDocumentTitle("Import Calendar");
   const router = useRouter();
   const { user, isLoading: userLoading } = useUser();
 

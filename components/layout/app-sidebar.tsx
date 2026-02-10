@@ -10,7 +10,7 @@ import {
   LogOut,
   // Users, // FROZEN: My Circle page
   History,
-  // Calendar, // FROZEN: Calendar page
+  Calendar,
   Settings,
   Music,
 } from "lucide-react";
@@ -131,15 +131,15 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem> */}
 
-              {/* Calendar - FROZEN */}
-              {/* <SidebarMenuItem>
+              {/* Calendar */}
+              <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/calendar"}>
                   <Link href="/calendar" prefetch={false}>
                     <Calendar />
                     <span>Calendar</span>
                   </Link>
                 </SidebarMenuButton>
-              </SidebarMenuItem> */}
+              </SidebarMenuItem>
 
               {/* My Circle - FROZEN */}
               {/* <SidebarMenuItem>

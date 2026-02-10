@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useUser } from '@/lib/providers/user-provider';
 import { listMyContacts, deleteContact } from '@/lib/api/musician-contacts';
@@ -37,6 +38,7 @@ import type { MusicianContact } from '@/lib/types/shared';
 import { getCurrencySymbol } from '@/lib/utils/currency';
 
 export default function MyCirclePage() {
+  useDocumentTitle("My Circle");
   const { profile } = useUser();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');

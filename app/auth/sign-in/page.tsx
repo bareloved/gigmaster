@@ -135,7 +135,7 @@ function SignInForm() {
                 className="text-amber-200/80 text-sm tracking-[0.15em] uppercase"
                 style={{ fontFamily: "Georgia, serif" }}
               >
-                Your Gig Brain
+                For Gigging Musicians
               </p>
               <div className="w-12 h-px bg-amber-400/40" />
             </div>
@@ -341,7 +341,7 @@ function SignInForm() {
                 className="text-amber-200/80 text-sm tracking-[0.15em] uppercase"
                 style={{ fontFamily: "Georgia, serif" }}
               >
-                Your Gig Brain
+                For Gigging Musicians
               </p>
               <div className="w-12 h-px bg-amber-400/40" />
             </div>

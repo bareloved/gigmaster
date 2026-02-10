@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/lib/providers/user-provider";
@@ -37,7 +39,9 @@ const BandCardSkeleton = () => (
 );
 
 export default function BandsPage() {
+  useDocumentTitle("Bands");
   const { user } = useUser();
+  const router = useRouter();
   const t = useTranslations("bands");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -199,13 +203,20 @@ export default function BandsPage() {
                 {/* Actions */}
                 <div className="flex gap-2 mt-3">
                   <Button
+                    size="sm"
+                    onClick={() => router.push(`/gigs/new?band=${band.id}`)}
+                    className="flex-1 h-8 text-xs sm:text-sm"
+                  >
+                    <Plus className="mr-1.5 h-3.5 w-3.5" />
+                    New Gig
+                  </Button>
+                  <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleEdit(band)}
-                    className="flex-1 h-8 text-xs sm:text-sm"
+                    className="h-8 w-8 p-0"
                   >
-                    <Edit className="mr-1.5 h-3.5 w-3.5" />
-                    {t("editButton")}
+                    <Edit className="h-3.5 w-3.5" />
                   </Button>
                   <Button
                     variant="outline"

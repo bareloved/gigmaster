@@ -1,7 +1,7 @@
 # Project Overview
 
 ## 1. Core Purpose
-**Ensemble** is a dedicated "gig brain" and operating system for musicians. It replaces scattered tools (calendar invites, WhatsApp groups, spreadsheets) with a structured system for managing:
+**GigMaster** is an operating system for musicians. It replaces scattered tools (calendar invites, WhatsApp groups, spreadsheets) with a structured system for managing:
 - **Gigs**: Logistics, schedules, and status.
 - **Music**: Setlists, charts, and audio files.
 - **People**: Rosters, roles, and invitations.

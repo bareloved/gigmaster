@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ProfileTab } from "@/components/settings/profile-tab";
 import { GeneralTab } from "@/components/settings/general-tab";
@@ -30,6 +31,7 @@ const TAB_CONTENT: Record<TabId, React.FC> = {
 };
 
 export default function SettingsPage() {
+  useDocumentTitle("Settings");
   const searchParams = useSearchParams();
   const router = useRouter();
   const tabParam = searchParams.get("tab");

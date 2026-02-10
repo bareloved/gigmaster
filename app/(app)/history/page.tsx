@@ -1,5 +1,6 @@
 "use client";
 
+import { useDocumentTitle } from "@/hooks/use-document-title";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ const getPastDateRangePreset = (preset: DateRangePreset) => {
 };
 
 export default function HistoryPage() {
+  useDocumentTitle("History");
   const { user } = useUser();
   const queryClient = useQueryClient();
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");

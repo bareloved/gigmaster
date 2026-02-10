@@ -26,7 +26,7 @@ Refactored the entire application layout from a left sidebar to a modern two-row
 **Row 1 - Global App Bar**
 
 Features:
-- **Logo & Brand** (left): Ensemble logo + "Gig Brain" subtitle
+- **Logo & Brand** (left): GigMaster logo
 - **Navigation** (center):
   - Dashboard, Gigs, Money, Calendar, My Circle
   - "More" dropdown for History and future items
@@ -474,5 +474,5 @@ This refactor successfully transforms Ensemble from a sidebar-based layout to a 
 - ✅ Keeps business logic unchanged
 - ✅ Zero breaking changes to data or routes
 
-The app now feels more like a friendly tool and less like a technical admin panel, which aligns perfectly with the goal of creating a "gig brain" for working musicians.
+The app now feels more like a friendly tool and less like a technical admin panel, which aligns perfectly with the goal of creating an OS for working musicians.
 

@@ -312,7 +312,7 @@ import { supabase } from '../supabase'; // RN client
 
 1. **Initialize Expo project**
    ```bash
-   npx create-expo-app gig-brain-mobile --template blank-typescript
+   npx create-expo-app gigmaster-mobile --template blank-typescript
    ```
 
 2. **Install dependencies**
