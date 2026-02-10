@@ -105,6 +105,18 @@ export async function updateGigStatus(gigId: string, status: GigStatus): Promise
             });
           }
           
+          // Notify on tentative status
+          if (status === 'tentative') {
+            await createNotification({
+              user_id: role.musician_id,
+              type: 'gig_updated',
+              title: `Gig tentative: ${gig.title}`,
+              message: 'This gig has been marked as tentative',
+              link: `/gigs/${gigId}/pack`,
+              gig_id: gigId,
+            });
+          }
+
           // Notify on cancelled status
           if (status === 'cancelled') {
             await createNotification({

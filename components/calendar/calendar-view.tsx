@@ -73,7 +73,10 @@ export function CalendarView() {
     (gig: DashboardGig, rect: DOMRect) => {
       setQuickCreate(null);
       setPlaceholder(null);
-      setSelectedGig({ gig, rect });
+      // Toggle: click same event again to close
+      setSelectedGig((prev) =>
+        prev && prev.gig.gigId === gig.gigId ? null : { gig, rect }
+      );
     },
     []
   );

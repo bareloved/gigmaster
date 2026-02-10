@@ -78,6 +78,11 @@ export async function GET(
     return NextResponse.json({ error: "Gig not found" }, { status: 404 });
   }
 
+  // Trashed gigs should not be accessible via the public share endpoint
+  if (gig.deleted_at) {
+    return NextResponse.json({ error: "Gig not found" }, { status: 404 });
+  }
+
   // Map to GigPack type (same mapping as getGigPackFull)
   const gigPack: GigPack = {
     id: gig.id,

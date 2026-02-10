@@ -159,24 +159,16 @@ const { data } = useQuery({
 });
 ```
 
-### Radix Dropdowns - Page Shift Fix (modal={false})
+### Radix Overlays - Page Shift Fix (modal={false})
 
-**Problem:** Radix UI's `DropdownMenu` defaults to `modal={true}`, which adds `overflow: hidden` to the body when opened. This removes the scrollbar and shifts the entire page left by ~15px.
+**Problem:** Radix UI modal overlays add `overflow: hidden` to the body, removing the scrollbar and shifting the page ~15px left. `scrollbar-gutter: stable` conflicts with Radix's scroll-lock compensation, making it worse.
 
-**Solution:** Our `components/ui/dropdown-menu.tsx` wrapper defaults `modal` to `false`. This is already handled — just use `<DropdownMenu>` normally and it won't shift the page.
+**Solution:** Our wrappers for `Dialog`, `Sheet`, and `DropdownMenu` default `modal` to `false`, which disables scroll locking entirely — no shift. Two supporting changes make this work:
 
-```typescript
-// ✅ Already handled by our wrapper — no extra props needed
-<DropdownMenu>
-  <DropdownMenuTrigger>...</DropdownMenuTrigger>
-  <DropdownMenuContent>...</DropdownMenuContent>
-</DropdownMenu>
+1. **`onInteractOutside` prevention** on `DialogContent`/`SheetContent` — prevents the "opens then instantly closes" bug when triggered from a DropdownMenu
+2. **Overlay wrapped in `Close`** — clicking the dark backdrop still dismisses the dialog/sheet
 
-// ⚠️ Only if you explicitly NEED scroll-lock (rare):
-<DropdownMenu modal={true}>
-```
-
-**Note:** If you add other Radix overlay components (Popover, etc.) and notice the same shift, apply the same `modal={false}` pattern to their wrappers in `components/ui/`.
+Do NOT add `scrollbar-gutter: stable` to `globals.css` — it conflicts with Radix's scroll-lock library.
 
 ### Row Level Security (RLS)
 

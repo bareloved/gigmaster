@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
-import type { GigInsert, GigUpdate } from "@/lib/types/shared";
+import type { GigInsert, GigUpdate, TrashedGig } from "@/lib/types/shared";
+import { daysUntilPermanentDeletion } from "@/lib/types/shared";
 import { createNotification } from "./notifications";
 
 export async function createGig(data: Omit<GigInsert, "id" | "created_at" | "updated_at" | "owner_id">) {
@@ -66,7 +67,7 @@ export async function updateGig(gigId: string, data: GigUpdate) {
 export async function deleteGig(gigId: string) {
   const supabase = createClient();
 
-  // Get gig details and invited musicians before deletion
+  // Get gig details and invited musicians before soft-deleting
   const { data: gig } = await supabase
     .from("gigs")
     .select(`
@@ -78,10 +79,10 @@ export async function deleteGig(gigId: string) {
       )
     `)
     .eq("id", gigId)
-    .neq("gig_roles.invitation_status", "pending") // Only notify invited musicians (not pending)
+    .neq("gig_roles.invitation_status", "pending")
     .single();
 
-  // Notify all invited musicians before deleting
+  // Notify all invited musicians
   if (gig) {
     const roles = gig.gig_roles as Array<{ id: string; musician_id: string | null }>;
     if (roles && roles.length > 0) {
@@ -99,11 +100,68 @@ export async function deleteGig(gigId: string) {
     }
   }
 
+  // Soft-delete: stamp with deleted_at instead of removing the row
+  const { error } = await supabase
+    .from("gigs")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", gigId);
+
+  if (error) throw new Error(error.message || "Failed to delete gig");
+}
+
+export async function restoreGig(gigId: string) {
+  const supabase = createClient();
+
+  const { error } = await supabase
+    .from("gigs")
+    .update({ deleted_at: null })
+    .eq("id", gigId)
+    .not("deleted_at", "is", null); // Only restore trashed gigs
+
+  if (error) throw new Error(error.message || "Failed to restore gig");
+}
+
+export async function permanentDeleteGig(gigId: string) {
+  const supabase = createClient();
+
+  // Safety: only allow permanent deletion of already-trashed gigs
+  const { data: gig } = await supabase
+    .from("gigs")
+    .select("deleted_at")
+    .eq("id", gigId)
+    .single();
+
+  if (!gig?.deleted_at) {
+    throw new Error("Only trashed gigs can be permanently deleted");
+  }
+
   const { error } = await supabase
     .from("gigs")
     .delete()
     .eq("id", gigId);
 
-  if (error) throw new Error(error.message || "Failed to delete gig");
+  if (error) throw new Error(error.message || "Failed to permanently delete gig");
+}
+
+export async function listTrashedGigs(): Promise<TrashedGig[]> {
+  const supabase = createClient();
+
+  const { data, error } = await supabase
+    .from("gigs")
+    .select("id, title, date, location_name, band_name, deleted_at")
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+
+  if (error) throw new Error(error.message || "Failed to fetch trashed gigs");
+
+  return (data || []).map((gig) => ({
+    id: gig.id,
+    title: gig.title,
+    date: gig.date,
+    locationName: gig.location_name,
+    bandName: gig.band_name,
+    deletedAt: gig.deleted_at!,
+    daysRemaining: daysUntilPermanentDeletion(gig.deleted_at!),
+  }));
 }
 

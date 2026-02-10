@@ -91,7 +91,6 @@
   html {
     font-size: 106.25%; /* 17px base instead of 16px — scales all rem-based text up */
     overflow-x: clip;
-    scrollbar-gutter: stable;
   }
 
   body {

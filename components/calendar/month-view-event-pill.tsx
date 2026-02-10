@@ -17,6 +17,7 @@ export function MonthViewEventPill({ gig, color, onClick }: MonthViewEventPillPr
 
   return (
     <button
+      data-calendar-event
       className="flex items-center gap-1.5 w-full rounded px-1.5 py-2 text-left hover:opacity-80 cursor-pointer"
       style={{ backgroundColor: eventBgColor(color, isDark) }}
       onMouseEnter={(e) => startMarquee(e.currentTarget)}

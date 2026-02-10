@@ -10,38 +10,35 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-interface DeleteGigDialogProps {
+interface PermanentDeleteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   gigTitle: string;
   onConfirm: () => void | Promise<void>;
 }
 
-export function DeleteGigDialog({
+export function PermanentDeleteDialog({
   open,
   onOpenChange,
   gigTitle,
   onConfirm,
-}: DeleteGigDialogProps) {
+}: PermanentDeleteDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Move to Trash</DialogTitle>
+          <DialogTitle>Delete Forever</DialogTitle>
           <DialogDescription>
-            &quot;{gigTitle}&quot; will be moved to trash and can be restored
-            within 30 days. After that, it will be permanently deleted.
+            Are you sure you want to permanently delete &quot;{gigTitle}&quot;?
+            This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button
-            variant="destructive"
-            onClick={onConfirm}
-          >
-            Move to Trash
+          <Button variant="destructive" onClick={onConfirm}>
+            Delete Forever
           </Button>
         </DialogFooter>
       </DialogContent>

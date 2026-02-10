@@ -6,273 +6,138 @@ import {
   declineInvitation,
   updateGigStatus,
 } from "@/lib/api/gig-actions";
-import { deleteGig } from "@/lib/api/gigs";
+import { deleteGig, restoreGig, permanentDeleteGig } from "@/lib/api/gigs";
 import { saveGigPack } from "@/app/(app)/gigs/actions";
-import type { DashboardGig } from "@/lib/types/shared";
 import type { GigPack } from "@/lib/gigpack/types";
 
+// ============================================
+// CENTRALIZED INVALIDATION HELPERS
+// ============================================
+
 /**
- * Shared mutation hooks for gig actions
- * Provides optimistic updates and SURGICAL cache invalidation
+ * Invalidate all gig list queries across every view.
  *
- * PERFORMANCE: Each mutation only invalidates the queries it actually affects.
- * Optimistic updates handle immediate UI feedback, so we only need to refresh
- * the data that the server might have changed.
+ * Uses `predicate` with `queryKey[0]` matching so it works regardless of how
+ * many extra segments the key has (e.g. ["dashboard-gigs", userId, date1, date2]).
  */
-
-// ============================================
-// SURGICAL INVALIDATION FUNCTIONS
-// ============================================
-
-/**
- * For invitation mutations (acceptInvitation/declineInvitation)
- * Only refreshes KPIs (pending invitation count) - optimistic update handles gig list UI
- */
-function invalidateInvitationQueries(
+function invalidateAllGigListQueries(
   queryClient: ReturnType<typeof useQueryClient>,
   userId?: string
 ) {
-  // Refresh KPIs to update pending invitation count
+  const listKeys = ["dashboard-gigs", "all-gigs", "calendar-gigs", "trashed-gigs"];
+  for (const key of listKeys) {
+    queryClient.invalidateQueries({
+      predicate: (query) =>
+        query.queryKey[0] === key &&
+        (userId == null || query.queryKey[1] === userId),
+    });
+  }
   queryClient.invalidateQueries({
     queryKey: ["dashboard-kpis", userId],
-    refetchType: 'active'
   });
 }
 
 /**
- * For gig status mutations (updateGigStatus)
- * Minimal invalidation - optimistic update handles everything
+ * Invalidate detail-level queries for a specific gig.
  */
-function invalidateGigStatusQueries(
+function invalidateGigDetailQueries(
   queryClient: ReturnType<typeof useQueryClient>,
   gigId: string
 ) {
-  // Only refresh the specific gig detail if it's being viewed
-  queryClient.invalidateQueries({
-    queryKey: ["gig", gigId],
-    refetchType: 'active'
-  });
+  queryClient.invalidateQueries({ queryKey: ["gig", gigId] });
+  queryClient.invalidateQueries({ queryKey: ["gig-pack-full", gigId] });
+  queryClient.invalidateQueries({ queryKey: ["gig-editor", gigId] });
 }
 
+// ============================================
+// REUSABLE HOOK FOR RAW API CALLERS
+// ============================================
+
 /**
- * For gig save mutations (create/update)
- * SURGICAL: Only refreshes gig lists and specific gig detail
- *
- * NOT invalidated (optimistic update handles these, or not affected):
- * - recent-past-gigs/all-past-gigs: new gigs are future, edits rarely move to past
- *
- * NOTE: We use refetchQueries instead of invalidateQueries to force immediate
- * data refresh. invalidateQueries only marks cache as stale and waits for next
- * opportunity to refetch, which doesn't work when editing from a Sheet overlay
- * (the background query becomes "inactive").
+ * Hook that exposes the centralized invalidation helpers.
+ * Use this in components that call Supabase directly (e.g. calendar quick-create)
+ * so they can invalidate the same set of queries the mutation hooks do.
  */
-async function invalidateGigSaveQueries(
-  queryClient: ReturnType<typeof useQueryClient>,
-  userId?: string,
-  gigId?: string,
-  isEditing?: boolean
-) {
-  // Force immediate refresh of gig lists (not just mark stale)
-  await Promise.all([
-    queryClient.refetchQueries({
-      queryKey: ["dashboard-gigs", userId],
-      type: 'active',
-    }),
-    queryClient.refetchQueries({
-      queryKey: ["all-gigs", userId],
-      type: 'active',
-    }),
-  ]);
+export function useInvalidateGigQueries() {
+  const queryClient = useQueryClient();
+  const { user } = useUser();
 
-  // Refresh the specific gig detail view, pack view, and editor cache
-  if (gigId) {
-    queryClient.invalidateQueries({
-      queryKey: ["gig", gigId],
-    });
-    queryClient.invalidateQueries({
-      queryKey: ["gig-pack-full", gigId],
-    });
-    // Also invalidate the gig-editor cache used by /gigs page sheet
-    queryClient.invalidateQueries({
-      queryKey: ["gig-editor", gigId],
-    });
-  }
-
-  // For new gigs: refresh KPIs (gig count may have changed)
-  if (!isEditing) {
-    queryClient.invalidateQueries({
-      queryKey: ["dashboard-kpis", userId],
-    });
-  }
+  return {
+    invalidateAll: () => invalidateAllGigListQueries(queryClient, user?.id),
+    invalidateDetail: (gigId: string) =>
+      invalidateGigDetailQueries(queryClient, gigId),
+  };
 }
 
 // ============================================
 // MUTATION HOOKS
 // ============================================
 
-/**
- * Hook for accepting a gig invitation
- * Includes optimistic update for instant UI feedback
- */
+/** Accept a gig invitation */
 export function useAcceptInvitation() {
   const queryClient = useQueryClient();
   const { user } = useUser();
 
   return useMutation({
     mutationFn: acceptInvitation,
-    onMutate: async (gigRoleId) => {
-      await queryClient.cancelQueries({ queryKey: ["dashboard-gigs", user?.id] });
-
-      const previousGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
-        ["dashboard-gigs", user?.id]
-      );
-
-      if (previousGigs) {
-        queryClient.setQueryData(
-          ["dashboard-gigs", user?.id],
-          {
-            ...previousGigs,
-            pages: previousGigs.pages.map(page => ({
-              ...page,
-              gigs: page.gigs.map(gig =>
-                gig.playerGigRoleId === gigRoleId
-                  ? { ...gig, invitationStatus: "accepted" as const }
-                  : gig
-              ),
-            })),
-          }
-        );
-      }
-
-      return { previousGigs };
-    },
     onSuccess: () => {
-      // SURGICAL: Only refresh KPIs (pending invitation count)
-      invalidateInvitationQueries(queryClient, user?.id);
+      invalidateAllGigListQueries(queryClient, user?.id);
       toast.success("Invitation accepted");
     },
-    onError: (error: Error, variables, context) => {
-      if (context?.previousGigs) {
-        queryClient.setQueryData(
-          ["dashboard-gigs", user?.id],
-          context.previousGigs
-        );
-      }
+    onError: (error: Error) => {
       toast.error(`Failed to accept invitation: ${error.message}`);
     },
   });
 }
 
-/**
- * Hook for declining a gig invitation
- * Includes optimistic update for instant UI feedback
- */
+/** Decline a gig invitation */
 export function useDeclineInvitation() {
   const queryClient = useQueryClient();
   const { user } = useUser();
 
   return useMutation({
     mutationFn: declineInvitation,
-    onMutate: async (gigRoleId) => {
-      await queryClient.cancelQueries({ queryKey: ["dashboard-gigs", user?.id] });
-
-      const previousGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
-        ["dashboard-gigs", user?.id]
-      );
-
-      if (previousGigs) {
-        queryClient.setQueryData(
-          ["dashboard-gigs", user?.id],
-          {
-            ...previousGigs,
-            pages: previousGigs.pages.map(page => ({
-              ...page,
-              gigs: page.gigs.map(gig =>
-                gig.playerGigRoleId === gigRoleId
-                  ? { ...gig, invitationStatus: "declined" as const }
-                  : gig
-              ),
-            })),
-          }
-        );
-      }
-
-      return { previousGigs };
-    },
     onSuccess: () => {
-      // SURGICAL: Only refresh KPIs (pending invitation count)
-      invalidateInvitationQueries(queryClient, user?.id);
+      invalidateAllGigListQueries(queryClient, user?.id);
       toast.success("Invitation declined");
     },
-    onError: (error: Error, variables, context) => {
-      if (context?.previousGigs) {
-        queryClient.setQueryData(
-          ["dashboard-gigs", user?.id],
-          context.previousGigs
-        );
-      }
+    onError: (error: Error) => {
       toast.error(`Failed to decline invitation: ${error.message}`);
     },
   });
 }
 
-/**
- * Hook for updating gig status
- * Includes optimistic update for instant UI feedback
- */
+/** Update a gig's status (confirmed / tentative / cancelled) */
 export function useUpdateGigStatus() {
   const queryClient = useQueryClient();
   const { user } = useUser();
 
   return useMutation({
-    mutationFn: ({ gigId, status }: { gigId: string; status: "draft" | "confirmed" | "cancelled" | "completed" }) =>
-      updateGigStatus(gigId, status),
-    onMutate: async ({ gigId, status }) => {
-      await queryClient.cancelQueries({ queryKey: ["dashboard-gigs", user?.id] });
-
-      const previousGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
-        ["dashboard-gigs", user?.id]
-      );
-
-      if (previousGigs) {
-        queryClient.setQueryData(
-          ["dashboard-gigs", user?.id],
-          {
-            ...previousGigs,
-            pages: previousGigs.pages.map(page => ({
-              ...page,
-              gigs: page.gigs.map(gig =>
-                gig.gigId === gigId
-                  ? { ...gig, status }
-                  : gig
-              ),
-            })),
-          }
-        );
-      }
-
-      return { previousGigs, gigId };
-    },
+    mutationFn: ({
+      gigId,
+      status,
+    }: {
+      gigId: string;
+      status: "confirmed" | "tentative" | "cancelled";
+    }) => updateGigStatus(gigId, status),
     onSuccess: (_, { gigId }) => {
-      // SURGICAL: Only refresh the specific gig detail view
-      invalidateGigStatusQueries(queryClient, gigId);
+      invalidateAllGigListQueries(queryClient, user?.id);
+      invalidateGigDetailQueries(queryClient, gigId);
       toast.success("Gig status updated");
     },
-    onError: (error: Error, variables, context) => {
-      if (context?.previousGigs) {
-        queryClient.setQueryData(
-          ["dashboard-gigs", user?.id],
-          context.previousGigs
-        );
-      }
+    onError: (error: Error) => {
       toast.error(`Failed to update status: ${error.message}`);
     },
   });
 }
 
 /**
- * Hook for creating or updating a gig pack
- * Includes optimistic updates for instant UI feedback
+ * Create or update a gig pack.
+ *
+ * NOTE: We use refetchQueries for list queries instead of invalidateQueries.
+ * invalidateQueries marks cache as stale but only refetches "active" queries.
+ * When editing from a Sheet overlay the background list query becomes inactive,
+ * so invalidate alone won't refresh it. refetchQueries forces the refresh.
  */
 export function useSaveGigPack() {
   const queryClient = useQueryClient();
@@ -282,168 +147,47 @@ export function useSaveGigPack() {
     mutationFn: ({
       data,
       isEditing,
-      gigId
+      gigId,
     }: {
       data: Partial<GigPack>;
       isEditing: boolean;
       gigId?: string;
     }) => saveGigPack(data, isEditing, gigId),
 
-    onMutate: async ({ data, isEditing, gigId }) => {
-      // Cancel outgoing refetches to avoid overwriting optimistic update
-      await queryClient.cancelQueries({ queryKey: ["dashboard-gigs", user?.id] });
-      await queryClient.cancelQueries({ queryKey: ["all-gigs", user?.id] });
-
-      // Snapshot previous values for rollback
-      const previousDashboardGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
-        ["dashboard-gigs", user?.id]
-      );
-      const previousAllGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
-        ["all-gigs", user?.id]
-      );
-
-      // Create optimistic DashboardGig entry
-      const optimisticGig: DashboardGig = {
-        gigId: gigId || `temp-${Date.now()}`, // Temp ID for new gigs
-        gigTitle: data.title || "New Gig",
-        date: data.date || new Date().toISOString().split("T")[0],
-        startTime: data.on_stage_time || data.call_time || null,
-        endTime: null,
-        callTime: data.call_time || null,
-        locationName: data.venue_name || null,
-        status: data.status || "draft",
-        isManager: true,
-        isPlayer: false,
-        hostId: user?.id || null,
-        hostName: user?.user_metadata?.full_name || user?.email || null,
-        heroImageUrl: data.hero_image_url || null,
-        gigType: data.gig_type || null,
-        roleStats: null,
-      };
-
-      if (isEditing && gigId) {
-        // For edits: update existing gig in cache
-        const updateGigInPages = (pages: Array<{ gigs: DashboardGig[] }> | undefined) => {
-          if (!pages) return pages;
-          return pages.map(page => ({
-            ...page,
-            gigs: page.gigs.map(gig =>
-              gig.gigId === gigId
-                ? { ...gig, ...optimisticGig, gigId } // Keep real ID
-                : gig
-            ),
-          }));
-        };
-
-        if (previousDashboardGigs) {
-          queryClient.setQueryData(
-            ["dashboard-gigs", user?.id],
-            { ...previousDashboardGigs, pages: updateGigInPages(previousDashboardGigs.pages) }
-          );
-        }
-        if (previousAllGigs) {
-          queryClient.setQueryData(
-            ["all-gigs", user?.id],
-            { ...previousAllGigs, pages: updateGigInPages(previousAllGigs.pages) }
-          );
-        }
-      } else {
-        // For new gigs: add to the beginning of the list
-        if (previousAllGigs?.pages?.[0]) {
-          queryClient.setQueryData(
-            ["all-gigs", user?.id],
-            {
-              ...previousAllGigs,
-              pages: [
-                {
-                  ...previousAllGigs.pages[0],
-                  gigs: [optimisticGig, ...previousAllGigs.pages[0].gigs],
-                },
-                ...previousAllGigs.pages.slice(1),
-              ],
-            }
-          );
-        }
-
-        // Also add to dashboard if date is within dashboard range
-        if (previousDashboardGigs?.pages?.[0]) {
-          queryClient.setQueryData(
-            ["dashboard-gigs", user?.id],
-            {
-              ...previousDashboardGigs,
-              pages: [
-                {
-                  ...previousDashboardGigs.pages[0],
-                  gigs: [optimisticGig, ...previousDashboardGigs.pages[0].gigs],
-                },
-                ...previousDashboardGigs.pages.slice(1),
-              ],
-            }
-          );
-        }
-      }
-
-      return { previousDashboardGigs, previousAllGigs };
-    },
-
     onSuccess: (result, variables) => {
-      // SURGICAL invalidation - only refresh what's needed
-      invalidateGigSaveQueries(
-        queryClient,
-        user?.id,
-        result?.id || variables.gigId,
+      const gigId = result?.id || variables.gigId;
+
+      // Force-refetch list queries (may be inactive behind Sheet overlay)
+      const listKeys = ["dashboard-gigs", "all-gigs", "calendar-gigs"];
+      for (const key of listKeys) {
+        queryClient.refetchQueries({
+          predicate: (query) =>
+            query.queryKey[0] === key &&
+            (user?.id == null || query.queryKey[1] === user.id),
+        });
+      }
+      queryClient.invalidateQueries({
+        queryKey: ["dashboard-kpis", user?.id],
+      });
+
+      if (gigId) {
+        invalidateGigDetailQueries(queryClient, gigId);
+      }
+
+      toast.success(
         variables.isEditing
+          ? "Gig updated successfully"
+          : "Gig created successfully"
       );
-      toast.success(variables.isEditing ? "Gig updated successfully" : "Gig created successfully");
     },
 
-    onError: (error: Error, variables, context) => {
-      // Rollback to previous state on error
-      if (context?.previousDashboardGigs) {
-        queryClient.setQueryData(
-          ["dashboard-gigs", user?.id],
-          context.previousDashboardGigs
-        );
-      }
-      if (context?.previousAllGigs) {
-        queryClient.setQueryData(
-          ["all-gigs", user?.id],
-          context.previousAllGigs
-        );
-      }
+    onError: (error: Error) => {
       toast.error(`Failed to save gig: ${error.message}`);
     },
   });
 }
 
-/**
- * For gig deletion and duplication
- * Invalidates all gig lists and KPIs
- */
-function invalidateGigListQueries(
-  queryClient: ReturnType<typeof useQueryClient>,
-  userId?: string
-) {
-  // Refresh all gig lists
-  queryClient.invalidateQueries({
-    queryKey: ["dashboard-gigs", userId],
-    refetchType: 'active'
-  });
-  queryClient.invalidateQueries({
-    queryKey: ["all-gigs", userId],
-    refetchType: 'active'
-  });
-  // Refresh KPIs (gig count changed)
-  queryClient.invalidateQueries({
-    queryKey: ["dashboard-kpis", userId],
-    refetchType: 'active'
-  });
-}
-
-/**
- * Hook for deleting a gig
- * Includes optimistic update for instant UI feedback
- */
+/** Delete a gig (cancels Google Calendar events first) */
 export function useDeleteGig() {
   const queryClient = useQueryClient();
   const { user } = useUser();
@@ -465,63 +209,46 @@ export function useDeleteGig() {
 
       return deleteGig(gigId);
     },
-    onMutate: async (gigId) => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ["dashboard-gigs", user?.id] });
-      await queryClient.cancelQueries({ queryKey: ["all-gigs", user?.id] });
-
-      // Snapshot previous values
-      const previousDashboardGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
-        ["dashboard-gigs", user?.id]
-      );
-      const previousAllGigs = queryClient.getQueryData<{ pages: Array<{ gigs: DashboardGig[] }> }>(
-        ["all-gigs", user?.id]
-      );
-
-      // Optimistically remove the gig from lists
-      const removeGigFromPages = (pages: Array<{ gigs: DashboardGig[] }> | undefined) => {
-        if (!pages) return pages;
-        return pages.map(page => ({
-          ...page,
-          gigs: page.gigs.filter(gig => gig.gigId !== gigId),
-        }));
-      };
-
-      if (previousDashboardGigs) {
-        queryClient.setQueryData(
-          ["dashboard-gigs", user?.id],
-          { ...previousDashboardGigs, pages: removeGigFromPages(previousDashboardGigs.pages) }
-        );
-      }
-      if (previousAllGigs) {
-        queryClient.setQueryData(
-          ["all-gigs", user?.id],
-          { ...previousAllGigs, pages: removeGigFromPages(previousAllGigs.pages) }
-        );
-      }
-
-      return { previousDashboardGigs, previousAllGigs };
-    },
     onSuccess: () => {
-      invalidateGigListQueries(queryClient, user?.id);
-      toast.success("Gig deleted successfully");
+      invalidateAllGigListQueries(queryClient, user?.id);
+      toast.success("Gig moved to trash");
     },
-    onError: (error: Error, variables, context) => {
-      // Rollback on error
-      if (context?.previousDashboardGigs) {
-        queryClient.setQueryData(
-          ["dashboard-gigs", user?.id],
-          context.previousDashboardGigs
-        );
-      }
-      if (context?.previousAllGigs) {
-        queryClient.setQueryData(
-          ["all-gigs", user?.id],
-          context.previousAllGigs
-        );
-      }
+    onError: (error: Error) => {
       toast.error(`Failed to delete gig: ${error.message}`);
     },
   });
 }
 
+/** Restore a gig from trash */
+export function useRestoreGig() {
+  const queryClient = useQueryClient();
+  const { user } = useUser();
+
+  return useMutation({
+    mutationFn: (gigId: string) => restoreGig(gigId),
+    onSuccess: () => {
+      invalidateAllGigListQueries(queryClient, user?.id);
+      toast.success("Gig restored");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to restore gig: ${error.message}`);
+    },
+  });
+}
+
+/** Permanently delete a gig (cannot be undone) */
+export function usePermanentDeleteGig() {
+  const queryClient = useQueryClient();
+  const { user } = useUser();
+
+  return useMutation({
+    mutationFn: (gigId: string) => permanentDeleteGig(gigId),
+    onSuccess: () => {
+      invalidateAllGigListQueries(queryClient, user?.id);
+      toast.success("Gig permanently deleted");
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to permanently delete gig: ${error.message}`);
+    },
+  });
+}

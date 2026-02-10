@@ -708,6 +708,7 @@ export type Database = {
           created_at: string | null
           currency: string | null
           date: string
+          deleted_at: string | null
           dress_code: string | null
           end_time: string | null
           external_calendar_event_id: string | null
@@ -752,6 +753,7 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           date: string
+          deleted_at?: string | null
           dress_code?: string | null
           end_time?: string | null
           external_calendar_event_id?: string | null
@@ -796,6 +798,7 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           date?: string
+          deleted_at?: string | null
           dress_code?: string | null
           end_time?: string | null
           external_calendar_event_id?: string | null

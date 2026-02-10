@@ -12,11 +12,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Calendar, MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Trash2, CalendarSync, Copy } from "lucide-react";
+import { Calendar, MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUser } from "@/lib/providers/user-provider";
@@ -79,7 +78,7 @@ const GigInnerContent = memo(function GigInnerContent({ gig, formattedDate }: { 
               <span className={`sm:hidden inline-block w-2 h-2 rounded-full ${
                 gig.status === 'confirmed' ? 'bg-green-500' :
                 gig.status === 'cancelled' ? 'bg-red-500' :
-                gig.status === 'completed' ? 'bg-blue-500' :
+                gig.status === 'tentative' ? 'bg-amber-500' :
                 'bg-yellow-500'
               }`} />
               <div className="hidden sm:block">
@@ -354,9 +353,7 @@ export function DashboardGigItem({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenuLabel>Quick Actions</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-
+                    {/* Group 1: Invitation Actions */}
                     {showInvitationActions && (
                       <>
                         <DropdownMenuItem onClick={handleAcceptInvitation}>
@@ -378,30 +375,36 @@ export function DashboardGigItem({
                     )}
 
                     {/* Separator between player and manager actions */}
-                    {showPlayerActions && showManagerActions && <DropdownMenuSeparator />}
+                    {(showInvitationActions || showWithdrawAction) && showManagerActions && <DropdownMenuSeparator />}
 
-                    {/* Manager Actions */}
+                    {/* Group 2: Status Actions */}
                     {showManagerActions && (
                       <>
                         {gig.status !== "confirmed" && (
                           <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ gigId: gig.gigId, status: "confirmed" })}>
+                            <CircleCheck className="h-4 w-4 mr-2" />
                             Confirm Gig
+                          </DropdownMenuItem>
+                        )}
+                        {gig.status !== "tentative" && (
+                          <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ gigId: gig.gigId, status: "tentative" })}>
+                            <CircleDashed className="h-4 w-4 mr-2" />
+                            Mark as Tentative
                           </DropdownMenuItem>
                         )}
                         {gig.status !== "cancelled" && (
                           <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ gigId: gig.gigId, status: "cancelled" })}>
+                            <CircleX className="h-4 w-4 mr-2" />
                             Cancel Gig
                           </DropdownMenuItem>
                         )}
-                        {gig.status !== "completed" && (
-                          <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ gigId: gig.gigId, status: "completed" })}>
-                            Mark as Completed
-                          </DropdownMenuItem>
-                        )}
+                        {/* Group 3: Duplicate */}
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => router.push(`/gigs/new?duplicate=${gig.gigId}`)}>
                           <Copy className="h-4 w-4 mr-2" />
                           Duplicate Gig
                         </DropdownMenuItem>
+                        {/* Group 4: Destructive */}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => setDeleteDialogOpen(true)}

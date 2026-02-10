@@ -408,7 +408,7 @@ export default function DashboardPage() {
 
                   {/* Right: Status badges */}
                   <div className="flex items-center gap-2 [&_div]:px-2 [&_div]:py-0.5 [&_div]:text-[10px] [&_div]:border [&_div]:rounded-md">
-                    <GigStatusBadge status={nextGig.status ?? 'draft'} />
+                    <GigStatusBadge status={nextGig.status ?? 'confirmed'} />
                   </div>
                 </div>
 
@@ -516,13 +516,13 @@ export default function DashboardPage() {
                                   <span className={`inline-block w-2 h-2 rounded-full ${
                                     gig.status === 'confirmed' ? 'bg-green-500' :
                                     gig.status === 'cancelled' ? 'bg-red-500' :
-                                    gig.status === 'completed' ? 'bg-blue-500' :
+                                    gig.status === 'tentative' ? 'bg-amber-500' :
                                     'bg-yellow-500'
                                   }`} />
                                 </div>
                                 {/* Desktop: full badge */}
                                 <div className="hidden sm:block [&_div]:px-1.5 [&_div]:py-0 [&_div]:text-[9px] [&_div]:h-4 [&_div]:border [&_div]:rounded">
-                                  <GigStatusBadge status={gig.status ?? 'draft'} />
+                                  <GigStatusBadge status={gig.status ?? 'confirmed'} />
                                 </div>
                                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
                               </div>

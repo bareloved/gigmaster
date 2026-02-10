@@ -16,7 +16,9 @@ import {
   List,
   CalendarDays,
   History,
+  Trash2,
 } from "lucide-react";
+import Link from "next/link";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/providers/user-provider";
@@ -165,6 +167,9 @@ export default function AllGigsPage() {
           )
         `
         );
+
+      // Exclude trashed gigs
+      query = query.is("deleted_at", null);
 
       if (isUpcoming) {
         query = query.gte("date", today).order("date", { ascending: true });
@@ -320,8 +325,14 @@ export default function AllGigsPage() {
             Manage all your gigs in one place
           </p>
         </div>
-        {/* Upcoming / Previous Toggle - centered */}
+        {/* Upcoming / Previous / Trash Toggle - centered */}
         <div className="flex items-center gap-1 border rounded-md p-0.5 sm:p-1">
+          <Link href="/gigs/trash">
+            <Button variant="ghost" size="sm" className="h-7 sm:h-8 px-2 sm:px-2.5 text-muted-foreground">
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </Link>
+          <div className="w-px h-4 bg-border" />
           <Button
             variant={timeFilter === "previous" ? "secondary" : "ghost"}
             size="sm"

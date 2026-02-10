@@ -181,6 +181,7 @@ async function listDashboardGigsFallback(
     `)
     .gte("date", fromStr)
     .lte("date", toStr)
+    .is("deleted_at", null)
     .order("date", { ascending: true })
     .order("start_time", { ascending: true })
     .limit(100);
@@ -319,6 +320,7 @@ export async function listRecentPastGigs(
     `)
     .gte("date", fromStr)
     .lte("date", toStr)
+    .is("deleted_at", null)
     .order("date", { ascending: false })
     .order("start_time", { ascending: false })
     .limit(limit);
@@ -472,6 +474,7 @@ async function listAllPastGigsFallback(
       )
     `)
     .lt("date", todayStr)
+    .is("deleted_at", null)
     .order("date", { ascending: false })
     .order("start_time", { ascending: false })
     .limit(50);

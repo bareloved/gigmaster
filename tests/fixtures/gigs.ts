@@ -44,6 +44,7 @@ export const mockGig: Gig = {
   external_event_url: null,
   imported_from_calendar: false,
   is_external: false,
+  deleted_at: null,
   created_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-01T00:00:00Z",
 };

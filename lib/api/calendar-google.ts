@@ -163,12 +163,13 @@ export async function importCalendarEventAsGig(
 ): Promise<string> {
   const supabase = await createClient();
 
-  // Check for duplicate import
+  // Check for duplicate import (only match active gigs, not trashed ones)
   const { data: existing } = await supabase
     .from("gigs")
     .select("id")
     .eq("external_calendar_event_id", event.id)
     .eq("owner_id", userId)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (existing) {

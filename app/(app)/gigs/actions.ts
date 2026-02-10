@@ -558,7 +558,7 @@ export async function getGig(id: string): Promise<GigPack | null> {
     owner_id: gig.owner_id || "",
     owner_name: (gig.owner as GigOwnerProfile | null)?.name || null,
     title: gig.title,
-    status: gig.status || "draft",
+    status: gig.status || "confirmed",
     band_id: gig.band_id,
     band_name: gig.band_name,
     date: gig.date ? gig.date.split('T')[0] : null, // Extract date portion from ISO timestamp
@@ -711,6 +711,7 @@ async function saveGigPackRPC(
       setlist_pdf_url: data.setlist_pdf_url || null,
       internal_notes: data.internal_notes || null,
       payment_notes: data.payment_notes || null,
+      status: data.status || null,
     };
 
     // Single RPC call - everything happens server-side in one transaction

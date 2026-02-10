@@ -57,6 +57,7 @@ export function WeekViewEvent({
 
   return (
     <button
+      data-calendar-event
       className="absolute z-10 cursor-pointer overflow-hidden rounded-md border text-left transition-all hover:shadow-md"
       onMouseEnter={(e) => startMarquee(e.currentTarget)}
       onMouseLeave={(e) => stopMarquee(e.currentTarget)}

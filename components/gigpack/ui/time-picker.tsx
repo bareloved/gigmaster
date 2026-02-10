@@ -58,6 +58,8 @@ interface TimePickerProps {
   placeholder?: string
   disabled?: boolean
   className?: string
+  /** Extra classes for the PopoverContent (e.g. z-index overrides) */
+  contentClassName?: string
   name?: string
   id?: string
 }
@@ -68,6 +70,7 @@ export function TimePicker({
   placeholder = "--:--",
   disabled = false,
   className,
+  contentClassName,
   name,
   id,
 }: TimePickerProps) {
@@ -209,7 +212,7 @@ export function TimePicker({
         </div>
       </PopoverAnchor>
       <PopoverContent
-        className="w-[100px] p-0"
+        className={cn("w-[100px] p-0", contentClassName)}
         align="start"
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}
