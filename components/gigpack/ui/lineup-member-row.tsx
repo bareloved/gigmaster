@@ -106,7 +106,7 @@ export function LineupMemberRow({
       </div>
 
       {/* Role dropdown */}
-      <div className="shrink-0 w-28">
+      <div className="shrink-0 w-40">
         <RoleSelect
           value={role}
           onChange={onRoleChange}

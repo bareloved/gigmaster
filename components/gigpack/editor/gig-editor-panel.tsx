@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import dynamic from "next/dynamic";
 import {
   MoreHorizontal,
   Clock3,
@@ -28,7 +29,7 @@ import {
   Trash2,
   Check,
   ExternalLink,
-  Link as LinkIcon,
+  Download,
   FileText,
   FileUp,
   Shirt,
@@ -68,6 +69,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { PasteScheduleDialog } from "@/components/gigpack/dialogs/paste-schedule-dialog";
 import { SetlistPDFUpload } from "@/components/gigpack/shared/setlist-pdf-upload";
 import { GigPackTemplate, applyTemplateToFormDefaults } from "@/lib/gigpack/templates";
@@ -76,6 +83,15 @@ import { GigContactsManager, type PendingContact } from "@/components/gig-contac
 import { MaterialsEditor } from "@/components/gigpack/editor/materials-editor";
 import { createGigContact } from "@/lib/api/gig-contacts";
 import { EmailCollectionModal } from "@/components/gigs/email-collection-modal";
+import { toast as sonnerToast } from "sonner";
+import { CalendarInviteBanner } from "@/components/gigpack/ui/calendar-invite-banner";
+import { isHtmlSetlist, plainTextToHtml } from "@/lib/utils/setlist-html";
+import { exportSetlistPdf } from "@/lib/utils/setlist-pdf-export";
+
+const SetlistRichEditor = dynamic(
+  () => import("@/components/gigpack/editor/setlist-rich-editor"),
+  { ssr: false, loading: () => <div className="h-40 animate-pulse bg-muted/30 rounded" /> }
+);
 
 // ============================================================================
 // Types
@@ -131,6 +147,7 @@ interface TabItem {
   id: string;
   label: string;
   icon: React.ReactNode;
+  description?: string;
 }
 
 interface PanelTabsProps {
@@ -141,31 +158,46 @@ interface PanelTabsProps {
 
 function PanelTabs({ tabs, activeTab, onTabChange }: PanelTabsProps) {
   return (
-    <div className="flex items-center gap-1 border-b border-border overflow-x-auto justify-center">
-      {tabs.map((tab) => {
-        const isActive = activeTab === tab.id;
-        return (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => onTabChange(tab.id)}
-            className={cn(
-              "relative px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap",
-              "flex items-center gap-2",
-              isActive
-                ? "text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {tab.icon}
-            <span className={cn("sm:inline", isActive ? "inline" : "hidden")}>{tab.label}</span>
-            {isActive && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
-            )}
-          </button>
-        );
-      })}
-    </div>
+    <TooltipProvider delayDuration={400}>
+      <div className="flex items-center gap-1 border-b border-border overflow-x-auto justify-center">
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const tabButton = (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => onTabChange(tab.id)}
+              className={cn(
+                "relative px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap",
+                "flex items-center gap-2",
+                isActive
+                  ? "text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {tab.icon}
+              <span className={cn("sm:inline", isActive ? "inline" : "hidden")}>{tab.label}</span>
+              {isActive && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
+              )}
+            </button>
+          );
+
+          if (!tab.description) return tabButton;
+
+          return (
+            <Tooltip key={tab.id}>
+              <TooltipTrigger asChild>
+                {tabButton}
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[220px] text-center">
+                {tab.description}
+              </TooltipContent>
+            </Tooltip>
+          );
+        })}
+      </div>
+    </TooltipProvider>
   );
 }
 
@@ -334,6 +366,13 @@ export function GigEditorPanel({
   // Date picker popover state
   const [datePickerOpen, setDatePickerOpen] = useState(false);
 
+  // Prevent tooltip from firing while the sheet slides in
+  const [tooltipReady, setTooltipReady] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setTooltipReady(true), 700);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Paste Schedule dialog state
   const [pasteScheduleOpen, setPasteScheduleOpen] = useState(false);
 
@@ -366,11 +405,14 @@ export function GigEditorPanel({
   const [lineup, setLineup] = useState<LineupMember[]>(
     gigPack?.lineup || []
   );
-  // Simplified setlist: plain text instead of structured JSON
-  const [setlistText, setSetlistText] = useState(gigPack?.setlist || "");
+  // Setlist stored as HTML (rich text) — convert legacy plain text on load
+  const [setlistText, setSetlistText] = useState(() => {
+    const raw = gigPack?.setlist || "";
+    return raw && !isHtmlSetlist(raw) ? plainTextToHtml(raw) : raw;
+  });
   const [setlistPdfUrl, setSetlistPdfUrl] = useState<string | null>(gigPack?.setlist_pdf_url || null);
   const [setlistMode, setSetlistMode] = useState<"type" | "pdf">(
-    gigPack?.setlist_pdf_url ? "pdf" : "type"
+    gigPack?.setlist ? "type" : "pdf"
   );
   const [dressCode, setDressCode] = useState(gigPack?.dress_code || "");
   const [backlineNotes, setBacklineNotes] = useState(gigPack?.backline_notes || "");
@@ -414,6 +456,12 @@ export function GigEditorPanel({
   // Pending contacts state (for new gigs before saving)
   const [pendingContacts, setPendingContacts] = useState<PendingContact[]>([]);
 
+  // Ref to paper element for PDF export
+  const setlistPaperRef = useRef<HTMLDivElement>(null);
+
+  // Calendar invite nudge (show once per session)
+  const calendarNudgeShown = useRef(false);
+
   // Calendar invitation state
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [missingEmails, setMissingEmails] = useState<Array<{id: string; name: string; role: string | null}>>([]);
@@ -439,9 +487,10 @@ export function GigEditorPanel({
       setVenueAddress(gigPack.venue_address || "");
       setVenueMapsUrl(gigPack.venue_maps_url || "");
       setLineup(gigPack.lineup || []);
-      setSetlistText(gigPack.setlist || "");
+      const rawSetlist = gigPack.setlist || "";
+      setSetlistText(rawSetlist && !isHtmlSetlist(rawSetlist) ? plainTextToHtml(rawSetlist) : rawSetlist);
       setSetlistPdfUrl(gigPack.setlist_pdf_url || null);
-      setSetlistMode(gigPack.setlist_pdf_url ? "pdf" : "type");
+      setSetlistMode(gigPack.setlist ? "type" : "pdf");
       setDressCode(gigPack.dress_code || "");
       setBacklineNotes(gigPack.backline_notes || "");
       setParkingNotes(gigPack.parking_notes || "");
@@ -504,7 +553,7 @@ export function GigEditorPanel({
     setLineup([]);
     setSetlistText("");
     setSetlistPdfUrl(null);
-    setSetlistMode("type");
+    setSetlistMode("pdf");
     setDressCode("");
     setBacklineNotes("");
     setParkingNotes("");
@@ -1011,17 +1060,6 @@ export function GigEditorPanel({
     }
   };
 
-  // Public link handlers
-  const copyPublicLink = () => {
-    if (!gigPack) return;
-    const url = `${window.location.origin}/p/${gigPack.public_slug}`;
-    navigator.clipboard.writeText(url);
-    toast({
-      title: tCommon("copied"),
-      description: tCommon("readyToShare"),
-      duration: 2000,
-    });
-  };
 
   const openPublicView = () => {
     if (!gigPack) return;
@@ -1128,6 +1166,17 @@ export function GigEditorPanel({
 
       if (!connection?.write_access || !connection?.send_invites_enabled) {
         console.log("[Calendar Invites] Not enabled");
+        // Show a one-time nudge toast
+        if (!calendarNudgeShown.current) {
+          calendarNudgeShown.current = true;
+          sonnerToast("Tip: Send Google Calendar invites to your lineup", {
+            action: {
+              label: "Set up",
+              onClick: () => router.push("/settings?tab=calendar"),
+            },
+            duration: 6000,
+          });
+        }
         return;
       }
 
@@ -1187,13 +1236,21 @@ export function GigEditorPanel({
     setMissingEmails([]);
   };
 
+  // PDF export handler
+  const handleExportSetlistPdf = async () => {
+    if (!setlistPaperRef.current) return;
+    const parts = [title || "Setlist", bandName, date].filter(Boolean);
+    const filename = parts.join(" - ") + ".pdf";
+    await exportSetlistPdf(setlistPaperRef.current, filename);
+  };
+
   // Tab configuration
   const tabs: TabItem[] = [
-    { id: "schedule", label: t("schedule.tabLabel"), icon: <Clock3 className="h-4 w-4" /> },
-    { id: "lineup", label: t("lineup"), icon: <Users className="h-4 w-4" /> },
-    { id: "setlist", label: t("musicSetlist"), icon: <Music className="h-4 w-4" /> },
-    { id: "materials", label: t("materials.tabLabel"), icon: <Paperclip className="h-4 w-4" /> },
-    { id: "info", label: t("logistics"), icon: <Package className="h-4 w-4" /> },
+    { id: "schedule", label: t("schedule.tabLabel"), icon: <Clock3 className="h-4 w-4" />, description: t("schedule.description") },
+    { id: "lineup", label: t("lineup"), icon: <Users className="h-4 w-4" />, description: t("lineupDescription") },
+    { id: "setlist", label: t("musicSetlist"), icon: <Music className="h-4 w-4" />, description: t("setlistDescription") },
+    { id: "materials", label: t("materials.tabLabel"), icon: <Paperclip className="h-4 w-4" />, description: t("materials.description") },
+    { id: "info", label: t("logistics"), icon: <Package className="h-4 w-4" />, description: t("logisticsDescription") },
   ];
 
   function EditorSkeleton() {
@@ -1275,28 +1332,24 @@ export function GigEditorPanel({
 
         <div className="flex items-center gap-1">
           {isEditing && gigPack && (
-            <>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={openPublicView}
-                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent"
-                title={tCommon("preview")}
-              >
-                <ExternalLink className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={copyPublicLink}
-                className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent"
-                title={tCommon("copyLink")}
-              >
-                <LinkIcon className="h-4 w-4" />
-              </Button>
-            </>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip open={tooltipReady ? undefined : false}>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={openPublicView}
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  {t("viewGigpack")}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
 
           {/* More Options Menu - only show in edit mode when delete is available */}
@@ -1533,67 +1586,101 @@ export function GigEditorPanel({
         <div className="mt-4 min-h-[200px]">
           {/* Lineup Tab */}
           {activeTab === "lineup" && (
-            <LineupBuilder
-              lineup={lineup}
-              onAddMember={addLineupMemberFromSearch}
-              onUpdateMember={updateLineupMember}
-              onRemoveMember={removeLineupMember}
-              placeholder={t("searchMusicians")}
-              disabled={isLoading}
-            />
+            <>
+              <LineupBuilder
+                lineup={lineup}
+                onAddMember={addLineupMemberFromSearch}
+                onUpdateMember={updateLineupMember}
+                onRemoveMember={removeLineupMember}
+                placeholder={t("searchMusicians")}
+                disabled={isLoading}
+              />
+              <CalendarInviteBanner />
+            </>
           )}
 
           {/* Setlist Tab */}
           {activeTab === "setlist" && (
             <div className="space-y-3">
-              <label className="text-xs uppercase tracking-wide text-muted-foreground">
-                {t("musicSetlist")}
-              </label>
-
               {/* Toggle: Upload PDF / Type it */}
-              <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+              <div className="flex justify-center">
+              <div className="inline-flex items-center gap-0.5 rounded-md border bg-card p-0.5">
                 <button
                   type="button"
                   onClick={() => setSetlistMode("pdf")}
                   className={cn(
-                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    "rounded px-3.5 py-1 text-xs font-medium transition-colors",
                     setlistMode === "pdf"
-                      ? "bg-background text-foreground shadow-sm"
+                      ? "bg-muted text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <FileUp className="inline-block mr-1.5 h-3.5 w-3.5" />
+                  <FileUp className="inline-block mr-1 h-3 w-3" />
                   Upload PDF
                 </button>
                 <button
                   type="button"
                   onClick={() => setSetlistMode("type")}
                   className={cn(
-                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    "rounded px-3.5 py-1 text-xs font-medium transition-colors",
                     setlistMode === "type"
-                      ? "bg-background text-foreground shadow-sm"
+                      ? "bg-muted text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <FileText className="inline-block mr-1.5 h-3.5 w-3.5" />
+                  <FileText className="inline-block mr-1 h-3 w-3" />
                   Type it
                 </button>
+              </div>
               </div>
 
               {setlistMode === "type" ? (
                 <div className="space-y-2">
-                  <p className="text-xs text-muted-foreground">
-                    {t("setlistTip")}
-                  </p>
-                  <Textarea
-                    name="setlist"
-                    value={setlistText}
-                    onChange={(e) => setSetlistText(e.target.value)}
-                    rows={10}
-                    placeholder={t("setlistPlaceholder")}
-                    disabled={isLoading}
-                    className="text-base font-semibold"
-                  />
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      {t("setlistTip")}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleExportSetlistPdf}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      title="Download PDF"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      PDF
+                    </button>
+                  </div>
+                  <div className="setlist-paper mx-auto max-w-[95%]">
+                    {(title || bandName || venueName || date) && (
+                      <div className="setlist-paper-header">
+                        <div className="setlist-title">
+                          {title || bandName || "Setlist"}
+                        </div>
+                        {(venueName || date) && (
+                          <div className="setlist-subtitle">
+                            {[
+                              venueName,
+                              date
+                                ? format(
+                                    parse(date, "yyyy-MM-dd", new Date()),
+                                    "dd.MM.yy"
+                                  )
+                                : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" \u2022 ")}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <SetlistRichEditor
+                      ref={setlistPaperRef}
+                      content={setlistText}
+                      onChange={setSetlistText}
+                      placeholder={t("setlistPlaceholder")}
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
               ) : (
                 <SetlistPDFUpload
@@ -1608,14 +1695,9 @@ export function GigEditorPanel({
           {/* Schedule Tab */}
           {activeTab === "schedule" && (
             <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs uppercase tracking-wide text-muted-foreground">
-                  {t("schedule.tabLabel")}
-                </label>
-                <p className="text-xs text-muted-foreground">
-                  {t("schedule.description")}
-                </p>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                {t("schedule.description")}
+              </p>
 
               {/* Schedule Items */}
               <div className="space-y-3">

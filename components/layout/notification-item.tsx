@@ -253,7 +253,7 @@ export function NotificationItem({
       {/* Dismiss button */}
       <button
         onClick={handleDismiss}
-        className="h-6 w-6 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground shrink-0"
+        className="h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground transition-colors shrink-0"
       >
         <X className="h-3.5 w-3.5" />
       </button>

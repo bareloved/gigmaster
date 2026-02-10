@@ -185,6 +185,7 @@ const MESSAGES: MessageTree = {
   gigpack: {
     createGigPackTitle: "Pack a gig",
     editGigPackTitle: "Edit gig",
+    viewGigpack: "View GigPack",
     coreInformation: "Gig basics",
     gigTitle: "Gig name",
     gigTitleRequired: "Gig name *",
@@ -205,6 +206,7 @@ const MESSAGES: MessageTree = {
     venueMapsUrl: "Maps link",
     venueMapsUrlPlaceholder: "https://maps.google.com/...",
     lineup: "Lineup",
+    lineupDescription: "Who's playing? Add musicians, assign roles and track confirmations.",
     searchMusicians: "Search musicians...",
     addMember: "Add another",
     rolePlaceholder: "Role",
@@ -229,6 +231,7 @@ const MESSAGES: MessageTree = {
       bandLeader: "MD / Band leader"
     },
     musicSetlist: "Setlist",
+    setlistDescription: "Build your set — songs, order, notes and section breaks. Or upload a PDF.",
     setlistPlaceholder: "Song Name - Artist - Key\nAnother Song - Artist - Key",
     setlistTip: "One song per line. Use '-' for section breaks, '|' for notes (e.g., 'Song Title | Dm, 120 BPM')",
     design: "Page style",
@@ -261,6 +264,7 @@ const MESSAGES: MessageTree = {
     uploadingImage: "Uploading...",
     imageUploadError: "Upload failed",
     logistics: "Info",
+    logisticsDescription: "Dress code, gear, parking, payment and other need-to-know details.",
     generalInformation: "General Information",
     generalInformationPlaceholder: "Any other info for the band...",
     dressCode: "Dress code",
@@ -294,6 +298,7 @@ const MESSAGES: MessageTree = {
       corporate: "Corporate Event",
       barGig: "Bar Gig",
       coffeeHouse: "Coffee House",
+      concertHall: "Concert Hall",
       festival: "Festival",
       rehearsal: "Rehearsal",
       other: "Other"
@@ -397,6 +402,7 @@ const MESSAGES: MessageTree = {
     gigTypeCorporate: "Corporate",
     gigTypeBarGig: "Bar Gig",
     gigTypeCoffeeHouse: "Coffee House",
+    gigTypeConcertHall: "Concert Hall",
     gigTypeFestival: "Festival",
     gigTypeRehearsal: "Rehearsal",
     gigTypeOther: "Other",

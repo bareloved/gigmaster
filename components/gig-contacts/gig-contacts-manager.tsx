@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Trash2, Phone, Mail, User, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,14 @@ export function GigContactsManager({
   const { user } = useUser();
   const queryClient = useQueryClient();
 
+  // Draft contacts: kept in local state until they have a phone or email,
+  // then persisted to the database on blur. This avoids violating the
+  // "phone_or_email_required" check constraint on gig_contacts.
+  const [drafts, setDrafts] = useState<PendingContact[]>([]);
+
+  // Track which draft IDs are currently being persisted to avoid double-saves
+  const [persistingIds, setPersistingIds] = useState<Set<string>>(new Set());
+
   // Database mode: fetch contacts for existing gig
   const { data: dbContacts = [], isLoading } = useQuery({
     queryKey: ["gig-contacts", gigId, user?.id],
@@ -52,48 +60,50 @@ export function GigContactsManager({
     enabled: !!gigId && !!user,
   });
 
-  // Use database contacts if gigId exists, otherwise use pending contacts
-  const contacts: (GigContact | PendingContact)[] = gigId ? dbContacts : pendingContacts;
+  // Combine database contacts + local drafts (for existing gigs), or just pending contacts (for new gigs)
+  const contacts: (GigContact | PendingContact)[] = gigId
+    ? [...dbContacts, ...drafts]
+    : pendingContacts;
 
-  // Track if we've auto-added the first contact
-  const hasAutoAdded = useRef(false);
+  // Helper: check if a contact ID belongs to a local draft
+  const isDraft = (id: string) => drafts.some((d) => d.id === id);
 
-  // Auto-add empty contact when section opens with no contacts (for existing gigs)
-  useEffect(() => {
-    if (gigId && !isLoading && dbContacts.length === 0 && !hasAutoAdded.current) {
-      hasAutoAdded.current = true;
-      // Create an empty contact in the database
-      createGigContact({
-        gigId,
-        label: "",
-        name: "",
-        phone: null,
-        email: null,
-        sourceType: "manual",
-        sourceId: null,
-        sortOrder: 0,
-      }).then(() => {
-        queryClient.invalidateQueries({ queryKey: ["gig-contacts", gigId] });
-      });
-    }
-  }, [gigId, isLoading, dbContacts.length, queryClient]);
-
-  // Create mutation (only for database mode)
+  // Create mutation (only for database mode — used to persist drafts)
   const createMutation = useMutation({
-    mutationFn: (data: Parameters<typeof createGigContact>[0]) => createGigContact(data),
-    onSuccess: () => {
+    mutationFn: ({
+      draftId,
+      ...data
+    }: Parameters<typeof createGigContact>[0] & { draftId: string }) =>
+      createGigContact(data),
+    onSuccess: (_result, variables) => {
+      setDrafts((prev) => prev.filter((d) => d.id !== variables.draftId));
+      setPersistingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(variables.draftId);
+        return next;
+      });
       queryClient.invalidateQueries({ queryKey: ["gig-contacts", gigId] });
       queryClient.invalidateQueries({ queryKey: ["gig-pack-full", gigId] });
     },
-    onError: () => {
+    onError: (_err, variables) => {
+      setPersistingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(variables.draftId);
+        return next;
+      });
       toast.error("Failed to add contact");
     },
   });
 
   // Update mutation (only for database mode)
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateGigContact>[1] }) =>
-      updateGigContact(id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: Parameters<typeof updateGigContact>[1];
+    }) => updateGigContact(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gig-contacts", gigId] });
       queryClient.invalidateQueries({ queryKey: ["gig-pack-full", gigId] });
@@ -115,19 +125,48 @@ export function GigContactsManager({
     },
   });
 
+  /** Try to persist a draft to the DB. Only works if it has phone or email. */
+  const tryPersistDraft = useCallback(
+    (id: string) => {
+      if (!gigId || persistingIds.has(id)) return;
+
+      setDrafts((prev) => {
+        const draft = prev.find((d) => d.id === id);
+        if (!draft || (!draft.phone && !draft.email)) return prev;
+
+        // Persist this draft
+        setPersistingIds((p) => new Set(p).add(id));
+        createMutation.mutate({
+          draftId: draft.id,
+          gigId,
+          label: draft.label,
+          name: draft.name,
+          phone: draft.phone,
+          email: draft.email,
+          sourceType: draft.sourceType,
+          sourceId: draft.sourceId,
+          sortOrder: dbContacts.length + prev.indexOf(draft),
+        });
+
+        return prev;
+      });
+    },
+    [gigId, persistingIds, createMutation, dbContacts.length]
+  );
+
   const handleAddContact = () => {
     if (gigId) {
-      // Database mode: create empty contact
-      createMutation.mutate({
-        gigId,
+      // Database mode: add as local draft (not saved to DB yet)
+      const newDraft: PendingContact = {
+        id: crypto.randomUUID(),
         label: "",
         name: "",
         phone: null,
         email: null,
         sourceType: "manual",
         sourceId: null,
-        sortOrder: contacts.length,
-      });
+      };
+      setDrafts((prev) => [...prev, newDraft]);
     } else {
       // Local mode: add to pending contacts
       const newContact: PendingContact = {
@@ -149,11 +188,20 @@ export function GigContactsManager({
     value: string
   ) => {
     if (gigId) {
-      // Database mode: update in DB
-      updateMutation.mutate({
-        id,
-        data: { [field]: value || null },
-      });
+      if (isDraft(id)) {
+        // Update the local draft only — persistence happens on blur
+        setDrafts((prev) =>
+          prev.map((d) =>
+            d.id === id ? { ...d, [field]: value || null } : d
+          )
+        );
+      } else {
+        // Already in DB: update directly
+        updateMutation.mutate({
+          id,
+          data: { [field]: value || null },
+        });
+      }
     } else {
       // Local mode: update pending contacts
       onPendingContactsChange?.(
@@ -164,10 +212,21 @@ export function GigContactsManager({
     }
   };
 
+  const handleBlurContact = (id: string) => {
+    if (gigId && isDraft(id)) {
+      tryPersistDraft(id);
+    }
+  };
+
   const handleDeleteContact = (id: string) => {
     if (gigId) {
-      // Database mode: delete from DB
-      deleteMutation.mutate(id);
+      if (isDraft(id)) {
+        // Just remove the local draft
+        setDrafts((prev) => prev.filter((d) => d.id !== id));
+      } else {
+        // Database mode: delete from DB
+        deleteMutation.mutate(id);
+      }
     } else {
       // Local mode: remove from pending contacts
       onPendingContactsChange?.(pendingContacts.filter((c) => c.id !== id));
@@ -185,9 +244,16 @@ export function GigContactsManager({
         <ContactRow
           key={contact.id}
           contact={contact}
-          onUpdate={(field, value) => handleUpdateContact(contact.id, field, value)}
+          onUpdate={(field, value) =>
+            handleUpdateContact(contact.id, field, value)
+          }
+          onBlur={() => handleBlurContact(contact.id)}
           onDelete={() => handleDeleteContact(contact.id)}
-          disabled={disabled || deleteMutation.isPending || updateMutation.isPending}
+          disabled={
+            disabled ||
+            deleteMutation.isPending ||
+            persistingIds.has(contact.id)
+          }
         />
       ))}
 
@@ -206,12 +272,22 @@ export function GigContactsManager({
 
 interface ContactRowProps {
   contact: GigContact | PendingContact;
-  onUpdate: (field: "label" | "name" | "phone" | "email", value: string) => void;
+  onUpdate: (
+    field: "label" | "name" | "phone" | "email",
+    value: string
+  ) => void;
+  onBlur: () => void;
   onDelete: () => void;
   disabled?: boolean;
 }
 
-function ContactRow({ contact, onUpdate, onDelete, disabled }: ContactRowProps) {
+function ContactRow({
+  contact,
+  onUpdate,
+  onBlur,
+  onDelete,
+  disabled,
+}: ContactRowProps) {
   return (
     <div className="space-y-2 rounded-md border bg-background p-3">
       {/* Row 1: Name and Role */}
@@ -221,6 +297,7 @@ function ContactRow({ contact, onUpdate, onDelete, disabled }: ContactRowProps) 
           <Input
             value={contact.name}
             onChange={(e) => onUpdate("name", e.target.value)}
+            onBlur={onBlur}
             placeholder="Name"
             disabled={disabled}
             className="h-8 text-sm pl-7"
@@ -231,6 +308,7 @@ function ContactRow({ contact, onUpdate, onDelete, disabled }: ContactRowProps) 
           <Input
             value={contact.label}
             onChange={(e) => onUpdate("label", e.target.value)}
+            onBlur={onBlur}
             placeholder="Role"
             disabled={disabled}
             className="h-8 text-sm pl-7"
@@ -247,6 +325,7 @@ function ContactRow({ contact, onUpdate, onDelete, disabled }: ContactRowProps) 
           <Input
             value={contact.phone || ""}
             onChange={(e) => onUpdate("phone", e.target.value)}
+            onBlur={onBlur}
             placeholder="Phone"
             type="tel"
             disabled={disabled}
@@ -258,6 +337,7 @@ function ContactRow({ contact, onUpdate, onDelete, disabled }: ContactRowProps) 
           <Input
             value={contact.email || ""}
             onChange={(e) => onUpdate("email", e.target.value)}
+            onBlur={onBlur}
             placeholder="Email"
             type="email"
             disabled={disabled}

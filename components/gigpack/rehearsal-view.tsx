@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/gigpack/utils";
 import { Button } from "@/components/ui/button";
 import { PackingChecklist } from "@/components/gigpack/packing-checklist";
 import { useTranslations } from "@/components/gigpack/hooks";
+import { isHtmlSetlist, htmlToPlainText } from "@/lib/utils/setlist-html";
 
 interface RehearsalViewProps {
   gigPack: Omit<GigPack, "internal_notes" | "owner_id">;
@@ -140,7 +141,11 @@ export function RehearsalView({ gigPack, openMaps, slug, locale }: RehearsalView
               ) : (
                 /* Fallback to simple setlist with large fonts */
                 <div className="space-y-3">
-                  {gigPack.setlist?.split('\n').map((line, index) => (
+                  {(() => {
+                  const raw = gigPack.setlist || "";
+                  const plain = isHtmlSetlist(raw) ? htmlToPlainText(raw) : raw;
+                  return plain.split('\n');
+                })().map((line, index) => (
                     line.trim() ? (
                       <div key={index} className={`flex gap-4 md:gap-6 py-3 border-b border-dashed last:border-0 ${locale === 'he' ? 'flex-row-reverse' : ''}`}>
                         <span className="text-xl md:text-3xl font-bold min-w-[3rem] md:min-w-[4rem] tabular-nums" style={{ color: accentColor }}>

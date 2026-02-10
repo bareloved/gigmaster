@@ -286,6 +286,7 @@
       "corporate": "Corporate Event",
       "barGig": "Bar Gig",
       "coffeeHouse": "Coffee House",
+      "concertHall": "Concert Hall",
       "festival": "Festival",
       "rehearsal": "Rehearsal",
       "other": "Other"
@@ -363,6 +364,7 @@
     "gigTypeCorporate": "Corporate",
     "gigTypeBarGig": "Bar Gig",
     "gigTypeCoffeeHouse": "Coffee House",
+    "gigTypeConcertHall": "Concert Hall",
     "gigTypeFestival": "Festival",
     "gigTypeRehearsal": "Rehearsal",
     "gigTypeOther": "Other",

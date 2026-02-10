@@ -133,7 +133,7 @@ export default function BandsPage() {
         <Button onClick={handleCreateNew} className="gap-2 h-9 sm:h-10 text-sm">
           <Plus className="h-4 w-4" />
           <span className="hidden xs:inline">{t("createButton")}</span>
-          <span className="xs:hidden">New</span>
+          <span className="xs:hidden">New Band</span>
         </Button>
       </div>
 
@@ -163,7 +163,7 @@ export default function BandsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {bands.map((band) => (
-            <Card key={band.id} className="overflow-hidden hover:shadow-md transition-shadow">
+            <Card key={band.id} className="overflow-hidden hover:shadow-md transition-shadow flex flex-col">
               {/* Band Logo/Hero */}
               <div className="relative aspect-video bg-muted">
                 {band.hero_image_url ? (
@@ -192,16 +192,14 @@ export default function BandsPage() {
               </div>
 
               {/* Band Info */}
-              <div className="p-3 sm:p-4">
+              <div className="p-3 sm:p-4 flex flex-col flex-1">
                 <h3 className="font-semibold text-sm sm:text-base mb-0.5">{band.name}</h3>
-                {band.description && (
-                  <p className="text-xs sm:text-sm text-muted-foreground mb-3 line-clamp-2">
-                    {band.description}
-                  </p>
-                )}
+                <p className="text-xs sm:text-sm text-muted-foreground mb-3 line-clamp-2 min-h-[2lh]">
+                  {band.description || "\u00A0"}
+                </p>
 
                 {/* Actions */}
-                <div className="flex gap-2 mt-3">
+                <div className="flex gap-2 mt-auto">
                   <Button
                     size="sm"
                     onClick={() => router.push(`/gigs/new?band=${band.id}`)}

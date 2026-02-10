@@ -29,6 +29,7 @@ const PREDEFINED_GIG_TYPES = [
   "corporate",
   "bar_gig",
   "coffee_house",
+  "concert_hall",
   "festival",
   "rehearsal",
 ] as const
@@ -40,6 +41,7 @@ const GIG_TYPE_TRANSLATION_KEYS: Record<string, string> = {
   corporate: "corporate",
   bar_gig: "barGig",
   coffee_house: "coffeeHouse",
+  concert_hall: "concertHall",
   festival: "festival",
   rehearsal: "rehearsal",
 }

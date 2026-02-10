@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, Paperclip, ExternalLink, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isHtmlSetlist, htmlToPlainText } from "@/lib/utils/setlist-html";
 import { classifyGigVisualTheme, pickFallbackImageForTheme } from "@/lib/gigpack/gig-visual-theme";
 import { GigActivityWidget } from "@/components/dashboard/activity-widget";
 import type { GigActivityLogEntry } from "@/lib/api/gig-activity";
@@ -136,7 +137,9 @@ export function MinimalLayout({ gigPack, openMaps }: MinimalLayoutProps) {
     }
   };
 
-  const setlistLines = (gigPack.setlist || "")
+  const rawSetlist = gigPack.setlist || "";
+  const plainSetlist = isHtmlSetlist(rawSetlist) ? htmlToPlainText(rawSetlist) : rawSetlist;
+  const setlistLines = plainSetlist
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);

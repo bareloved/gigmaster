@@ -114,6 +114,7 @@ function mapGigTypeToTheme(gigType: string | null): GigVisualTheme | null {
     corporate: "corporateEvent",
     bar_gig: "barGig",
     coffee_house: "coffeehouse",
+    concert_hall: "jazzClub",
     festival: "festivalStage",
     rehearsal: "rehearsalRoom",
   };

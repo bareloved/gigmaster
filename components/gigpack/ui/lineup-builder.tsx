@@ -100,7 +100,7 @@ export function LineupBuilder({
             No musicians added yet
           </p>
           <p className="text-xs text-muted-foreground/70 mt-1">
-            Search above to add musicians to the lineup
+            Search above to add musicians — they can receive Google Calendar invites automatically
           </p>
         </div>
       )}
