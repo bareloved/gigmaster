@@ -142,10 +142,11 @@
   }
 }
 
-/* Marquee scroll for overflowing event text */
+/* Scroll-to-end-and-back for overflowing event text */
 @keyframes marquee {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-100%); }
+  0%, 15%  { transform: translateX(0); }
+  45%, 55% { transform: translateX(var(--overflow)); }
+  85%, 100% { transform: translateX(0); }
 }
 
 /* Google Sans Variable Font - Local - Hebrew characters only */

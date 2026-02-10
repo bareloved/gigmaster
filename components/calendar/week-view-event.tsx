@@ -4,6 +4,7 @@ import { format, parse } from "date-fns";
 import type { DashboardGig } from "@/lib/types/shared";
 import { eventBgColor, eventTextColor } from "@/lib/utils/calendar-helpers";
 import { useTheme } from "@/lib/providers/theme-provider";
+import { startMarquee, stopMarquee } from "@/lib/utils/marquee";
 
 interface WeekViewEventProps {
   gig: DashboardGig;
@@ -56,7 +57,9 @@ export function WeekViewEvent({
 
   return (
     <button
-      className="absolute z-10 cursor-pointer overflow-hidden rounded-md border text-left transition-all hover:shadow-md group"
+      className="absolute z-10 cursor-pointer overflow-hidden rounded-md border text-left transition-all hover:shadow-md"
+      onMouseEnter={(e) => startMarquee(e.currentTarget)}
+      onMouseLeave={(e) => stopMarquee(e.currentTarget)}
       style={{
         top,
         height,
@@ -78,7 +81,7 @@ export function WeekViewEvent({
       <div className={isSelected ? "pl-2 pr-1 py-1 h-full" : "pl-2.5 pr-1 py-1 h-full"}>
         {isCompact ? (
           <div className="overflow-hidden">
-            <p className="whitespace-nowrap text-xs font-medium group-hover:animate-[marquee_4s_linear_infinite] group-hover:w-max" style={{ color: textColor }}>
+            <p data-scroll className="whitespace-nowrap text-xs font-medium" style={{ color: textColor }}>
               {gig.startTime && (
                 <span className="opacity-90">{formatTime24(gig.startTime)} </span>
               )}
@@ -95,7 +98,8 @@ export function WeekViewEvent({
             )}
             <div className="overflow-hidden mt-0.5">
               <p
-                className="whitespace-nowrap text-xs font-semibold leading-tight group-hover:animate-[marquee_4s_linear_infinite] group-hover:w-max"
+                data-scroll
+                className="whitespace-nowrap text-xs font-semibold leading-tight"
                 style={{ color: textColor }}
               >
                 {gig.gigTitle}
@@ -104,7 +108,8 @@ export function WeekViewEvent({
             {!isCompact && gig.locationName && (
               <div className="overflow-hidden mt-0.5">
                 <p
-                  className="whitespace-nowrap text-[10px] leading-tight opacity-90 group-hover:animate-[marquee_4s_linear_infinite] group-hover:w-max"
+                  data-scroll
+                  className="whitespace-nowrap text-[10px] leading-tight opacity-90"
                   style={{ color: textColor }}
                 >
                   {gig.locationName}
