@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { GoogleCalendarClient } from "@/lib/integrations/google-calendar";
 import { mapResponseStatus } from "@/lib/api/calendar-invites";
-import { createNotification } from "@/lib/api/notifications";
 
 /**
  * POST /api/webhooks/google-calendar
@@ -28,7 +27,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    // Use admin client — this is a server-to-server webhook from Google,
+    // so there's no user session/cookies. The regular client would fail RLS checks.
+    const supabase = createAdminClient();
 
     // Find the watch record
     const { data: watch, error: watchError } = await supabase
@@ -156,14 +157,16 @@ export async function POST(request: NextRequest) {
           }
 
           if (title) {
-            await createNotification({
-              user_id: gig.owner_id,
-              type: 'status_changed',
-              title,
-              message,
-              link: `/gigs/${gig.id}`,
-              gig_id: gig.id,
-              gig_role_id: role.id,
+            // Inline notification creation using admin client
+            // (createNotification uses browser client which has no session here)
+            await supabase.rpc('create_or_update_notification', {
+              p_user_id: gig.owner_id,
+              p_type: 'status_changed',
+              p_title: title,
+              p_message: message,
+              p_link: `/gigs/${gig.id}`,
+              p_gig_id: gig.id,
+              p_gig_role_id: role.id,
             });
           }
         }

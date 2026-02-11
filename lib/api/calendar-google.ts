@@ -1,8 +1,9 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import type { Json } from "@/lib/types/database";
 import type { DashboardGig, CalendarRefreshDiff } from "@/lib/types/shared";
 import { checkGigConflicts, timesOverlap } from "@/lib/api/calendar";
-import { GoogleCalendarClient, GoogleCalendarEvent, parseGoogleDateTime } from "@/lib/integrations/google-calendar";
+import { GoogleCalendarClient, GoogleCalendarEvent, GoogleCalendarInfo, parseGoogleDateTime } from "@/lib/integrations/google-calendar";
 import { parseScheduleFromDescription, extractScheduleItemsAsJson } from "@/lib/utils/parse-schedule";
 
 /**
@@ -64,12 +65,90 @@ export async function disconnectGoogleCalendar(userId: string): Promise<void> {
 }
 
 /**
- * Fetch events from Google Calendar
+ * Fetch the user's Google Calendar list + saved selections
+ */
+export async function fetchUserCalendarList(userId: string): Promise<{
+  calendars: GoogleCalendarInfo[];
+  selectedCalendars: GoogleCalendarInfo[] | null;
+}> {
+  const supabase = await createClient();
+
+  const { data: connection, error: connError } = await supabase
+    .from("calendar_connections")
+    .select("access_token, refresh_token, token_expires_at, selected_calendars")
+    .eq("user_id", userId)
+    .eq("provider", "google")
+    .single();
+
+  if (connError || !connection) {
+    throw new Error("Calendar not connected");
+  }
+
+  // Refresh token if needed
+  let accessToken = connection.access_token;
+  const refreshToken = connection.refresh_token;
+  const expiresAt = new Date(connection.token_expires_at);
+
+  if (expiresAt <= new Date()) {
+    const googleClient = new GoogleCalendarClient();
+    const newTokens = await googleClient.refreshAccessToken(refreshToken);
+
+    await supabase
+      .from("calendar_connections")
+      .update({
+        access_token: newTokens.access_token,
+        token_expires_at: new Date(newTokens.expiry_date).toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId)
+      .eq("provider", "google");
+
+    accessToken = newTokens.access_token;
+  }
+
+  const googleClient = new GoogleCalendarClient();
+  googleClient.setCredentials({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+    expiry_date: expiresAt.getTime(),
+  });
+
+  const calendars = await googleClient.listCalendars();
+
+  return {
+    calendars,
+    selectedCalendars: connection.selected_calendars as GoogleCalendarInfo[] | null,
+  };
+}
+
+/**
+ * Save the user's selected calendar IDs
+ */
+export async function saveSelectedCalendars(
+  userId: string,
+  calendars: GoogleCalendarInfo[]
+): Promise<void> {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("calendar_connections")
+    .update({ selected_calendars: calendars as unknown as Json })
+    .eq("user_id", userId)
+    .eq("provider", "google");
+
+  if (error) {
+    throw new Error(error.message || "Failed to save selected calendars");
+  }
+}
+
+/**
+ * Fetch events from Google Calendar (supports multiple calendars)
  */
 export async function fetchGoogleCalendarEvents(
   userId: string,
   from: Date,
-  to: Date
+  to: Date,
+  calendarIds?: string[]
 ): Promise<GoogleCalendarEvent[]> {
   const supabase = await createClient();
 
@@ -145,6 +224,21 @@ export async function fetchGoogleCalendarEvents(
     refresh_token: refreshToken,
     expiry_date: expiresAt.getTime(),
   });
+
+  // If specific calendar IDs provided, fetch from each and merge
+  if (calendarIds && calendarIds.length > 0) {
+    const allEvents = await Promise.all(
+      calendarIds.map((calId) => googleClient.listEvents(from, to, 100, calId))
+    );
+    // Flatten and sort by start time
+    return allEvents
+      .flat()
+      .sort((a, b) => {
+        const aTime = a.start.dateTime || a.start.date || "";
+        const bTime = b.start.dateTime || b.start.date || "";
+        return aTime.localeCompare(bTime);
+      });
+  }
 
   return await googleClient.listEvents(from, to);
 }

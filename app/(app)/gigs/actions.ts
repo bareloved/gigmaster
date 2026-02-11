@@ -8,6 +8,7 @@ import type { Json } from "@/lib/types/database";
 // Note: createNotification from lib/api uses browser client, but we're on server
 // So we'll insert notifications directly using the server supabase client
 import { isArchivedStatus } from "@/lib/types/shared";
+import { cancelRoleCalendarEvents } from "@/lib/api/calendar-invites";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 // Type definitions for database join results
@@ -594,6 +595,7 @@ export async function getGig(id: string): Promise<GigPack | null> {
     backline_notes: gig.backline_notes,
     parking_notes: gig.parking_notes,
     payment_notes: gig.payment_notes,
+    notes: gig.notes,
     internal_notes: gig.internal_notes,
     public_slug: gig.gig_shares?.[0]?.token || "",
     theme: gig.theme as GigPackTheme,
@@ -620,7 +622,7 @@ export async function getGig(id: string): Promise<GigPack | null> {
       time: s.time,
       label: s.label
     })) || [],
-    contacts: null // TODO: Query gig_contacts when contacts UI is integrated
+    contacts: null // Contacts are fetched via gig-pack.ts query (gig_contacts join)
   };
 
   return gigPack;
@@ -686,6 +688,19 @@ async function saveGigPackRPC(
     }
   }
 
+  // Snapshot roles with calendar events BEFORE save, so we can cancel
+  // events for any roles that get removed by the smart merge
+  let preExistingCalendarRoles: { id: string; google_calendar_event_id: string }[] = [];
+  if (isEditing && gigId) {
+    const { data: existingRoles } = await supabase
+      .from("gig_roles")
+      .select("id, google_calendar_event_id")
+      .eq("gig_id", gigId)
+      .not("google_calendar_event_id", "is", null);
+
+    preExistingCalendarRoles = (existingRoles || []) as typeof preExistingCalendarRoles;
+  }
+
   try {
     // Build the gig object for RPC
     const gigPayload = {
@@ -707,6 +722,7 @@ async function saveGigPackRPC(
       dress_code: data.dress_code || null,
       backline_notes: data.backline_notes || null,
       parking_notes: data.parking_notes || null,
+      notes: data.notes || null,
       setlist: data.setlist || null,
       setlist_pdf_url: data.setlist_pdf_url || null,
       internal_notes: data.internal_notes || null,
@@ -723,6 +739,7 @@ async function saveGigPackRPC(
       p_packing: data.packing_checklist || [],
       p_setlist: data.setlist_structured || [],
       p_roles: data.lineup || [],
+      p_contacts: data.contacts || [],
       p_share_token: publicSlug || undefined,
       p_is_editing: isEditing,
       p_gig_id: gigId || undefined,
@@ -753,6 +770,25 @@ async function saveGigPackRPC(
       detectChangesAndNotify(supabase, gigId, data, dateValue).catch(err =>
         console.error("Background notification error:", err)
       );
+    }
+
+    // Fire-and-forget: Cancel calendar events for roles that were removed
+    if (isEditing && preExistingCalendarRoles.length > 0) {
+      const remainingRoleIds = new Set(
+        (data.lineup || [])
+          .map(m => m.gigRoleId)
+          .filter((id): id is string => !!id)
+      );
+
+      const removedEventIds = preExistingCalendarRoles
+        .filter(r => !remainingRoleIds.has(r.id))
+        .map(r => r.google_calendar_event_id);
+
+      if (removedEventIds.length > 0) {
+        cancelRoleCalendarEvents(user.id, removedEventIds).catch(err =>
+          console.error("Background calendar cleanup error:", err)
+        );
+      }
     }
 
     revalidatePath("/gigs");
@@ -833,6 +869,7 @@ async function saveGigPackLegacy(
       dress_code: data.dress_code || null,
       backline_notes: data.backline_notes || null,
       parking_notes: data.parking_notes || null,
+      notes: data.notes || null,
       setlist: data.setlist || null,
       setlist_pdf_url: data.setlist_pdf_url || null,
       internal_notes: data.internal_notes || null,

@@ -35,8 +35,12 @@ interface GigForInvite {
   location_name: string | null;
   location_address: string | null;
   dress_code: string | null;
+  on_stage_time: string | null;
+  notes: string | null;
+  parking_notes: string | null;
   owner_id: string | null;
   band_id: string | null;
+  public_slug: string | null;
   projectName?: string | null; // Fetched separately
   ownerName?: string | null; // Fetched separately
 }
@@ -142,6 +146,11 @@ export async function getRolesNeedingInvites(gigId: string): Promise<{
 /**
  * Build calendar event description
  */
+function formatTime(time: string): string {
+  // Strip seconds: "09:30:00" -> "09:30", "09:30" stays as-is
+  return time.replace(/^(\d{2}:\d{2}):\d{2}$/, '$1');
+}
+
 function buildEventDescription(
   role: GigRoleForInvite,
   gig: GigForInvite,
@@ -155,30 +164,57 @@ function buildEventDescription(
   lines.push(`You've been invited to "${gig.title}" with ${bandName} by ${inviterName}.`);
   lines.push('');
 
-  // Role info
-  lines.push(`Your role: ${role.role_name || 'Musician'}`);
-  lines.push('');
-
-  // Schedule section
-  lines.push('Schedule:');
-  if (gig.call_time) {
-    lines.push(`• Call time: ${gig.call_time}`);
-  }
-  if (gig.start_time) {
-    lines.push(`• Start time: ${gig.start_time}`);
-  }
-  if (gig.dress_code) {
-    lines.push(`• Dress code: ${gig.dress_code}`);
-  }
+  // Venue (before role)
   if (gig.location_name) {
-    lines.push(`• Venue: ${gig.location_name}`);
+    lines.push(`Venue: ${gig.location_name}`);
   }
   if (gig.location_address) {
-    lines.push(`• Address: ${gig.location_address}`);
+    lines.push(`Address: ${gig.location_address}`);
+  }
+  if (gig.location_name || gig.location_address) {
+    lines.push('');
   }
 
-  lines.push('');
-  lines.push(`View full gig details: ${baseUrl}/gigs/${gig.id}/pack`);
+
+  // Schedule section (times only)
+  const scheduleItems: string[] = [];
+  if (gig.call_time) {
+    scheduleItems.push(`• Call time: ${formatTime(gig.call_time)}`);
+  }
+  if (gig.start_time) {
+    scheduleItems.push(`• Start time: ${formatTime(gig.start_time)}`);
+  }
+  if (gig.on_stage_time) {
+    scheduleItems.push(`• On stage: ${formatTime(gig.on_stage_time)}`);
+  }
+  if (scheduleItems.length > 0) {
+    lines.push('Schedule:');
+    lines.push(...scheduleItems);
+    lines.push('');
+  }
+
+  // Other info section
+  const otherItems: string[] = [];
+  if (gig.dress_code) {
+    otherItems.push(`• Dress code: ${gig.dress_code}`);
+  }
+  if (gig.parking_notes) {
+    otherItems.push(`• Parking: ${gig.parking_notes}`);
+  }
+  if (otherItems.length > 0) {
+    lines.push('Other info:');
+    lines.push(...otherItems);
+    lines.push('');
+  }
+
+  // Notes
+  if (gig.notes) {
+    lines.push(`Notes: ${gig.notes}`);
+    lines.push('');
+  }
+
+  const publicPath = gig.public_slug ? `/p/${gig.public_slug}` : `/gigs/${gig.id}/pack`;
+  lines.push(`View full gig details: ${baseUrl}${publicPath}`);
   lines.push('');
   lines.push('---');
   lines.push(`Organized with GigMaster | ${baseUrl}`);
@@ -198,30 +234,54 @@ function buildEventTitle(gig: GigForInvite): string {
 }
 
 /**
- * Convert gig date/time to RFC 3339 format for Google Calendar API
- * Uses UTC (Z suffix) for unambiguous timestamps that Google Calendar accepts
+ * Parse a time string ("HH:MM" or "HH:MM:SS") into a Date on the given date.
  */
-function toGoogleDateTime(date: string, time: string | null): {
+function parseTime(dateOnly: string, time: string): Date {
+  const normalized = time.length === 5 ? `${time}:00` : time;
+  return new Date(`${dateOnly}T${normalized}`);
+}
+
+/**
+ * Convert gig schedule to Google Calendar start/end times.
+ *
+ * Start: earliest of call_time, start_time (fallback 18:00)
+ * End:   end_time if set, otherwise latest schedule time + buffer:
+ *   - on_stage_time → +2h (typical set length)
+ *   - start_time    → +2h
+ *   - call_time only → +3h (soundcheck + show)
+ */
+function toGoogleDateTime(gig: {
+  date: string;
+  call_time: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  on_stage_time: string | null;
+}): {
   start: { dateTime: string };
   end: { dateTime: string };
 } {
-  // Extract just the date part (YYYY-MM-DD) if it's a full ISO timestamp
-  const dateOnly = date.includes('T') ? date.split('T')[0] : date;
+  const dateOnly = gig.date.includes('T') ? gig.date.split('T')[0] : gig.date;
 
-  // Use the gig's time or default to 6pm
-  const startTime = time || '18:00';
+  // Start = earliest available time
+  const startTimeStr = gig.call_time || gig.start_time || '18:00';
+  const startDate = parseTime(dateOnly, startTimeStr);
 
-  // Normalize time: ensure HH:MM:SS format
-  // Handle "HH:MM" (add :00) or "HH:MM:SS" (use as-is)
-  const normalizedTime = startTime.length === 5 ? `${startTime}:00` : startTime;
-
-  // Parse as local time and convert to ISO string (UTC with Z suffix)
-  const startDate = new Date(`${dateOnly}T${normalizedTime}`);
-  const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
-
-  // Validate the dates are valid before calling toISOString
   if (isNaN(startDate.getTime())) {
-    throw new Error(`Invalid date/time: date="${date}", time="${time}"`);
+    throw new Error(`Invalid date/time: date="${gig.date}", time="${startTimeStr}"`);
+  }
+
+  // End = end_time if provided, otherwise latest schedule time + buffer
+  let endDate: Date;
+  if (gig.end_time) {
+    endDate = parseTime(dateOnly, gig.end_time);
+  } else if (gig.on_stage_time) {
+    endDate = new Date(parseTime(dateOnly, gig.on_stage_time).getTime() + 2 * 60 * 60 * 1000);
+  } else if (gig.start_time) {
+    endDate = new Date(parseTime(dateOnly, gig.start_time).getTime() + 2 * 60 * 60 * 1000);
+  } else if (gig.call_time) {
+    endDate = new Date(parseTime(dateOnly, gig.call_time).getTime() + 3 * 60 * 60 * 1000);
+  } else {
+    endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
   }
 
   return {
@@ -267,11 +327,15 @@ export async function sendCalendarInvites(
       start_time,
       end_time,
       call_time,
+      on_stage_time,
       location_name,
       location_address,
       dress_code,
+      notes,
+      parking_notes,
       owner_id,
-      band_id
+      band_id,
+      gig_shares ( token )
     `)
     .eq("id", gigId)
     .single();
@@ -303,8 +367,10 @@ export async function sendCalendarInvites(
   }
 
   // Create gig object for event building
+  const publicSlug = Array.isArray(gig.gig_shares) ? gig.gig_shares[0]?.token : null;
   const gigForInvite: GigForInvite = {
     ...gig,
+    public_slug: publicSlug || null,
     projectName,
     ownerName,
   };
@@ -342,7 +408,7 @@ export async function sendCalendarInvites(
   });
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gigmaster.io';
-  const { start, end } = toGoogleDateTime(gig.date, gig.start_time);
+  const { start, end } = toGoogleDateTime(gig);
 
   // Send invites one by one
   for (const role of allRoles) {
@@ -470,8 +536,9 @@ export async function updateCalendarEvents(
     supabase
       .from("gigs")
       .select(`
-        id, title, date, start_time, end_time, call_time,
-        location_name, location_address, dress_code, owner_id, band_id
+        id, title, date, start_time, end_time, call_time, on_stage_time,
+        location_name, location_address, dress_code, notes, parking_notes,
+        owner_id, band_id, gig_shares ( token )
       `)
       .eq("id", gigId)
       .single(),
@@ -513,8 +580,10 @@ export async function updateCalendarEvents(
   }
 
   // Create gig object for event building
+  const publicSlug = Array.isArray(gig.gig_shares) ? gig.gig_shares[0]?.token : null;
   const gigForInvite: GigForInvite = {
     ...gig,
+    public_slug: publicSlug || null,
     projectName,
     ownerName,
   };
@@ -539,7 +608,7 @@ export async function updateCalendarEvents(
   });
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gigmaster.io';
-  const { start, end } = toGoogleDateTime(gig.date, gig.start_time);
+  const { start, end } = toGoogleDateTime(gig);
 
   let updated = 0;
 
@@ -646,6 +715,79 @@ export async function cancelCalendarEvents(
       .eq("gig_id", gigId);
   }
 
+  return cancelled;
+}
+
+/**
+ * Cancel Google Calendar events for specific removed roles.
+ * Called when lineup members are removed during gig editing.
+ * Deletes each event so the attendee gets a cancellation notification from Google.
+ */
+export async function cancelRoleCalendarEvents(
+  userId: string,
+  eventIds: string[]
+): Promise<number> {
+  if (eventIds.length === 0) return 0;
+
+  const supabase = await createClient();
+
+  // Get calendar connection for the gig owner
+  const { data: connection } = await supabase
+    .from("calendar_connections")
+    .select("access_token, refresh_token, token_expires_at")
+    .eq("user_id", userId)
+    .eq("provider", "google")
+    .single();
+
+  if (!connection) {
+    console.warn("[cancelRoleCalendarEvents] No calendar connection found for user:", userId);
+    return 0;
+  }
+
+  const googleClient = new GoogleCalendarClient();
+  googleClient.setCredentials({
+    access_token: connection.access_token,
+    refresh_token: connection.refresh_token,
+    expiry_date: new Date(connection.token_expires_at).getTime(),
+  });
+
+  let cancelled = 0;
+
+  for (const eventId of eventIds) {
+    try {
+      await googleClient.deleteEvent(eventId);
+      cancelled++;
+    } catch (error) {
+      console.error(`[cancelRoleCalendarEvents] Failed to cancel event ${eventId}:`, error);
+    }
+  }
+
+  // Clean up webhook watches for these events
+  const { data: watches } = await supabase
+    .from("google_calendar_watches")
+    .select("id, channel_id, resource_id, calendar_event_id")
+    .in("calendar_event_id", eventIds);
+
+  if (watches && watches.length > 0) {
+    for (const watch of watches) {
+      try {
+        await googleClient.stopWatch(watch.channel_id, watch.resource_id);
+      } catch (error) {
+        console.warn(`[cancelRoleCalendarEvents] Failed to stop watch ${watch.channel_id}:`, error);
+      }
+    }
+
+    const { error: deleteError } = await supabase
+      .from("google_calendar_watches")
+      .delete()
+      .in("id", watches.map(w => w.id));
+
+    if (deleteError) {
+      console.error("[cancelRoleCalendarEvents] Failed to delete watch rows:", deleteError);
+    }
+  }
+
+  console.log(`[cancelRoleCalendarEvents] Cancelled ${cancelled}/${eventIds.length} events`);
   return cancelled;
 }
 

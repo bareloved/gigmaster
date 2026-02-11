@@ -67,6 +67,7 @@
     "essentialInfo": "Essential Info",
     "dressCode": "Dress Code",
     "gear": "Gear",
+    "notesLabel": "Notes",
     "stageViewFooter": "Stage view · GigPack"
   },
   "languageSwitcher": {
@@ -286,6 +287,7 @@
       "corporate": "Corporate Event",
       "barGig": "Bar Gig",
       "coffeeHouse": "Coffee House",
+      "concertHall": "Concert Hall",
       "festival": "Festival",
       "rehearsal": "Rehearsal",
       "other": "Other"
@@ -355,6 +357,7 @@
     "dressCodeLabel": "Dress Code",
     "gearLabel": "Gear",
     "parkingLabel": "Parking",
+    "notesLabel": "Notes",
     "showLess": "Show less",
     "showMore": "+{count} more",
     "showFullSetlist": "Show full setlist",
@@ -363,6 +366,7 @@
     "gigTypeCorporate": "Corporate",
     "gigTypeBarGig": "Bar Gig",
     "gigTypeCoffeeHouse": "Coffee House",
+    "gigTypeConcertHall": "Concert Hall",
     "gigTypeFestival": "Festival",
     "gigTypeRehearsal": "Rehearsal",
     "gigTypeOther": "Other",

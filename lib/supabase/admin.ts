@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/types/database'
 
 // Note: This must only be used in server contexts (API routes, Server Components)
 // It bypasses RLS policies!
@@ -10,7 +11,7 @@ export const createAdminClient = () => {
     throw new Error('Missing Supabase environment variables for admin client');
   }
 
-  return createClient(
+  return createClient<Database>(
     supabaseUrl,
     serviceRoleKey,
     {

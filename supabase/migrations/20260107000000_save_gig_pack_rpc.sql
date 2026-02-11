@@ -2,9 +2,13 @@
 -- Purpose: Single atomic RPC to save entire gig pack (gig + all related items)
 -- Performance: Reduces 18+ network calls to 1 call
 -- Security: Uses SECURITY INVOKER to respect RLS policies
+--
+-- WARNING: The "projects" table and "project_id" column were DROPPED.
+-- The FK column on gigs is "band_id" (references bands.id). NEVER use project_id.
 
--- Drop if exists (for re-running during development)
+-- Drop all known signatures so re-running is safe
 DROP FUNCTION IF EXISTS save_gig_pack(jsonb, jsonb, jsonb, jsonb, jsonb, jsonb, text, boolean, uuid);
+DROP FUNCTION IF EXISTS save_gig_pack(jsonb, jsonb, jsonb, jsonb, jsonb, jsonb, jsonb, text, boolean, uuid);
 
 CREATE OR REPLACE FUNCTION save_gig_pack(
   p_gig JSONB,                    -- Main gig fields
@@ -13,7 +17,8 @@ CREATE OR REPLACE FUNCTION save_gig_pack(
   p_packing JSONB DEFAULT '[]',   -- Array of packing items
   p_setlist JSONB DEFAULT '[]',   -- Array of setlist sections with songs
   p_roles JSONB DEFAULT '[]',     -- Array of lineup roles
-  p_share_token TEXT DEFAULT NULL,-- Share token/slug
+  p_contacts JSONB DEFAULT '[]',  -- Array of gig contacts
+  p_share_token TEXT DEFAULT NULL, -- Share token/slug
   p_is_editing BOOLEAN DEFAULT FALSE,
   p_gig_id UUID DEFAULT NULL      -- Only for editing existing gigs
 )
@@ -33,7 +38,6 @@ DECLARE
   v_section_idx INT;
   v_result JSONB;
 BEGIN
-  -- Get current user ID
   v_user_id := auth.uid();
   IF v_user_id IS NULL THEN
     RAISE EXCEPTION 'User not authenticated';
@@ -49,11 +53,10 @@ BEGIN
   -- ========================================
   BEGIN
     IF p_is_editing AND p_gig_id IS NOT NULL THEN
-      -- Update existing gig
       UPDATE gigs SET
         title = COALESCE(p_gig->>'title', title),
         date = COALESCE((p_gig->>'date')::timestamptz, date),
-        project_id = CASE WHEN p_gig ? 'project_id' THEN (p_gig->>'project_id')::uuid ELSE project_id END,
+        band_id = CASE WHEN p_gig ? 'band_id' THEN (p_gig->>'band_id')::uuid ELSE band_id END,
         band_name = COALESCE(p_gig->>'band_name', band_name),
         call_time = p_gig->>'call_time',
         on_stage_time = p_gig->>'on_stage_time',
@@ -84,9 +87,8 @@ BEGIN
         RAISE EXCEPTION 'Gig not found or access denied (id: %)', p_gig_id;
       END IF;
     ELSE
-      -- Insert new gig
       INSERT INTO gigs (
-        title, date, project_id, band_name, call_time, on_stage_time, start_time,
+        title, date, band_id, band_name, call_time, on_stage_time, start_time,
         location_name, venue_name, location_address, venue_address, venue_maps_url,
         hero_image_url, band_logo_url, gig_type, theme, poster_skin, accent_color,
         dress_code, backline_notes, parking_notes, setlist, setlist_pdf_url, internal_notes, payment_notes,
@@ -94,7 +96,7 @@ BEGIN
       ) VALUES (
         p_gig->>'title',
         COALESCE((p_gig->>'date')::timestamptz, now()),
-        (p_gig->>'project_id')::uuid,
+        (p_gig->>'band_id')::uuid,
         p_gig->>'band_name',
         p_gig->>'call_time',
         p_gig->>'on_stage_time',
@@ -127,7 +129,7 @@ BEGIN
     WHEN unique_violation THEN
       RAISE EXCEPTION 'Gig save failed (step 1): Duplicate key violation';
     WHEN foreign_key_violation THEN
-      RAISE EXCEPTION 'Gig save failed (step 1): Invalid project reference';
+      RAISE EXCEPTION 'Gig save failed (step 1): Invalid band reference';
     WHEN OTHERS THEN
       RAISE EXCEPTION 'Gig save failed (step 1): %', SQLERRM;
   END;
@@ -136,27 +138,22 @@ BEGIN
   -- STEP 2: Smart merge schedule items (BULK)
   -- ========================================
   BEGIN
-    -- Get existing IDs
     SELECT array_agg(id) INTO v_existing_ids
     FROM gig_schedule_items WHERE gig_id = v_gig_id;
 
-    -- Get new IDs (filter out nulls for new items)
     SELECT array_agg((item->>'id')::uuid) INTO v_new_ids
     FROM jsonb_array_elements(p_schedule) AS item
     WHERE item->>'id' IS NOT NULL AND item->>'id' != '';
 
-    -- Calculate IDs to delete (bulk delete)
     IF v_existing_ids IS NOT NULL AND array_length(v_existing_ids, 1) > 0 THEN
       SELECT array_agg(id) INTO v_to_delete
       FROM unnest(v_existing_ids) AS id
       WHERE id != ALL(COALESCE(v_new_ids, ARRAY[]::uuid[]));
-
       IF v_to_delete IS NOT NULL AND array_length(v_to_delete, 1) > 0 THEN
         DELETE FROM gig_schedule_items WHERE id = ANY(v_to_delete);
       END IF;
     END IF;
 
-    -- Bulk upsert remaining items
     IF jsonb_array_length(p_schedule) > 0 THEN
       INSERT INTO gig_schedule_items (id, gig_id, time, label, sort_order)
       SELECT
@@ -180,27 +177,22 @@ BEGIN
   -- STEP 3: Smart merge materials (BULK)
   -- ========================================
   BEGIN
-    -- Get existing IDs
     SELECT array_agg(id) INTO v_existing_ids
     FROM gig_materials WHERE gig_id = v_gig_id;
 
-    -- Get new IDs
     SELECT array_agg((item->>'id')::uuid) INTO v_new_ids
     FROM jsonb_array_elements(p_materials) AS item
     WHERE item->>'id' IS NOT NULL AND item->>'id' != '';
 
-    -- Bulk delete removed items
     IF v_existing_ids IS NOT NULL AND array_length(v_existing_ids, 1) > 0 THEN
       SELECT array_agg(id) INTO v_to_delete
       FROM unnest(v_existing_ids) AS id
       WHERE id != ALL(COALESCE(v_new_ids, ARRAY[]::uuid[]));
-
       IF v_to_delete IS NOT NULL AND array_length(v_to_delete, 1) > 0 THEN
         DELETE FROM gig_materials WHERE id = ANY(v_to_delete);
       END IF;
     END IF;
 
-    -- Bulk upsert
     IF jsonb_array_length(p_materials) > 0 THEN
       INSERT INTO gig_materials (id, gig_id, label, url, kind, sort_order)
       SELECT
@@ -226,27 +218,22 @@ BEGIN
   -- STEP 4: Smart merge packing items (BULK)
   -- ========================================
   BEGIN
-    -- Get existing IDs
     SELECT array_agg(id) INTO v_existing_ids
     FROM gig_packing_items WHERE gig_id = v_gig_id;
 
-    -- Get new IDs
     SELECT array_agg((item->>'id')::uuid) INTO v_new_ids
     FROM jsonb_array_elements(p_packing) AS item
     WHERE item->>'id' IS NOT NULL AND item->>'id' != '';
 
-    -- Bulk delete removed items
     IF v_existing_ids IS NOT NULL AND array_length(v_existing_ids, 1) > 0 THEN
       SELECT array_agg(id) INTO v_to_delete
       FROM unnest(v_existing_ids) AS id
       WHERE id != ALL(COALESCE(v_new_ids, ARRAY[]::uuid[]));
-
       IF v_to_delete IS NOT NULL AND array_length(v_to_delete, 1) > 0 THEN
         DELETE FROM gig_packing_items WHERE id = ANY(v_to_delete);
       END IF;
     END IF;
 
-    -- Bulk upsert
     IF jsonb_array_length(p_packing) > 0 THEN
       INSERT INTO gig_packing_items (id, gig_id, label, sort_order)
       SELECT
@@ -266,22 +253,17 @@ BEGIN
 
   -- ========================================
   -- STEP 5: Handle setlist sections + songs
-  -- (Delete all existing, insert fresh - complex nested structure)
   -- ========================================
   BEGIN
-    -- Delete existing sections (cascade deletes songs via FK)
     DELETE FROM setlist_sections WHERE gig_id = v_gig_id;
 
-    -- Insert new sections and songs
     IF jsonb_array_length(p_setlist) > 0 THEN
       v_section_idx := 0;
       FOR v_section_record IN SELECT * FROM jsonb_array_elements(p_setlist) LOOP
-        -- Insert section
         INSERT INTO setlist_sections (gig_id, name, sort_order)
         VALUES (v_gig_id, v_section_record.value->>'name', v_section_idx)
         RETURNING id INTO v_section_id;
 
-        -- Insert songs for this section (bulk)
         IF jsonb_array_length(COALESCE(v_section_record.value->'songs', '[]'::jsonb)) > 0 THEN
           INSERT INTO setlist_items (section_id, title, artist, key, tempo, notes, reference_url, sort_order)
           SELECT
@@ -306,25 +288,18 @@ BEGIN
 
   -- ========================================
   -- STEP 6: Handle gig roles (special merge logic)
-  -- When editing: update existing roles (by gigRoleId), add truly new roles
-  -- When creating: insert all roles
-  -- Sets musician_id from userId or linkedUserId for notifications
-  -- Sets invitation_status = 'invited' when musician_id is present (only for new roles)
   -- ========================================
   BEGIN
     IF jsonb_array_length(p_roles) > 0 THEN
       IF p_is_editing THEN
-        -- Step 6a: Update existing roles (items that have gigRoleId)
         UPDATE gig_roles gr SET
           role_name = item->>'role',
           musician_name = item->>'name',
           notes = item->>'notes'
-          -- Don't update musician_id or invitation_status for existing roles
         FROM jsonb_array_elements(p_roles) AS item
         WHERE gr.id = (item->>'gigRoleId')::uuid
           AND gr.gig_id = v_gig_id;
 
-        -- Step 6b: Insert only truly new roles (no gigRoleId AND not duplicate by musician_id)
         INSERT INTO gig_roles (gig_id, role_name, musician_name, musician_id, contact_id, notes, sort_order, invitation_status)
         SELECT
           v_gig_id,
@@ -341,23 +316,19 @@ BEGIN
           END
         FROM jsonb_array_elements(p_roles) WITH ORDINALITY AS t(item, idx)
         WHERE (item->>'gigRoleId' IS NULL OR item->>'gigRoleId' = '')
-          -- Also check: if this user (by musician_id) is already on the gig, don't add duplicate
           AND NOT EXISTS (
             SELECT 1 FROM gig_roles gr
             WHERE gr.gig_id = v_gig_id
               AND (
-                -- Match by musician_id if present
                 (COALESCE(NULLIF(item->>'userId', ''), NULLIF(item->>'linkedUserId', '')) IS NOT NULL
                  AND gr.musician_id = COALESCE(NULLIF(item->>'userId', ''), NULLIF(item->>'linkedUserId', ''))::uuid)
                 OR
-                -- Match by role_name + musician_name if no user ID
                 (COALESCE(NULLIF(item->>'userId', ''), NULLIF(item->>'linkedUserId', '')) IS NULL
                  AND gr.role_name = item->>'role'
                  AND COALESCE(gr.musician_name, '') = COALESCE(item->>'name', ''))
               )
           );
       ELSE
-        -- When creating new gig: insert all roles
         INSERT INTO gig_roles (gig_id, role_name, musician_name, musician_id, contact_id, notes, sort_order, invitation_status)
         SELECT
           v_gig_id,
@@ -382,7 +353,50 @@ BEGIN
   END;
 
   -- ========================================
-  -- STEP 7: Handle gig shares
+  -- STEP 7: Smart merge gig contacts (BULK)
+  -- ========================================
+  BEGIN
+    SELECT array_agg(id) INTO v_existing_ids
+    FROM gig_contacts WHERE gig_id = v_gig_id;
+
+    SELECT array_agg((item->>'id')::uuid) INTO v_new_ids
+    FROM jsonb_array_elements(p_contacts) AS item
+    WHERE item->>'id' IS NOT NULL AND item->>'id' != '';
+
+    IF v_existing_ids IS NOT NULL AND array_length(v_existing_ids, 1) > 0 THEN
+      SELECT array_agg(id) INTO v_to_delete
+      FROM unnest(v_existing_ids) AS id
+      WHERE id != ALL(COALESCE(v_new_ids, ARRAY[]::uuid[]));
+      IF v_to_delete IS NOT NULL AND array_length(v_to_delete, 1) > 0 THEN
+        DELETE FROM gig_contacts WHERE id = ANY(v_to_delete);
+      END IF;
+    END IF;
+
+    IF jsonb_array_length(p_contacts) > 0 THEN
+      INSERT INTO gig_contacts (id, gig_id, label, name, phone, email, sort_order)
+      SELECT
+        COALESCE((item->>'id')::uuid, gen_random_uuid()),
+        v_gig_id,
+        COALESCE(item->>'label', ''),
+        COALESCE(item->>'name', ''),
+        NULLIF(item->>'phone', ''),
+        NULLIF(item->>'email', ''),
+        idx - 1
+      FROM jsonb_array_elements(p_contacts) WITH ORDINALITY AS t(item, idx)
+      ON CONFLICT (id) DO UPDATE SET
+        label = EXCLUDED.label,
+        name = EXCLUDED.name,
+        phone = EXCLUDED.phone,
+        email = EXCLUDED.email,
+        sort_order = EXCLUDED.sort_order;
+    END IF;
+  EXCEPTION
+    WHEN OTHERS THEN
+      RAISE EXCEPTION 'Gig save failed (step 7 - contacts): %', SQLERRM;
+  END;
+
+  -- ========================================
+  -- STEP 8: Handle gig shares
   -- ========================================
   BEGIN
     IF p_share_token IS NOT NULL AND p_share_token != '' THEN
@@ -394,7 +408,7 @@ BEGIN
     END IF;
   EXCEPTION
     WHEN OTHERS THEN
-      RAISE EXCEPTION 'Gig save failed (step 7 - shares): %', SQLERRM;
+      RAISE EXCEPTION 'Gig save failed (step 8 - shares): %', SQLERRM;
   END;
 
   -- Return result
@@ -410,5 +424,4 @@ $$;
 -- Grant execute permission to authenticated users
 GRANT EXECUTE ON FUNCTION save_gig_pack TO authenticated;
 
--- Add comment for documentation
-COMMENT ON FUNCTION save_gig_pack IS 'Atomic RPC to save entire gig pack (gig + schedule, materials, packing, setlist, roles, shares) in a single transaction. Reduces 18+ network calls to 1.';
+COMMENT ON FUNCTION save_gig_pack IS 'Atomic RPC to save entire gig pack (gig + schedule, materials, packing, setlist, roles, contacts, shares) in a single transaction.';

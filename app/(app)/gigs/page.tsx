@@ -17,6 +17,7 @@ import {
   CalendarDays,
   History,
   Trash2,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
@@ -41,6 +42,11 @@ interface GigOwnerProfile {
   name: string | null;
 }
 
+interface GigBandRow {
+  id: string;
+  name: string | null;
+}
+
 interface GigWithRoles {
   id: string;
   title: string;
@@ -51,14 +57,21 @@ interface GigWithRoles {
   location_name: string | null;
   status: string | null;
   owner_id: string;
+  band_id: string | null;
   hero_image_url: string | null;
   gig_type: string | null;
   owner: GigOwnerProfile | GigOwnerProfile[] | null;
+  band: GigBandRow | GigBandRow[] | null;
   gig_roles: GigRoleRow[];
 }
 
 const GigEditorPanel = dynamic(
   () => import("@/components/gigpack/editor/gig-editor-panel").then((mod) => mod.GigEditorPanel),
+  { ssr: false }
+);
+
+const CalendarImportSheet = dynamic(
+  () => import("@/components/calendar/calendar-import-sheet").then((mod) => mod.CalendarImportSheet),
   { ssr: false }
 );
 
@@ -84,6 +97,9 @@ export default function AllGigsPage() {
   // Editor state
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingGigId, setEditingGigId] = useState<string | null>(null);
+
+  // Import sheet state
+  const [isImportSheetOpen, setIsImportSheetOpen] = useState(false);
 
   // Fetch gig data when editing
   const { data: editingGig, isLoading: isLoadingEditingGig } = useQuery({
@@ -144,6 +160,7 @@ export default function AllGigsPage() {
           `
           id,
           owner_id,
+          band_id,
           title,
           date,
           start_time,
@@ -154,6 +171,10 @@ export default function AllGigsPage() {
           hero_image_url,
           gig_type,
           owner:profiles!gigs_owner_profiles_fkey (
+            id,
+            name
+          ),
+          band:bands (
             id,
             name
           ),
@@ -219,6 +240,7 @@ export default function AllGigsPage() {
 
           const ownerData = Array.isArray(gig.owner) ? gig.owner[0] : gig.owner;
           const hostName = ownerData?.name || null;
+          const bandData = Array.isArray(gig.band) ? gig.band[0] : gig.band;
 
           return {
             gigId: gig.id,
@@ -236,6 +258,8 @@ export default function AllGigsPage() {
             paymentStatus,
             hostId: gig.owner_id,
             hostName,
+            bandId: gig.band_id || null,
+            bandName: bandData?.name || null,
             heroImageUrl: gig.hero_image_url || null,
             gigType: gig.gig_type || null,
             playerGigRoleId: playerRole?.id || null,
@@ -287,7 +311,8 @@ export default function AllGigsPage() {
       return (
         gig.gigTitle.toLowerCase().includes(query) ||
         (gig.hostName && gig.hostName.toLowerCase().includes(query)) ||
-        (gig.locationName && gig.locationName.toLowerCase().includes(query))
+        (gig.locationName && gig.locationName.toLowerCase().includes(query)) ||
+        (gig.bandName && gig.bandName.toLowerCase().includes(query))
       );
     });
   }, [allGigs, debouncedSearchQuery]);
@@ -352,7 +377,16 @@ export default function AllGigsPage() {
             Upcoming
           </Button>
         </div>
-        <div className="flex-1 flex justify-end">
+        <div className="flex-1 flex justify-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsImportSheetOpen(true)}
+            className="gap-1.5 h-9 sm:h-10 text-sm"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Import</span>
+          </Button>
           <Button onClick={handleCreateGig} className="gap-2 h-9 sm:h-10 text-sm">
             <Plus className="h-4 w-4" />
             <span className="hidden xs:inline">Create Gig</span>
@@ -501,8 +535,15 @@ export default function AllGigsPage() {
         }}
         onUpdateSuccess={() => {
           // Cache invalidation handled by useSaveGigPack hook
-          // Just keep the sheet open for continued editing
+          setIsEditorOpen(false);
+          setEditingGigId(null);
         }}
+      />
+
+      {/* Calendar Import Sheet */}
+      <CalendarImportSheet
+        open={isImportSheetOpen}
+        onOpenChange={setIsImportSheetOpen}
       />
     </div>
   );

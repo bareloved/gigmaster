@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { getGigPackFull } from '@/lib/api/gig-pack';
 import { useUser } from '@/lib/providers/user-provider';
-import { MinimalLayout } from '@/components/gigpack/layouts/minimal-layout';
+import { GigPackLayout } from '@/components/gigpack/layouts/gigpack-layout';
 import { GigPackShareDialog } from '@/components/gigpack/gigpack-share-dialog';
 import { InvitationBanner } from '@/components/gigpack/invitation-banner';
 import { Card, CardContent } from '@/components/ui/card';
@@ -100,6 +100,37 @@ export default function GigPackPage() {
   });
 
   useDocumentTitle(gigPack?.title ?? "Gig Pack");
+
+  // Sync Google Calendar attendee responses on page load.
+  // This is a reliable fallback to webhooks — fetches current response
+  // statuses directly from Google Calendar and updates the DB if needed.
+  const isOwnerForSync = gigPack?.owner_id === user?.id;
+  useEffect(() => {
+    if (!gigId || !isOwnerForSync) return;
+
+    let cancelled = false;
+
+    const syncResponses = async () => {
+      try {
+        const res = await fetch('/api/calendar/sync-responses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gigId }),
+        });
+        if (!res.ok) return;
+        const { updated } = await res.json();
+        if (updated > 0 && !cancelled) {
+          queryClient.invalidateQueries({ queryKey: ['gig-pack-full', gigId] });
+        }
+      } catch {
+        // Silent — this is a background sync
+      }
+    };
+
+    syncResponses();
+
+    return () => { cancelled = true; };
+  }, [gigId, isOwnerForSync, queryClient]);
 
   // Smart polling for live updates
   const poll = useCallback(async () => {
@@ -309,8 +340,8 @@ export default function GigPackPage() {
         />
       )}
 
-      {/* GigPack MinimalLayout */}
-      <MinimalLayout
+      {/* GigPack Layout */}
+      <GigPackLayout
         gigPack={gigPack as Omit<GigPack, "internal_notes" | "owner_id">}
         openMaps={openMaps}
         slug={gigPack.public_slug || gigId}
@@ -327,7 +358,7 @@ export default function GigPackPage() {
       )}
       
       {/* Live status indicator */}
-      <div className="fixed bottom-4 right-4 z-50">
+      <div className="fixed bottom-20 right-4 lg:bottom-4 z-50">
         <div className="bg-card border rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 text-xs text-muted-foreground">
           <RefreshCw 
             className={`h-3 w-3 transition-all ${
@@ -338,14 +369,11 @@ export default function GigPackPage() {
                   : 'text-orange-500'
             }`} 
           />
-          <span className="hidden sm:inline">
+          <span>
             {isUserActive ? 'Live' : 'Idle'} • Updated {lastUpdated.toLocaleTimeString('en-US', {
               hour: 'numeric',
               minute: '2-digit'
             })}
-          </span>
-          <span className="sm:hidden">
-            {isUserActive ? '🟢' : '🟠'}
           </span>
         </div>
       </div>

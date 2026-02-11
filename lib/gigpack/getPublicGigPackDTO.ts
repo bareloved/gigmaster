@@ -17,6 +17,7 @@ interface RoleRow {
   contact_id: string | null;
   notes: string | null;
   sort_order: number | null;
+  invitation_status: string | null;
   contact: { email: string | null; phone: string | null } | null;
 }
 
@@ -168,6 +169,7 @@ export async function getPublicGigPackDTO(token: string): Promise<PublicGigPackD
           email: profile?.email || r.contact?.email || undefined,
           phone: profile?.phone || r.contact?.phone || undefined,
           avatarUrl: profile?.avatar_url || undefined,
+          invitationStatus: r.invitation_status || undefined,
         };
       });
     })(),
@@ -214,7 +216,8 @@ export async function getPublicGigPackDTO(token: string): Promise<PublicGigPackD
     dress_code: gig.dress_code,
     backline_notes: gig.backline_notes,
     parking_notes: gig.parking_notes,
-    payment_notes: null, // Not in DB
+    notes: gig.notes,
+    payment_notes: null,
     contacts: null, // Contacts not exposed in public share
 
     // Pre-fetch activity for public view (no auth available client-side)

@@ -20,13 +20,8 @@ export function GigEditorWrapper({ gig, isDuplicating, loading }: GigEditorWrapp
     }
   };
 
-  const handleSuccess = (gigPack: GigPack) => {
-    // Redirect to the gig's pack page after save
-    if (gigPack.id) {
-      router.push(`/gigs/${gigPack.id}/pack`);
-    } else {
-      router.push("/gigs");
-    }
+  const handleSuccess = () => {
+    router.push("/gigs");
   };
 
   return (

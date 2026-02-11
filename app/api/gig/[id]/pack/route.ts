@@ -120,6 +120,7 @@ export async function GET(
     backline_notes: gig.backline_notes,
     parking_notes: gig.parking_notes,
     payment_notes: gig.payment_notes,
+    notes: gig.notes,
     internal_notes: gig.internal_notes,
     public_slug: gig.gig_shares?.[0]?.token || "",
     theme: (gig.theme as GigPackTheme) || null,

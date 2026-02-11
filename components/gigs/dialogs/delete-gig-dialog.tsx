@@ -1,5 +1,6 @@
 "use client";
 
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -15,6 +16,7 @@ interface DeleteGigDialogProps {
   onOpenChange: (open: boolean) => void;
   gigTitle: string;
   onConfirm: () => void | Promise<void>;
+  isLoading?: boolean;
 }
 
 export function DeleteGigDialog({
@@ -22,6 +24,7 @@ export function DeleteGigDialog({
   onOpenChange,
   gigTitle,
   onConfirm,
+  isLoading = false,
 }: DeleteGigDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -34,13 +37,19 @@ export function DeleteGigDialog({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
             Cancel
           </Button>
           <Button
             variant="destructive"
             onClick={onConfirm}
+            disabled={isLoading}
           >
+            {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Move to Trash
           </Button>
         </DialogFooter>

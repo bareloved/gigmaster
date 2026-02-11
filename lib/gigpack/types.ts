@@ -137,8 +137,9 @@ export interface GigPack {
   dress_code: string | null;
   backline_notes: string | null;
   parking_notes: string | null;
-  payment_notes: string | null; // Missing in DB
-  internal_notes: string | null; // Missing in DB (maybe 'notes'?)
+  payment_notes: string | null;
+  notes: string | null;
+  internal_notes: string | null;
   public_slug: string; // Missing? Or use ID? GigPack uses public_slug.
   theme: GigPackTheme | null;
   is_archived: boolean; // status != 'confirmed'?

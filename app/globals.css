@@ -91,6 +91,22 @@
   html {
     font-size: 106.25%; /* 17px base instead of 16px — scales all rem-based text up */
     overflow-x: clip;
+    scrollbar-gutter: stable;
+  }
+
+  /* Neutralise react-remove-scroll-bar (used by all Radix overlays).
+     The library injects !important styles that hide the scrollbar and
+     add margin/padding to compensate. With scrollbar-gutter: stable
+     above, we just need to keep overflow visible so the gutter stays.
+     Higher specificity (html.class / html body) beats the library's
+     injected !important rules. */
+  html.with-scroll-bars-hidden {
+    overflow: auto !important;
+    padding-right: 0 !important;
+  }
+  html body[data-scroll-locked] {
+    overflow: auto !important;
+    margin-right: 0 !important;
   }
 
   body {
@@ -156,6 +172,212 @@
   font-style: normal;
   font-display: swap;
   unicode-range: U+0590-05FF, U+FB1D-FB4F;
+}
+
+/* ==========================================================================
+   SETLIST PAPER — concert setlist taped to stage floor
+   ========================================================================== */
+
+.setlist-paper {
+  background: #ffffff;
+  border-radius: 6px;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dark .setlist-paper {
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.3),
+    0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+/* Header — small centered text, no divider, like the real photo */
+.setlist-paper-header {
+  padding: 40px 56px 0;
+  text-align: center;
+}
+
+.setlist-paper-header .setlist-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #222;
+  line-height: 1.3;
+}
+
+.setlist-paper-header .setlist-subtitle {
+  font-size: 0.55rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #222;
+  margin-top: 1px;
+}
+
+/* Textarea — ruled lines, bold uppercase, ink-on-paper */
+.setlist-paper textarea {
+  display: block;
+  width: 100%;
+  flex: 1;
+  padding: 32px 56px 40px;
+  border: none;
+  outline: none;
+  resize: vertical;
+  background-color: transparent;
+  line-height: 26px;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #111;
+  caret-color: #111;
+}
+
+/* Placeholder — NOT uppercase, lighter */
+.setlist-paper textarea::placeholder {
+  text-transform: none;
+  font-weight: 400;
+  color: #aaa;
+  font-size: 0.875rem;
+}
+
+/* Mobile — min 16px to avoid iOS zoom */
+@media (max-width: 640px) {
+  .setlist-paper textarea {
+    font-size: 16px;
+    padding: 24px 48px 32px;
+  }
+  .setlist-paper-header {
+    padding: 28px 48px 0;
+  }
+  .setlist-paper .tiptap {
+    font-size: 16px;
+    padding: 24px 48px 32px 14px;
+  }
+}
+
+/* ==========================================================================
+   TIPTAP RICH-TEXT EDITOR — inside setlist paper
+   ========================================================================== */
+
+/* Editor row — toolbar on left, text on right */
+.setlist-editor-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Toolbar — vertical strip on the left edge */
+.setlist-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 8px 40px 12px;
+  border-right: 1px solid #e5e5e5;
+}
+
+@media (max-width: 640px) {
+  .setlist-toolbar {
+    padding: 24px 6px 32px 8px;
+  }
+}
+
+/* Tiptap editable area — same feel as the textarea */
+.setlist-paper .tiptap {
+  display: block;
+  width: 100%;
+  flex: 1;
+  padding: 12px 56px 40px 20px;
+  border: none;
+  outline: none;
+  background-color: transparent;
+  line-height: 1.35;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #111;
+  caret-color: #111;
+}
+
+/* Tight line spacing */
+.setlist-paper .tiptap p {
+  margin: 0;
+}
+
+/* Numbered mode — CSS counters on paragraphs */
+.setlist-numbered .tiptap {
+  counter-reset: setlist-line;
+}
+
+.setlist-numbered .tiptap p:not(.is-editor-empty)::before {
+  counter-increment: setlist-line;
+  content: counter(setlist-line) ". ";
+  letter-spacing: 0;
+  margin-right: 0.3em;
+}
+
+/* Placeholder text (empty editor) — matches setlist text style, fades out */
+.setlist-paper .tiptap p.is-editor-empty:first-child {
+  position: relative;
+}
+
+.setlist-paper .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  white-space: pre-line;
+  color: #ccc;
+  -webkit-mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
+}
+
+/* ==========================================================================
+   SETLIST PREVIEW — read-only rich-text inside gigpack
+   ========================================================================== */
+
+.setlist-paper .setlist-preview {
+  display: block;
+  width: 100%;
+  padding: 12px 56px 40px 20px;
+  background-color: transparent;
+  line-height: 1.35;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #111;
+}
+
+.setlist-paper .setlist-preview p {
+  margin: 0;
+}
+
+/* Numbered mode — CSS counters on non-empty paragraphs */
+.setlist-numbered .setlist-preview {
+  counter-reset: setlist-line;
+}
+
+.setlist-numbered .setlist-preview p:not(:empty)::before {
+  counter-increment: setlist-line;
+  content: counter(setlist-line) ". ";
+  letter-spacing: 0;
+  margin-right: 0.3em;
+}
+
+@media (max-width: 640px) {
+  .setlist-paper .setlist-preview {
+    font-size: 16px;
+    padding: 24px 48px 32px 14px;
+  }
 }
 
 /* ==========================================================================

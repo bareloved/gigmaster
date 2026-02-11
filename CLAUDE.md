@@ -159,16 +159,15 @@ const { data } = useQuery({
 });
 ```
 
-### Radix Overlays - Page Shift Fix (modal={false})
+### Radix Overlays - Page Shift Fix
 
-**Problem:** Radix UI modal overlays add `overflow: hidden` to the body, removing the scrollbar and shifting the page ~15px left. `scrollbar-gutter: stable` conflicts with Radix's scroll-lock compensation, making it worse.
+**Problem:** Radix UI overlays (Dialog, Sheet, Select, AlertDialog) use `react-remove-scroll` which sets `overflow: hidden` on `<html>`, removing the scrollbar and shifting the page left.
 
-**Solution:** Our wrappers for `Dialog`, `Sheet`, and `DropdownMenu` default `modal` to `false`, which disables scroll locking entirely — no shift. Two supporting changes make this work:
+**Solution (two layers):**
 
-1. **`onInteractOutside` prevention** on `DialogContent`/`SheetContent` — prevents the "opens then instantly closes" bug when triggered from a DropdownMenu
-2. **Overlay wrapped in `Close`** — clicking the dark backdrop still dismisses the dialog/sheet
+1. **CSS (globals.css)** — `scrollbar-gutter: stable` on `html` reserves scrollbar space permanently. A `html[data-scroll-locked]` override neutralises `react-remove-scroll`'s inline styles so the gutter is never removed. This covers **all** Radix overlays universally (including Select, which has no `modal` prop).
 
-Do NOT add `scrollbar-gutter: stable` to `globals.css` — it conflicts with Radix's scroll-lock library.
+2. **`modal={false}` wrappers** — `Dialog`, `Sheet`, and `DropdownMenu` wrappers default `modal` to `false`. This adds `onInteractOutside` prevention (fixes instant-close from DropdownMenu) and a custom overlay wrapped in `Close` (click-to-dismiss still works).
 
 ### Row Level Security (RLS)
 

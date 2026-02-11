@@ -1,11 +1,12 @@
 "use client";
 
 import { GigPack } from "@/lib/gigpack/types";
-import { Clock, MapPin, Shirt, Package, ExternalLink, PlayCircle, Disc3 } from "lucide-react";
+import { Clock, MapPin, Shirt, Package, ExternalLink, PlayCircle, Disc3, StickyNote } from "lucide-react";
 import { formatDate } from "@/lib/gigpack/utils";
 import { Button } from "@/components/ui/button";
 import { PackingChecklist } from "@/components/gigpack/packing-checklist";
 import { useTranslations } from "@/components/gigpack/hooks";
+import { isHtmlSetlist, htmlToPlainText } from "@/lib/utils/setlist-html";
 
 interface RehearsalViewProps {
   gigPack: Omit<GigPack, "internal_notes" | "owner_id">;
@@ -140,7 +141,11 @@ export function RehearsalView({ gigPack, openMaps, slug, locale }: RehearsalView
               ) : (
                 /* Fallback to simple setlist with large fonts */
                 <div className="space-y-3">
-                  {gigPack.setlist?.split('\n').map((line, index) => (
+                  {(() => {
+                  const raw = gigPack.setlist || "";
+                  const plain = isHtmlSetlist(raw) ? htmlToPlainText(raw) : raw;
+                  return plain.split('\n');
+                })().map((line, index) => (
                     line.trim() ? (
                       <div key={index} className={`flex gap-4 md:gap-6 py-3 border-b border-dashed last:border-0 ${locale === 'he' ? 'flex-row-reverse' : ''}`}>
                         <span className="text-xl md:text-3xl font-bold min-w-[3rem] md:min-w-[4rem] tabular-nums" style={{ color: accentColor }}>
@@ -159,7 +164,7 @@ export function RehearsalView({ gigPack, openMaps, slug, locale }: RehearsalView
         )}
 
         {/* Key Logistics - Essential Info Only */}
-        {(gigPack.dress_code || gigPack.backline_notes) && (
+        {(gigPack.dress_code || gigPack.backline_notes || gigPack.notes) && (
           <div className="space-y-6">
             <div className="text-center text-lg md:text-xl text-muted-foreground uppercase tracking-wider font-semibold mb-4">
               {t("essentialInfo")}
@@ -182,6 +187,15 @@ export function RehearsalView({ gigPack, openMaps, slug, locale }: RehearsalView
                     <span>{t("gear")}</span>
                   </div>
                   <p className={`text-base md:text-xl font-medium whitespace-pre-wrap leading-relaxed ${locale === 'he' ? 'text-right' : ''}`}>{gigPack.backline_notes}</p>
+                </div>
+              )}
+              {gigPack.notes && (
+                <div className="bg-muted/50 border rounded-xl p-5 md:p-6 md:col-span-2">
+                  <div className={`flex items-center gap-2 text-sm md:text-base uppercase tracking-wider font-semibold text-muted-foreground mb-3 ${locale === 'he' ? 'flex-row-reverse' : ''}`}>
+                    <StickyNote className="h-5 w-5" />
+                    <span>{t("notesLabel")}</span>
+                  </div>
+                  <p className={`text-base md:text-xl font-medium whitespace-pre-wrap leading-relaxed ${locale === 'he' ? 'text-right' : ''}`}>{gigPack.notes}</p>
                 </div>
               )}
             </div>
