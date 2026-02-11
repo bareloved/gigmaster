@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, Paperclip, ExternalLink, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, FileText } from "lucide-react";
+import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, Paperclip, ExternalLink, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, FileText, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { isHtmlSetlist, htmlToPlainText } from "@/lib/utils/setlist-html";
+import { isHtmlSetlist, plainTextToHtml } from "@/lib/utils/setlist-html";
+import { exportSetlistPdf } from "@/lib/utils/setlist-pdf-export";
 import { classifyGigVisualTheme, pickFallbackImageForTheme } from "@/lib/gigpack/gig-visual-theme";
 import { GigActivityWidget } from "@/components/dashboard/activity-widget";
 import type { GigActivityLogEntry } from "@/lib/api/gig-activity";
@@ -128,35 +129,31 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
   };
 
   const rawSetlist = gigPack.setlist || "";
-  const plainSetlist = isHtmlSetlist(rawSetlist) ? htmlToPlainText(rawSetlist) : rawSetlist;
-  const setlistLines = plainSetlist
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
+  const setlistHtml = rawSetlist.trim()
+    ? isHtmlSetlist(rawSetlist)
+      ? rawSetlist
+      : plainTextToHtml(rawSetlist)
+    : "";
+  const hasSetlistContent =
+    setlistHtml.replace(/<[^>]+>/g, "").trim().length > 0;
 
-  const SETLIST_COLLAPSED_VISIBLE = 3;
-  const SETLIST_TEASER_VISIBLE = 1;
-
-  const hasMoreSetlist = setlistLines.length > SETLIST_COLLAPSED_VISIBLE;
-  const visibleSetlistLines = setlistExpanded
-    ? setlistLines
-    : setlistLines.slice(
-        0,
-        Math.min(setlistLines.length, SETLIST_COLLAPSED_VISIBLE + SETLIST_TEASER_VISIBLE)
-      );
-
-  const remainingSetlistCount = Math.max(0, setlistLines.length - SETLIST_COLLAPSED_VISIBLE);
-
-  const splitSetlistLine = (line: string) => {
-    if (line.includes(" — ")) {
-      const [title, ...rest] = line.split(" — ");
-      return { title: title.trim(), meta: rest.join(" — ").trim() };
-    }
-    if (line.includes(" - ")) {
-      const [title, ...rest] = line.split(" - ");
-      return { title: title.trim(), meta: rest.join(" - ").trim() };
-    }
-    return { title: line, meta: "" };
+  const handleDownloadPdf = async () => {
+    if (!setlistHtml) return;
+    const subtitle = [
+      gigPack.venue_name,
+      gigPack.date ? formatDate(gigPack.date) : null,
+    ]
+      .filter(Boolean)
+      .join(" \u2022 ");
+    const title = gigPack.band_name || gigPack.title;
+    const filename =
+      [gigPack.title, gigPack.band_name, gigPack.date]
+        .filter(Boolean)
+        .join(" - ") + ".pdf";
+    await exportSetlistPdf(
+      { title, subtitle, bodyHtml: setlistHtml, numbered: true },
+      filename
+    );
   };
   
   return (
@@ -442,76 +439,51 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
                 </div>
               </div>
             )}
-            {setlistLines.length > 0 && (
+            {hasSetlistContent && (
               <div className="bg-card border rounded-lg p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <Music className="h-5 w-5" style={{ color: accentColor }} />
                     <h3 className="font-semibold text-lg">{t("setlist")}</h3>
-                    <Badge variant="secondary" className="text-xs">
-                      {setlistLines.length}
-                    </Badge>
                   </div>
-                  {hasMoreSetlist && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSetlistExpanded(!setlistExpanded)}
-                      className="text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      {setlistExpanded ? t("showLess") : t("showMore", { count: remainingSetlistCount })}
-                    </Button>
-                  )}
+                  <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
+                    <Download className="h-3.5 w-3.5 mr-1.5" />
+                    Download PDF
+                  </Button>
                 </div>
-                <div className="relative bg-muted/30 border rounded-lg p-4 overflow-hidden">
-                  <div
-                    className={`space-y-1 transition-[max-height] duration-300 ease-out ${
-                      setlistExpanded ? "max-h-[1200px]" : "max-h-[240px]"
-                    }`}
-                  >
-                    {visibleSetlistLines.map((line, idx) => {
-                      const isTeaser =
-                        !setlistExpanded && idx === SETLIST_COLLAPSED_VISIBLE;
-                      return (
-                        <div
-                          key={`${idx}-${line}`}
-                          className={`flex gap-3 py-1.5 ${isTeaser ? "opacity-60 blur-[0.3px]" : ""}`}
-                        >
-                          <span
-                            className="font-mono text-sm min-w-[2rem] font-semibold"
-                            style={{ color: accentColor }}
-                          >
-                            {idx + 1}.
-                          </span>
-                          {(() => {
-                            const { title, meta } = splitSetlistLine(line);
-                            return (
-                              <div className={`flex-1 ${activeLocale === "he" ? "text-right" : ""}`}>
-                                <div className="text-sm leading-relaxed">{title}</div>
-                                {meta && (
-                                  <div className="text-xs text-muted-foreground mt-0.5">
-                                    {meta}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
+                <div
+                  className="relative overflow-hidden rounded-lg"
+                  style={{ maxHeight: setlistExpanded ? "none" : "180px" }}
+                >
+                  <div className="setlist-paper mx-auto setlist-numbered">
+                    <div className="setlist-paper-header">
+                      <div className="setlist-title">
+                        {gigPack.band_name || gigPack.title}
+                      </div>
+                      {(gigPack.venue_name || gigPack.date) && (
+                        <div className="setlist-subtitle">
+                          {[
+                            gigPack.venue_name,
+                            gigPack.date ? formatDate(gigPack.date) : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" \u2022 ")}
                         </div>
-                      );
-                    })}
-                  </div>
-                  {hasMoreSetlist && (
+                      )}
+                    </div>
                     <div
-                      className={`absolute inset-x-0 bottom-0 transition-opacity duration-300 ${
-                        setlistExpanded ? "opacity-0 pointer-events-none" : "opacity-100"
-                      }`}
-                    >
-                      <div className="h-20 bg-gradient-to-t from-muted/50 via-muted/30 to-transparent" />
-                      <div className="absolute inset-x-0 bottom-3 flex justify-center pointer-events-none">
+                      className="setlist-preview"
+                      dangerouslySetInnerHTML={{ __html: setlistHtml }}
+                    />
+                  </div>
+                  {!setlistExpanded && (
+                    <div className="absolute inset-x-0 bottom-0 pointer-events-none">
+                      <div className="h-20 bg-gradient-to-t from-white to-transparent" />
+                      <div className="absolute inset-x-0 bottom-3 flex justify-center pointer-events-auto">
                         <Button
                           variant="secondary"
                           size="sm"
-                          className="pointer-events-auto bg-background/80 backdrop-blur-sm border shadow-sm"
+                          className="bg-white/80 backdrop-blur-sm border shadow-sm text-gray-700 hover:bg-white"
                           onClick={() => setSetlistExpanded(true)}
                         >
                           {t("showFullSetlist")}
@@ -520,6 +492,18 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
                     </div>
                   )}
                 </div>
+                {setlistExpanded && (
+                  <div className="flex justify-center mt-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => setSetlistExpanded(false)}
+                    >
+                      {t("showLess")}
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
             {gigPack.setlist_pdf_url && (

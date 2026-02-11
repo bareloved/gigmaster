@@ -341,6 +341,46 @@
 }
 
 /* ==========================================================================
+   SETLIST PREVIEW — read-only rich-text inside gigpack
+   ========================================================================== */
+
+.setlist-paper .setlist-preview {
+  display: block;
+  width: 100%;
+  padding: 12px 56px 40px 20px;
+  background-color: transparent;
+  line-height: 1.35;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #111;
+}
+
+.setlist-paper .setlist-preview p {
+  margin: 0;
+}
+
+/* Numbered mode — CSS counters on non-empty paragraphs */
+.setlist-numbered .setlist-preview {
+  counter-reset: setlist-line;
+}
+
+.setlist-numbered .setlist-preview p:not(:empty)::before {
+  counter-increment: setlist-line;
+  content: counter(setlist-line) ". ";
+  letter-spacing: 0;
+  margin-right: 0.3em;
+}
+
+@media (max-width: 640px) {
+  .setlist-paper .setlist-preview {
+    font-size: 16px;
+    padding: 24px 48px 32px 14px;
+  }
+}
+
+/* ==========================================================================
    PRINT STYLES
    ========================================================================== */
 
