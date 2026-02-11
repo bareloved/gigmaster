@@ -16,6 +16,7 @@ import { GigActivityWidget } from "@/components/dashboard/activity-widget";
 import type { GigActivityLogEntry } from "@/lib/api/gig-activity";
 import { NeedHelpSection } from "@/components/gigpack/need-help-section";
 import { HostingServiceIcon } from "@/components/shared/hosting-service-icon";
+import { InvitationStatusIcon } from "@/components/gigpack/ui/invitation-status-icon";
 import type { GigMaterialKind } from "@/lib/gigpack/types";
 
 function getInitials(name: string): string {
@@ -25,17 +26,6 @@ function getInitials(name: string): string {
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
-function getStatusColor(status?: string): string {
-  switch (status) {
-    case "accepted": return "bg-green-500";
-    case "invited":
-    case "pending": return "bg-yellow-500";
-    case "declined": return "bg-red-500";
-    case "needs_sub": return "bg-orange-500";
-    case "tentative": return "bg-yellow-400";
-    default: return "bg-gray-400";
-  }
-}
 
 const MATERIAL_KIND_ICON: Record<GigMaterialKind, { icon: React.ElementType; color: string }> = {
   rehearsal: { icon: Mic, color: "text-primary" },
@@ -45,14 +35,14 @@ const MATERIAL_KIND_ICON: Record<GigMaterialKind, { icon: React.ElementType; col
   other: { icon: Paperclip, color: "text-muted-foreground" },
 };
 
-interface MinimalLayoutProps {
+interface GigPackLayoutProps {
   gigPack: Omit<GigPack, "internal_notes" | "owner_id">;
   openMaps: () => void;
   slug: string;
   locale?: string;
 }
 
-export function MinimalLayout({ gigPack, openMaps }: MinimalLayoutProps) {
+export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
   const activeLocale = useLocale();
   
   const t = useTranslations("public");
@@ -411,7 +401,7 @@ export function MinimalLayout({ gigPack, openMaps }: MinimalLayoutProps) {
                         key={`${member.name}-${index}`}
                         className="flex items-center gap-3 py-2.5 px-3 hover:bg-muted/50 transition-colors first:rounded-t-lg last:rounded-b-lg"
                       >
-                        {/* Avatar with status dot */}
+                        {/* Avatar with status icon */}
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div className="relative shrink-0">
@@ -421,11 +411,10 @@ export function MinimalLayout({ gigPack, openMaps }: MinimalLayoutProps) {
                                   {getInitials(member.name!)}
                                 </AvatarFallback>
                               </Avatar>
-                              <span
-                                className={cn(
-                                  "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background",
-                                  getStatusColor(member.invitationStatus)
-                                )}
+                              <InvitationStatusIcon
+                                status={member.invitationStatus}
+                                size="sm"
+                                className="absolute -bottom-0.5 -right-0.5 border-2 border-background"
                               />
                             </div>
                           </TooltipTrigger>

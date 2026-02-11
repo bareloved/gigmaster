@@ -8,6 +8,7 @@ import type { Json } from "@/lib/types/database";
 // Note: createNotification from lib/api uses browser client, but we're on server
 // So we'll insert notifications directly using the server supabase client
 import { isArchivedStatus } from "@/lib/types/shared";
+import { cancelRoleCalendarEvents } from "@/lib/api/calendar-invites";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 // Type definitions for database join results
@@ -686,6 +687,19 @@ async function saveGigPackRPC(
     }
   }
 
+  // Snapshot roles with calendar events BEFORE save, so we can cancel
+  // events for any roles that get removed by the smart merge
+  let preExistingCalendarRoles: { id: string; google_calendar_event_id: string }[] = [];
+  if (isEditing && gigId) {
+    const { data: existingRoles } = await supabase
+      .from("gig_roles")
+      .select("id, google_calendar_event_id")
+      .eq("gig_id", gigId)
+      .not("google_calendar_event_id", "is", null);
+
+    preExistingCalendarRoles = (existingRoles || []) as typeof preExistingCalendarRoles;
+  }
+
   try {
     // Build the gig object for RPC
     const gigPayload = {
@@ -753,6 +767,25 @@ async function saveGigPackRPC(
       detectChangesAndNotify(supabase, gigId, data, dateValue).catch(err =>
         console.error("Background notification error:", err)
       );
+    }
+
+    // Fire-and-forget: Cancel calendar events for roles that were removed
+    if (isEditing && preExistingCalendarRoles.length > 0) {
+      const remainingRoleIds = new Set(
+        (data.lineup || [])
+          .map(m => m.gigRoleId)
+          .filter((id): id is string => !!id)
+      );
+
+      const removedEventIds = preExistingCalendarRoles
+        .filter(r => !remainingRoleIds.has(r.id))
+        .map(r => r.google_calendar_event_id);
+
+      if (removedEventIds.length > 0) {
+        cancelRoleCalendarEvents(user.id, removedEventIds).catch(err =>
+          console.error("Background calendar cleanup error:", err)
+        );
+      }
     }
 
     revalidatePath("/gigs");

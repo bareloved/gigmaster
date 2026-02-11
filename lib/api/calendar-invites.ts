@@ -650,6 +650,79 @@ export async function cancelCalendarEvents(
 }
 
 /**
+ * Cancel Google Calendar events for specific removed roles.
+ * Called when lineup members are removed during gig editing.
+ * Deletes each event so the attendee gets a cancellation notification from Google.
+ */
+export async function cancelRoleCalendarEvents(
+  userId: string,
+  eventIds: string[]
+): Promise<number> {
+  if (eventIds.length === 0) return 0;
+
+  const supabase = await createClient();
+
+  // Get calendar connection for the gig owner
+  const { data: connection } = await supabase
+    .from("calendar_connections")
+    .select("access_token, refresh_token, token_expires_at")
+    .eq("user_id", userId)
+    .eq("provider", "google")
+    .single();
+
+  if (!connection) {
+    console.warn("[cancelRoleCalendarEvents] No calendar connection found for user:", userId);
+    return 0;
+  }
+
+  const googleClient = new GoogleCalendarClient();
+  googleClient.setCredentials({
+    access_token: connection.access_token,
+    refresh_token: connection.refresh_token,
+    expiry_date: new Date(connection.token_expires_at).getTime(),
+  });
+
+  let cancelled = 0;
+
+  for (const eventId of eventIds) {
+    try {
+      await googleClient.deleteEvent(eventId);
+      cancelled++;
+    } catch (error) {
+      console.error(`[cancelRoleCalendarEvents] Failed to cancel event ${eventId}:`, error);
+    }
+  }
+
+  // Clean up webhook watches for these events
+  const { data: watches } = await supabase
+    .from("google_calendar_watches")
+    .select("id, channel_id, resource_id, calendar_event_id")
+    .in("calendar_event_id", eventIds);
+
+  if (watches && watches.length > 0) {
+    for (const watch of watches) {
+      try {
+        await googleClient.stopWatch(watch.channel_id, watch.resource_id);
+      } catch (error) {
+        console.warn(`[cancelRoleCalendarEvents] Failed to stop watch ${watch.channel_id}:`, error);
+      }
+    }
+
+    const { error: deleteError } = await supabase
+      .from("google_calendar_watches")
+      .delete()
+      .in("id", watches.map(w => w.id));
+
+    if (deleteError) {
+      console.error("[cancelRoleCalendarEvents] Failed to delete watch rows:", deleteError);
+    }
+  }
+
+  console.log(`[cancelRoleCalendarEvents] Cancelled ${cancelled}/${eventIds.length} events`);
+  return cancelled;
+}
+
+/**
  * Map Google Calendar response status to GigMaster invitation status
  */
 export function mapResponseStatus(googleStatus: string): string {

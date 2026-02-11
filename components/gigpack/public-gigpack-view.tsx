@@ -4,8 +4,8 @@ import React, { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "@/lib/gigpack/i18n";
 import { GigPack, GigPackTheme } from "@/lib/gigpack/types";
-import { MinimalLayout } from "@/components/gigpack/layouts/minimal-layout";
-// RehearsalView is skipped for now, mapping to MinimalLayout for MVP phase
+import { GigPackLayout } from "@/components/gigpack/layouts/gigpack-layout";
+// RehearsalView is skipped for now, mapping to GigPackLayout for MVP phase
 // import { RehearsalView } from "@/components/gigpack/rehearsal-view";
 import { DarkModeToggle as ThemeToggle } from "@/components/layout/dark-mode-toggle";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -94,7 +94,7 @@ export function PublicGigPackView({ initialGigPack, slug, locale = "en" }: Publi
   return (
     <PublicGigPackErrorBoundary slug={slug}>
     <TooltipProvider>
-      <MinimalLayout gigPack={gigPack as GigPack} openMaps={openMaps} slug={slug} locale={locale} />
+      <GigPackLayout gigPack={gigPack as GigPack} openMaps={openMaps} slug={slug} locale={locale} />
       
       <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
         <div className="bg-background/80 backdrop-blur-sm rounded-lg border border-border/50 shadow-lg">

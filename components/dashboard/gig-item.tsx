@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Calendar, MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed } from "lucide-react";
+import { Calendar, MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed, Music2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUser } from "@/lib/providers/user-provider";
@@ -51,6 +51,9 @@ const GigInnerContent = memo(function GigInnerContent({ gig, formattedDate }: { 
       <div className="flex items-start justify-between gap-2">
         <div className="space-y-0.5 sm:space-y-1 flex-1 min-w-0">
           <h3 className="font-semibold text-sm sm:text-base truncate">{gig.gigTitle}</h3>
+          {gig.bandName && (
+            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{gig.bandName}</p>
+          )}
         </div>
         <div className="flex flex-col gap-1 sm:gap-2 items-end flex-shrink-0">
           {/* External Gig Badge */}
@@ -493,8 +496,10 @@ export function DashboardGigItem({
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}
           gigTitle={gig.gigTitle}
-          onConfirm={async () => {
-            await deleteGigMutation.mutateAsync(gig.gigId);
+          isLoading={deleteGigMutation.isPending}
+          onConfirm={() => {
+            setDeleteDialogOpen(false);
+            deleteGigMutation.mutate(gig.gigId);
           }}
         />
       )}

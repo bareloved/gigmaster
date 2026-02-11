@@ -410,6 +410,7 @@ export function GigEditorPanel({
     const raw = gigPack?.setlist || "";
     return raw && !isHtmlSetlist(raw) ? plainTextToHtml(raw) : raw;
   });
+  const [setlistNumbered, setSetlistNumbered] = useState(false);
   const [setlistPdfUrl, setSetlistPdfUrl] = useState<string | null>(gigPack?.setlist_pdf_url || null);
   const [setlistMode, setSetlistMode] = useState<"type" | "pdf">(
     gigPack?.setlist ? "type" : "pdf"
@@ -455,9 +456,6 @@ export function GigEditorPanel({
 
   // Pending contacts state (for new gigs before saving)
   const [pendingContacts, setPendingContacts] = useState<PendingContact[]>([]);
-
-  // Ref to paper element for PDF export
-  const setlistPaperRef = useRef<HTMLDivElement>(null);
 
   // Calendar invite nudge (show once per session)
   const calendarNudgeShown = useRef(false);
@@ -984,6 +982,11 @@ export function GigEditorPanel({
           }
         }
 
+        // Check for calendar invites for newly added lineup members
+        if (gigPack?.id && lineup.length > 0) {
+          checkAndSendCalendarInvites(gigPack.id);
+        }
+
         if (onUpdateSuccess && result) {
           // Construct updated gigPack object
           // For now, we might need to reload the page or fetch updated data.
@@ -1238,10 +1241,23 @@ export function GigEditorPanel({
 
   // PDF export handler
   const handleExportSetlistPdf = async () => {
-    if (!setlistPaperRef.current) return;
     const parts = [title || "Setlist", bandName, date].filter(Boolean);
     const filename = parts.join(" - ") + ".pdf";
-    await exportSetlistPdf(setlistPaperRef.current, filename);
+    const subtitle = [
+      venueName,
+      date ? format(parse(date, "yyyy-MM-dd", new Date()), "dd.MM.yy") : null,
+    ]
+      .filter(Boolean)
+      .join(" \u2022 ");
+    await exportSetlistPdf(
+      {
+        title: title || bandName || undefined,
+        subtitle: subtitle || undefined,
+        bodyHtml: setlistText,
+        numbered: setlistNumbered,
+      },
+      filename
+    );
   };
 
   // Tab configuration
@@ -1636,21 +1652,23 @@ export function GigEditorPanel({
 
               {setlistMode === "type" ? (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">
-                      {t("setlistTip")}
-                    </p>
+                  <div className="relative setlist-paper mx-auto max-w-[95%]">
+                    {/* Floating PDF download button */}
                     <button
                       type="button"
                       onClick={handleExportSetlistPdf}
-                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                      className={cn(
+                        "absolute top-3 right-3 z-10",
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-lg",
+                        "bg-primary text-primary-foreground",
+                        "text-xs font-medium shadow-md",
+                        "hover:bg-primary/90 active:scale-95 transition-all"
+                      )}
                       title="Download PDF"
                     >
                       <Download className="h-3.5 w-3.5" />
-                      PDF
+                      Download PDF
                     </button>
-                  </div>
-                  <div className="setlist-paper mx-auto max-w-[95%]">
                     {(title || bandName || venueName || date) && (
                       <div className="setlist-paper-header">
                         <div className="setlist-title">
@@ -1674,11 +1692,12 @@ export function GigEditorPanel({
                       </div>
                     )}
                     <SetlistRichEditor
-                      ref={setlistPaperRef}
                       content={setlistText}
                       onChange={setSetlistText}
-                      placeholder={t("setlistPlaceholder")}
+                      placeholder={"Also Sprach Zarathustra (2001 Theme)\nThe Final Countdown\nUptown Funk\nI'm Too Sexy\nBarbie Girl\nNever Gonna Give You Up"}
                       disabled={isLoading}
+                      numbered={setlistNumbered}
+                      onNumberedChange={setSetlistNumbered}
                     />
                   </div>
                 </div>

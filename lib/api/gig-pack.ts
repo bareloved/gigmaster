@@ -67,7 +67,7 @@ interface GigContactRow {
  */
 
 /**
- * Get full GigPack data for the MinimalLayout view
+ * Get full GigPack data for the GigPackLayout view
  * @param gigId - The gig ID
  */
 export async function getGigPackFull(gigId: string): Promise<GigPack | null> {

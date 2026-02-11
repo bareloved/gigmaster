@@ -17,6 +17,7 @@ interface RoleRow {
   contact_id: string | null;
   notes: string | null;
   sort_order: number | null;
+  invitation_status: string | null;
   contact: { email: string | null; phone: string | null } | null;
 }
 
@@ -168,6 +169,7 @@ export async function getPublicGigPackDTO(token: string): Promise<PublicGigPackD
           email: profile?.email || r.contact?.email || undefined,
           phone: profile?.phone || r.contact?.phone || undefined,
           avatarUrl: profile?.avatar_url || undefined,
+          invitationStatus: r.invitation_status || undefined,
         };
       });
     })(),

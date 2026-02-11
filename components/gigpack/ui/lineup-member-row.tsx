@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { RoleSelect } from "@/components/gigpack/ui/role-select";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
+import { InvitationStatusIcon } from "@/components/gigpack/ui/invitation-status-icon";
 
 /**
  * Get initials from a name (first 2 characters of first 2 words)
@@ -19,28 +20,6 @@ function getInitials(name: string): string {
   return (words[0][0] + words[1][0]).toUpperCase();
 }
 
-/**
- * Get status badge color based on invitation status
- */
-function getStatusColor(status?: string): string {
-  if (!status) return "bg-gray-400"; // Not invited yet
-
-  switch (status) {
-    case "accepted":
-      return "bg-green-500";
-    case "invited":
-    case "pending":
-      return "bg-yellow-500";
-    case "declined":
-      return "bg-red-500";
-    case "needs_sub":
-      return "bg-orange-500";
-    case "tentative":
-      return "bg-yellow-400";
-    default:
-      return "bg-gray-400";
-  }
-}
 
 interface LineupMemberRowProps {
   name: string;
@@ -74,12 +53,9 @@ export function LineupMemberRow({
   // Determine secondary text (email > phone > instrument)
   const secondaryText = email || phone || instrument || null;
 
-  // Status badge color
-  const statusColor = getStatusColor(invitationStatus);
-
   return (
     <div className="group flex items-center gap-3 py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors">
-      {/* Avatar with status badge */}
+      {/* Avatar with status icon */}
       <div className="relative shrink-0">
         <Avatar className="h-10 w-10">
           <AvatarImage src={avatarUrl || undefined} />
@@ -87,13 +63,10 @@ export function LineupMemberRow({
             {getInitials(name)}
           </AvatarFallback>
         </Avatar>
-        {/* Status badge */}
-        <span
-          className={cn(
-            "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background",
-            statusColor
-          )}
-          title={invitationStatus || "Not invited"}
+        <InvitationStatusIcon
+          status={invitationStatus}
+          size="sm"
+          className="absolute -bottom-0.5 -right-0.5 border-2 border-background"
         />
       </div>
 

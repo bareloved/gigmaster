@@ -9,6 +9,7 @@ import {
 import { deleteGig, restoreGig, permanentDeleteGig } from "@/lib/api/gigs";
 import { saveGigPack } from "@/app/(app)/gigs/actions";
 import type { GigPack } from "@/lib/gigpack/types";
+import type { DashboardGig } from "@/lib/types/shared";
 
 // ============================================
 // CENTRALIZED INVALIDATION HELPERS
@@ -187,7 +188,7 @@ export function useSaveGigPack() {
   });
 }
 
-/** Delete a gig (cancels Google Calendar events first) */
+/** Delete a gig with optimistic UI removal (cancels Google Calendar events first) */
 export function useDeleteGig() {
   const queryClient = useQueryClient();
   const { user } = useUser();
@@ -209,12 +210,91 @@ export function useDeleteGig() {
 
       return deleteGig(gigId);
     },
+
+    onMutate: async (gigId: string) => {
+      // Cancel outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({
+        predicate: (query) => {
+          const key = query.queryKey[0] as string;
+          return ["dashboard-gigs", "all-gigs", "calendar-gigs"].includes(key);
+        },
+      });
+
+      // Snapshot all affected caches for rollback
+      const previousData = new Map<string, unknown>();
+      const filterGig = (gigs: DashboardGig[]) =>
+        gigs.filter((g) => g.gigId !== gigId);
+
+      // dashboard-gigs: shape is { gigs: DashboardGig[]; hasMore: boolean; total: number }
+      queryClient
+        .getQueriesData<{ gigs: DashboardGig[]; hasMore: boolean; total: number }>({
+          predicate: (query) => query.queryKey[0] === "dashboard-gigs",
+        })
+        .forEach(([queryKey, data]) => {
+          if (data?.gigs) {
+            previousData.set(JSON.stringify(queryKey), data);
+            const filtered = filterGig(data.gigs);
+            queryClient.setQueryData(queryKey, {
+              ...data,
+              gigs: filtered,
+              total: data.total - (data.gigs.length - filtered.length),
+            });
+          }
+        });
+
+      // calendar-gigs: shape is DashboardGig[] (unwrapped in the hook)
+      queryClient
+        .getQueriesData<DashboardGig[]>({
+          predicate: (query) => query.queryKey[0] === "calendar-gigs",
+        })
+        .forEach(([queryKey, data]) => {
+          if (Array.isArray(data)) {
+            previousData.set(JSON.stringify(queryKey), data);
+            queryClient.setQueryData(queryKey, filterGig(data));
+          }
+        });
+
+      // all-gigs: infinite query — each page is { gigs: DashboardGig[]; nextPage?: number }
+      queryClient
+        .getQueriesData<{
+          pages: { gigs: DashboardGig[]; nextPage?: number }[];
+          pageParams: unknown[];
+        }>({
+          predicate: (query) => query.queryKey[0] === "all-gigs",
+        })
+        .forEach(([queryKey, data]) => {
+          if (data?.pages) {
+            previousData.set(JSON.stringify(queryKey), data);
+            queryClient.setQueryData(queryKey, {
+              ...data,
+              pages: data.pages.map((page) => ({
+                ...page,
+                gigs: filterGig(page.gigs),
+              })),
+            });
+          }
+        });
+
+      return { previousData };
+    },
+
+    onError: (error: Error, _gigId, context) => {
+      // Roll back all caches to their pre-delete state
+      if (context?.previousData) {
+        context.previousData.forEach((data, keyStr) => {
+          queryClient.setQueryData(JSON.parse(keyStr), data);
+        });
+      }
+      toast.error(`Failed to delete gig: ${error.message}`);
+    },
+
     onSuccess: () => {
-      invalidateAllGigListQueries(queryClient, user?.id);
       toast.success("Gig moved to trash");
     },
-    onError: (error: Error) => {
-      toast.error(`Failed to delete gig: ${error.message}`);
+
+    onSettled: () => {
+      // Always re-sync with server to ensure consistency
+      invalidateAllGigListQueries(queryClient, user?.id);
     },
   });
 }

@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getGig } from '@/app/(app)/gigs/actions';
-import { deleteGig } from '@/lib/api/gigs';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useDeleteGig } from '@/hooks/use-gig-mutations';
 import dynamic from 'next/dynamic';
 import { useUser } from '@/lib/providers/user-provider';
 
@@ -34,6 +34,7 @@ export default function GigDetailPage() {
   const gigId = params.id as string;
   const { user } = useUser();
   const queryClient = useQueryClient();
+  const deleteGigMutation = useDeleteGig();
 
   // Fetch gig details
   const {
@@ -59,40 +60,21 @@ export default function GigDetailPage() {
     }
   }, [gig, isOwner, isExternal, gigId, router]);
 
-  const handleDeleteGig = async () => {
+  const handleDeleteGig = () => {
     if (!gigId) return;
 
-    // Cancel all queries for this gig to prevent refetches after deletion
-    queryClient.cancelQueries({ queryKey: ['gig', gigId] });
-    queryClient.cancelQueries({ queryKey: ['gig-roles', gigId] });
-    queryClient.cancelQueries({ queryKey: ['setlist', gigId] });
-    queryClient.cancelQueries({ queryKey: ['gig-files', gigId] });
+    // Navigate away immediately for responsive UX
+    const returnUrl = searchParams.get('returnUrl') || '/dashboard';
+    router.push(returnUrl);
 
-    await deleteGig(gigId);
-
-    // Remove the deleted gig from cache immediately
+    // Clean up detail caches so the gig doesn't flash if user navigates back
     queryClient.removeQueries({ queryKey: ['gig', gigId] });
     queryClient.removeQueries({ queryKey: ['gig-roles', gigId] });
     queryClient.removeQueries({ queryKey: ['setlist', gigId] });
     queryClient.removeQueries({ queryKey: ['gig-files', gigId] });
 
-    // Invalidate related caches (but don't refetch - we're navigating away)
-    queryClient.invalidateQueries({
-      queryKey: ['dashboard-gigs', user?.id],
-      refetchType: 'none'
-    });
-    queryClient.invalidateQueries({
-      queryKey: ['recent-past-gigs', user?.id],
-      refetchType: 'none'
-    });
-    queryClient.invalidateQueries({
-      queryKey: ['all-gigs', user?.id],
-      refetchType: 'none'
-    });
-
-    // Navigate to returnUrl if provided, otherwise default to dashboard
-    const returnUrl = searchParams.get('returnUrl') || '/dashboard';
-    router.push(returnUrl);
+    // Fire mutation — hook handles optimistic list removal, toast, and rollback
+    deleteGigMutation.mutate(gigId);
   };
 
   // Loading state handled inside GigEditorPanel for a smoother sliding experience

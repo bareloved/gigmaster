@@ -185,7 +185,7 @@
     0 1px 3px rgba(0, 0, 0, 0.08),
     0 4px 12px rgba(0, 0, 0, 0.06);
   overflow: hidden;
-  aspect-ratio: 210 / 297;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -256,7 +256,7 @@
   }
   .setlist-paper .tiptap {
     font-size: 16px;
-    padding: 24px 48px 32px;
+    padding: 24px 48px 32px 14px;
   }
 }
 
@@ -264,18 +264,26 @@
    TIPTAP RICH-TEXT EDITOR — inside setlist paper
    ========================================================================== */
 
-/* Toolbar — compact row of icon buttons above the editor area */
+/* Editor row — toolbar on left, text on right */
+.setlist-editor-row {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Toolbar — vertical strip on the left edge */
 .setlist-toolbar {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 6px 56px;
-  border-bottom: 1px solid #e5e5e5;
+  padding: 12px 8px 40px 12px;
+  border-right: 1px solid #e5e5e5;
 }
 
 @media (max-width: 640px) {
   .setlist-toolbar {
-    padding: 6px 48px;
+    padding: 24px 6px 32px 8px;
   }
 }
 
@@ -284,19 +292,17 @@
   display: block;
   width: 100%;
   flex: 1;
-  padding: 32px 56px 40px;
+  padding: 12px 56px 40px 20px;
   border: none;
   outline: none;
   background-color: transparent;
-  line-height: 26px;
+  line-height: 1.35;
   font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  font-size: 0.875rem;
+  font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   color: #111;
   caret-color: #111;
-  min-height: 0;
-  overflow-y: auto;
 }
 
 /* Tight line spacing */
@@ -304,16 +310,34 @@
   margin: 0;
 }
 
-/* Placeholder text (empty editor) */
+/* Numbered mode — CSS counters on paragraphs */
+.setlist-numbered .tiptap {
+  counter-reset: setlist-line;
+}
+
+.setlist-numbered .tiptap p:not(.is-editor-empty)::before {
+  counter-increment: setlist-line;
+  content: counter(setlist-line) ". ";
+  letter-spacing: 0;
+  margin-right: 0.3em;
+}
+
+/* Placeholder text (empty editor) — matches setlist text style, fades out */
+.setlist-paper .tiptap p.is-editor-empty:first-child {
+  position: relative;
+}
+
 .setlist-paper .tiptap p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
-  float: left;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   pointer-events: none;
-  height: 0;
-  text-transform: none;
-  font-weight: 400;
-  color: #aaa;
-  font-size: 0.875rem;
+  white-space: pre-line;
+  color: #ccc;
+  -webkit-mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 65%, transparent 100%);
 }
 
 /* ==========================================================================

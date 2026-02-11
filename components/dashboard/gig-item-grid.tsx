@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Clock, Users, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed } from "lucide-react";
+import { MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Clock, Users, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed, Music2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUser } from "@/lib/providers/user-provider";
@@ -107,7 +107,12 @@ const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, he
         <div className="flex-1 flex flex-col space-y-1 sm:space-y-1.5">
           {/* Title row with soundcheck time */}
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold text-sm sm:text-base line-clamp-2 flex-1">{gig.gigTitle}</h3>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-sm sm:text-base line-clamp-2">{gig.gigTitle}</h3>
+              {gig.bandName && (
+                <p className="text-[10px] sm:text-xs text-muted-foreground truncate mt-0.5">{gig.bandName}</p>
+              )}
+            </div>
             {gig.callTime && (
               <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">
                 <Clock className="h-3 w-3" />
@@ -523,8 +528,10 @@ export function DashboardGigItemGrid({
           open={deleteDialogOpen}
           onOpenChange={setDeleteDialogOpen}
           gigTitle={gig.gigTitle}
-          onConfirm={async () => {
-            await deleteGigMutation.mutateAsync(gig.gigId);
+          isLoading={deleteGigMutation.isPending}
+          onConfirm={() => {
+            setDeleteDialogOpen(false);
+            deleteGigMutation.mutate(gig.gigId);
           }}
         />
       )}
