@@ -280,19 +280,11 @@ export function CalendarTab() {
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="space-y-1.5">
-                <Button
-                  variant="outline"
-                  onClick={() =>
-                    (window.location.href = "/calendar/import")
-                  }
-                >
-                  <CalendarDays className="h-4 w-4 mr-2" />
-                  Import Events
-                </Button>
+              {/* Import hint */}
+              <div className="rounded-lg border px-4 py-3">
                 <p className="text-sm text-muted-foreground">
-                  Browse your Google Calendar events and import them as gigs
+                  <CalendarDays className="h-4 w-4 inline mr-1.5 -mt-0.5" />
+                  Import events from the <strong>Gigs</strong> or <strong>Calendar</strong> page using the Import button.
                 </p>
               </div>
             </>

@@ -31,8 +31,14 @@ export async function GET(request: NextRequest) {
     const from = new Date(fromParam);
     const to = new Date(toParam);
 
+    // Optional: specific calendar IDs (comma-separated)
+    const calendarIdsParam = searchParams.get("calendarIds");
+    const calendarIds = calendarIdsParam
+      ? calendarIdsParam.split(",").filter(Boolean)
+      : undefined;
+
     // Fetch events
-    const events = await fetchGoogleCalendarEvents(user.id, from, to);
+    const events = await fetchGoogleCalendarEvents(user.id, from, to, calendarIds);
 
     return NextResponse.json({ events });
   } catch (error) {

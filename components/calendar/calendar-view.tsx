@@ -19,6 +19,7 @@ export interface CalendarPlaceholder {
   startTime: string;
   endTime: string;
 }
+import { CalendarImportSheet } from "./calendar-import-sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { DashboardGig } from "@/lib/types/shared";
 
@@ -29,6 +30,7 @@ export function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewType, setViewType] = useState<CalendarViewType>("week");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [importSheetOpen, setImportSheetOpen] = useState(false);
 
   // Popover state
   const [selectedGig, setSelectedGig] = useState<{
@@ -191,6 +193,7 @@ export function CalendarView() {
             onViewChange={setViewType}
             onToggleSidebar={() => setSidebarOpen(true)}
             showSidebarToggle={isMobile}
+            onImport={() => setImportSheetOpen(true)}
           />
 
           <div className="flex-1 min-h-0">
@@ -240,6 +243,12 @@ export function CalendarView() {
           onClose={closePopovers}
         />
       )}
+
+      {/* Calendar Import Sheet */}
+      <CalendarImportSheet
+        open={importSheetOpen}
+        onOpenChange={setImportSheetOpen}
+      />
     </div>
   );
 }

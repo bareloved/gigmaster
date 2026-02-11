@@ -67,6 +67,7 @@
     "essentialInfo": "Essential Info",
     "dressCode": "Dress Code",
     "gear": "Gear",
+    "notesLabel": "Notes",
     "stageViewFooter": "Stage view · GigPack"
   },
   "languageSwitcher": {
@@ -356,6 +357,7 @@
     "dressCodeLabel": "Dress Code",
     "gearLabel": "Gear",
     "parkingLabel": "Parking",
+    "notesLabel": "Notes",
     "showLess": "Show less",
     "showMore": "+{count} more",
     "showFullSetlist": "Show full setlist",

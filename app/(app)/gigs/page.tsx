@@ -17,6 +17,7 @@ import {
   CalendarDays,
   History,
   Trash2,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
@@ -69,6 +70,11 @@ const GigEditorPanel = dynamic(
   { ssr: false }
 );
 
+const CalendarImportSheet = dynamic(
+  () => import("@/components/calendar/calendar-import-sheet").then((mod) => mod.CalendarImportSheet),
+  { ssr: false }
+);
+
 type ViewMode = "list" | "grid";
 type TimeFilter = "upcoming" | "previous";
 
@@ -91,6 +97,9 @@ export default function AllGigsPage() {
   // Editor state
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingGigId, setEditingGigId] = useState<string | null>(null);
+
+  // Import sheet state
+  const [isImportSheetOpen, setIsImportSheetOpen] = useState(false);
 
   // Fetch gig data when editing
   const { data: editingGig, isLoading: isLoadingEditingGig } = useQuery({
@@ -368,7 +377,16 @@ export default function AllGigsPage() {
             Upcoming
           </Button>
         </div>
-        <div className="flex-1 flex justify-end">
+        <div className="flex-1 flex justify-end gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsImportSheetOpen(true)}
+            className="gap-1.5 h-9 sm:h-10 text-sm"
+          >
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Import</span>
+          </Button>
           <Button onClick={handleCreateGig} className="gap-2 h-9 sm:h-10 text-sm">
             <Plus className="h-4 w-4" />
             <span className="hidden xs:inline">Create Gig</span>
@@ -520,6 +538,12 @@ export default function AllGigsPage() {
           setIsEditorOpen(false);
           setEditingGigId(null);
         }}
+      />
+
+      {/* Calendar Import Sheet */}
+      <CalendarImportSheet
+        open={isImportSheetOpen}
+        onOpenChange={setIsImportSheetOpen}
       />
     </div>
   );

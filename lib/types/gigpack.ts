@@ -110,6 +110,7 @@ export interface GigPack {
   backline_notes: string | null;
   parking_notes: string | null;
   payment_notes: string | null;
+  notes: string | null;
   internal_notes: string | null;
   public_slug: string;
   theme: GigPackTheme | null;

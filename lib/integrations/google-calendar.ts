@@ -60,6 +60,13 @@ export interface GoogleCalendarEvent {
   }>;
 }
 
+export interface GoogleCalendarInfo {
+  id: string;
+  name: string;
+  color: string;
+  primary: boolean;
+}
+
 export interface GoogleTokens {
   access_token: string;
   refresh_token: string;
@@ -193,16 +200,37 @@ export class GoogleCalendarClient {
   }
 
   /**
+   * List all calendars the user has access to
+   */
+  async listCalendars(): Promise<GoogleCalendarInfo[]> {
+    try {
+      const response = await this.calendar.calendarList.list();
+      const items = response.data.items || [];
+
+      return items.map((cal) => ({
+        id: cal.id || "",
+        name: cal.summaryOverride || cal.summary || "Untitled",
+        color: cal.backgroundColor || "#4285f4",
+        primary: cal.primary ?? false,
+      }));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      throw new Error(`Failed to list calendars: ${message}`);
+    }
+  }
+
+  /**
    * List calendar events within a date range
    */
   async listEvents(
     from: Date,
     to: Date,
-    maxResults: number = 100
+    maxResults: number = 100,
+    calendarId: string = "primary"
   ): Promise<GoogleCalendarEvent[]> {
     try {
       const response = await this.calendar.events.list({
-        calendarId: "primary",
+        calendarId,
         timeMin: from.toISOString(),
         timeMax: to.toISOString(),
         maxResults,

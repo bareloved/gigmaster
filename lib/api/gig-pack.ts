@@ -345,6 +345,7 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
     backline_notes: gig.backline_notes || null,
     parking_notes: gig.parking_notes || null,
     payment_notes: gig.payment_notes || null,
+    notes: gig.notes || null,
     internal_notes: gig.internal_notes || null,
     public_slug: shareToken || gig.id,
     theme: (gig.theme as GigPackTheme) || 'minimal',

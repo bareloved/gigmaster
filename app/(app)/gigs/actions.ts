@@ -595,6 +595,7 @@ export async function getGig(id: string): Promise<GigPack | null> {
     backline_notes: gig.backline_notes,
     parking_notes: gig.parking_notes,
     payment_notes: gig.payment_notes,
+    notes: gig.notes,
     internal_notes: gig.internal_notes,
     public_slug: gig.gig_shares?.[0]?.token || "",
     theme: gig.theme as GigPackTheme,
@@ -621,7 +622,7 @@ export async function getGig(id: string): Promise<GigPack | null> {
       time: s.time,
       label: s.label
     })) || [],
-    contacts: null // TODO: Query gig_contacts when contacts UI is integrated
+    contacts: null // Contacts are fetched via gig-pack.ts query (gig_contacts join)
   };
 
   return gigPack;
@@ -721,6 +722,7 @@ async function saveGigPackRPC(
       dress_code: data.dress_code || null,
       backline_notes: data.backline_notes || null,
       parking_notes: data.parking_notes || null,
+      notes: data.notes || null,
       setlist: data.setlist || null,
       setlist_pdf_url: data.setlist_pdf_url || null,
       internal_notes: data.internal_notes || null,
@@ -737,6 +739,7 @@ async function saveGigPackRPC(
       p_packing: data.packing_checklist || [],
       p_setlist: data.setlist_structured || [],
       p_roles: data.lineup || [],
+      p_contacts: data.contacts || [],
       p_share_token: publicSlug || undefined,
       p_is_editing: isEditing,
       p_gig_id: gigId || undefined,
@@ -866,6 +869,7 @@ async function saveGigPackLegacy(
       dress_code: data.dress_code || null,
       backline_notes: data.backline_notes || null,
       parking_notes: data.parking_notes || null,
+      notes: data.notes || null,
       setlist: data.setlist || null,
       setlist_pdf_url: data.setlist_pdf_url || null,
       internal_notes: data.internal_notes || null,

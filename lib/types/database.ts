@@ -68,6 +68,7 @@ export type Database = {
           provider: string
           provider_calendar_id: string
           refresh_token: string
+          selected_calendars: Json | null
           send_invites_enabled: boolean | null
           sync_enabled: boolean | null
           token_expires_at: string
@@ -83,6 +84,7 @@ export type Database = {
           provider?: string
           provider_calendar_id: string
           refresh_token: string
+          selected_calendars?: Json | null
           send_invites_enabled?: boolean | null
           sync_enabled?: boolean | null
           token_expires_at: string
@@ -98,6 +100,7 @@ export type Database = {
           provider?: string
           provider_calendar_id?: string
           refresh_token?: string
+          selected_calendars?: Json | null
           send_invites_enabled?: boolean | null
           sync_enabled?: boolean | null
           token_expires_at?: string
@@ -136,28 +139,28 @@ export type Database = {
       }
       feedback: {
         Row: {
-          id: string
           category: string
+          created_at: string | null
+          id: string
           message: string
+          resolved: boolean | null
           user_id: string | null
-          created_at: string
-          resolved: boolean
         }
         Insert: {
-          id?: string
           category?: string
+          created_at?: string | null
+          id?: string
           message: string
+          resolved?: boolean | null
           user_id?: string | null
-          created_at?: string
-          resolved?: boolean
         }
         Update: {
-          id?: string
           category?: string
+          created_at?: string | null
+          id?: string
           message?: string
+          resolved?: boolean | null
           user_id?: string | null
-          created_at?: string
-          resolved?: boolean
         }
         Relationships: []
       }
@@ -206,6 +209,53 @@ export type Database = {
           },
         ]
       }
+      gig_contacts: {
+        Row: {
+          created_at: string
+          email: string | null
+          gig_id: string
+          id: string
+          label: string
+          name: string
+          phone: string | null
+          sort_order: number
+          source_id: string | null
+          source_type: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          gig_id: string
+          id?: string
+          label: string
+          name: string
+          phone?: string | null
+          sort_order?: number
+          source_id?: string | null
+          source_type?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          gig_id?: string
+          id?: string
+          label?: string
+          name?: string
+          phone?: string | null
+          sort_order?: number
+          source_id?: string | null
+          source_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_contacts_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gig_drafts: {
         Row: {
           created_at: string | null
@@ -232,53 +282,6 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
-      }
-      gig_contacts: {
-        Row: {
-          id: string
-          gig_id: string
-          label: string
-          name: string
-          phone: string | null
-          email: string | null
-          source_type: string
-          source_id: string | null
-          sort_order: number
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          gig_id: string
-          label: string
-          name: string
-          phone?: string | null
-          email?: string | null
-          source_type?: string
-          source_id?: string | null
-          sort_order?: number
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          gig_id?: string
-          label?: string
-          name?: string
-          phone?: string | null
-          email?: string | null
-          source_type?: string
-          source_id?: string | null
-          sort_order?: number
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "gig_contacts_gig_id_fkey"
-            columns: ["gig_id"]
-            isOneToOne: false
-            referencedRelation: "gigs"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       gig_invitations: {
         Row: {
@@ -647,54 +650,6 @@ export type Database = {
           },
         ]
       }
-      google_calendar_watches: {
-        Row: {
-          id: string
-          user_id: string
-          gig_id: string
-          calendar_event_id: string
-          channel_id: string
-          resource_id: string
-          expiration: string
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          gig_id: string
-          calendar_event_id: string
-          channel_id: string
-          resource_id: string
-          expiration: string
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          gig_id?: string
-          calendar_event_id?: string
-          channel_id?: string
-          resource_id?: string
-          expiration?: string
-          created_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "google_calendar_watches_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "google_calendar_watches_gig_id_fkey"
-            columns: ["gig_id"]
-            isOneToOne: false
-            referencedRelation: "gigs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       gigs: {
         Row: {
           accent_color: string | null
@@ -844,6 +799,47 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_calendar_watches: {
+        Row: {
+          calendar_event_id: string
+          channel_id: string
+          created_at: string | null
+          expiration: string
+          gig_id: string
+          id: string
+          resource_id: string
+          user_id: string
+        }
+        Insert: {
+          calendar_event_id: string
+          channel_id: string
+          created_at?: string | null
+          expiration: string
+          gig_id: string
+          id?: string
+          resource_id: string
+          user_id: string
+        }
+        Update: {
+          calendar_event_id?: string
+          channel_id?: string
+          created_at?: string | null
+          expiration?: string
+          gig_id?: string
+          id?: string
+          resource_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_calendar_watches_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
             referencedColumns: ["id"]
           },
         ]
@@ -1164,6 +1160,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      delete_user_account: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
       expire_old_invitations: { Args: never; Returns: undefined }
       fn_can_update_gig_role: {
         Args: {
@@ -1193,6 +1193,8 @@ export type Database = {
           p_user_id: string
         }
         Returns: {
+          band_id: string
+          band_name: string
           date: string
           end_time: string
           gig_id: string
@@ -1236,12 +1238,6 @@ export type Database = {
           status: string
           total_count: number
         }[]
-      }
-      delete_user_account: {
-        Args: {
-          target_user_id: string
-        }
-        Returns: undefined
       }
       save_gig_pack: {
         Args: {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Phone, Mail, User } from "lucide-react";
+import { Phone, Mail, User, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { GigContact } from "@/lib/gigpack/types";
 
@@ -35,17 +35,34 @@ export function NeedHelpSection({ contacts, accentColor }: NeedHelpSectionProps)
               <div className="font-semibold">{contact.name}</div>
               <div className="flex flex-wrap gap-2">
                 {contact.phone && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    asChild
-                  >
-                    <a href={`tel:${contact.phone}`}>
-                      <Phone className="h-4 w-4" />
-                      {contact.phone}
-                    </a>
-                  </Button>
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      asChild
+                    >
+                      <a href={`tel:${contact.phone}`}>
+                        <Phone className="h-4 w-4" />
+                        {contact.phone}
+                      </a>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      asChild
+                    >
+                      <a
+                        href={`https://wa.me/${contact.phone.replace(/[^0-9+]/g, "").replace(/^\+/, "")}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        WhatsApp
+                      </a>
+                    </Button>
+                  </>
                 )}
                 {contact.email && (
                   <Button

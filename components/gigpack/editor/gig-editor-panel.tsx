@@ -36,6 +36,7 @@ import {
   ParkingCircle,
   Paperclip,
   Clipboard,
+  StickyNote,
 } from "lucide-react";
 import { GigPack, LineupMember, PackingChecklistItem, GigMaterial, GigScheduleItem, Band } from "@/lib/gigpack/types";
 import { createClient } from "@/lib/supabase/client";
@@ -79,9 +80,8 @@ import { PasteScheduleDialog } from "@/components/gigpack/dialogs/paste-schedule
 import { SetlistPDFUpload } from "@/components/gigpack/shared/setlist-pdf-upload";
 import { GigPackTemplate, applyTemplateToFormDefaults } from "@/lib/gigpack/templates";
 import { useGigDraft, useGigDraftAutoSave, type GigDraftFormData } from "@/hooks/use-gig-draft";
-import { GigContactsManager, type PendingContact } from "@/components/gig-contacts/gig-contacts-manager";
+import { GigContactsManager, type GigContactItem } from "@/components/gig-contacts/gig-contacts-manager";
 import { MaterialsEditor } from "@/components/gigpack/editor/materials-editor";
-import { createGigContact } from "@/lib/api/gig-contacts";
 import { EmailCollectionModal } from "@/components/gigs/email-collection-modal";
 import { toast as sonnerToast } from "sonner";
 import { CalendarInviteBanner } from "@/components/gigpack/ui/calendar-invite-banner";
@@ -419,6 +419,7 @@ export function GigEditorPanel({
   const [backlineNotes, setBacklineNotes] = useState(gigPack?.backline_notes || "");
   const [parkingNotes, setParkingNotes] = useState(gigPack?.parking_notes || "");
   const [paymentNotes, setPaymentNotes] = useState(gigPack?.payment_notes || "");
+  const [notes, setNotes] = useState(gigPack?.notes || "");
   const [internalNotes, setInternalNotes] = useState(gigPack?.internal_notes || "");
   const [gigType, setGigType] = useState<string | null>(gigPack?.gig_type ?? null);
   const [status, setStatus] = useState<"confirmed" | "tentative">(
@@ -454,8 +455,16 @@ export function GigEditorPanel({
     gigPack?.schedule || []
   );
 
-  // Pending contacts state (for new gigs before saving)
-  const [pendingContacts, setPendingContacts] = useState<PendingContact[]>([]);
+  // Contacts state (same pattern as materials — local state, saved with gig)
+  const [contacts, setContacts] = useState<GigContactItem[]>(
+    gigPack?.contacts?.map((c) => ({
+      id: c.id,
+      label: c.label,
+      name: c.name,
+      phone: c.phone,
+      email: c.email,
+    })) || []
+  );
 
   // Calendar invite nudge (show once per session)
   const calendarNudgeShown = useRef(false);
@@ -470,6 +479,7 @@ export function GigEditorPanel({
   const [showDressCode, setShowDressCode] = useState(!!gigPack?.dress_code);
   const [showBackline, setShowBackline] = useState(!!gigPack?.backline_notes);
   const [showParking, setShowParking] = useState(!!gigPack?.parking_notes);
+  const [showNotes, setShowNotes] = useState(!!gigPack?.notes);
   const [showInternalNotes, setShowInternalNotes] = useState(!!gigPack?.internal_notes);
 
   // Sync form state when gigPack prop changes (e.g., after refetch)
@@ -493,6 +503,7 @@ export function GigEditorPanel({
       setBacklineNotes(gigPack.backline_notes || "");
       setParkingNotes(gigPack.parking_notes || "");
       setPaymentNotes(gigPack.payment_notes || "");
+      setNotes(gigPack.notes || "");
       setInternalNotes(gigPack.internal_notes || "");
       setGigType(gigPack.gig_type ?? null);
       setBandLogoUrl(gigPack.band_logo_url || "");
@@ -500,12 +511,22 @@ export function GigEditorPanel({
       setPackingChecklist(gigPack.packing_checklist || []);
       setMaterials(gigPack.materials || []);
       setSchedule(gigPack.schedule || []);
+      setContacts(
+        gigPack.contacts?.map((c) => ({
+          id: c.id,
+          label: c.label,
+          name: c.name,
+          phone: c.phone,
+          email: c.email,
+        })) || []
+      );
 
       // Sync visibility flags
       setShowContacts((gigPack.contacts?.length || 0) > 0);
       setShowDressCode(!!gigPack.dress_code);
       setShowBackline(!!gigPack.backline_notes);
       setShowParking(!!gigPack.parking_notes);
+      setShowNotes(!!gigPack.notes);
       setShowInternalNotes(!!gigPack.internal_notes);
     }
   }, [gigPack]);
@@ -565,7 +586,7 @@ export function GigEditorPanel({
     setPackingChecklist([]);
     setMaterials([]);
     setSchedule([]);
-    setPendingContacts([]);
+    setContacts([]);
     setActiveTab("schedule");
 
     // Reset Info tab visibility flags
@@ -858,6 +879,7 @@ export function GigEditorPanel({
         backline_notes: backlineNotes || null,
         parking_notes: parkingNotes || null,
         payment_notes: paymentNotes || null,
+        notes: notes || null,
         internal_notes: internalNotes || null,
         theme: "minimal" as const,
         gig_type: gigType || null,
@@ -869,6 +891,7 @@ export function GigEditorPanel({
           ? packingChecklist.filter(item => item.label.trim())
           : null,
         materials: materials.length > 0 ? materials : null,
+        contacts: contacts.length > 0 ? contacts as GigPack['contacts'] : null,
         schedule: schedule.length > 0 ? schedule : null,
         // Preserve existing public_slug when editing to keep share links stable
         public_slug: isEditing && gigPack?.public_slug ? gigPack.public_slug : undefined,
@@ -1005,30 +1028,6 @@ export function GigEditorPanel({
       } else {
         // Clear draft on successful creation
         clearDraft();
-
-        // Save pending contacts to the new gig
-        if (result?.id && pendingContacts.length > 0) {
-          try {
-            await Promise.all(
-              pendingContacts.map((contact, index) =>
-                createGigContact({
-                  gigId: result.id,
-                  label: contact.label,
-                  name: contact.name,
-                  phone: contact.phone,
-                  email: contact.email,
-                  sourceType: contact.sourceType,
-                  sourceId: contact.sourceId,
-                  sortOrder: index,
-                })
-              )
-            );
-            setPendingContacts([]);
-          } catch (contactError) {
-            console.error("Error saving contacts:", contactError);
-            // Don't fail the whole operation, gig was created
-          }
-        }
 
         // Check for calendar invites if lineup has members
         if (result?.id && lineup.length > 0) {
@@ -1823,7 +1822,7 @@ export function GigEditorPanel({
                     <button
                       type="button"
                       onClick={() => {
-                        setPendingContacts([]);
+                        setContacts([]);
                         setShowContacts(false);
                       }}
                       disabled={isLoading}
@@ -1833,9 +1832,8 @@ export function GigEditorPanel({
                     </button>
                   </div>
                   <GigContactsManager
-                    gigId={gigPack?.id}
-                    pendingContacts={pendingContacts}
-                    onPendingContactsChange={setPendingContacts}
+                    value={contacts}
+                    onChange={setContacts}
                     disabled={isLoading}
                   />
                 </div>
@@ -1939,6 +1937,38 @@ export function GigEditorPanel({
                 </div>
               )}
 
+              {/* General Notes */}
+              {showNotes && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+                      <StickyNote className="h-4 w-4" />
+                      {t("generalInformation")}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNotes("");
+                        setShowNotes(false);
+                      }}
+                      disabled={isLoading}
+                      className="text-[11px] text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      {t("materials.remove")}
+                    </button>
+                  </div>
+                  <Textarea
+                    name="notes"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder={t("generalInformationPlaceholder")}
+                    rows={4}
+                    disabled={isLoading}
+                    className="resize-none rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:ring-1 focus:ring-ring"
+                  />
+                </div>
+              )}
+
               {/* Private Notes */}
               {showInternalNotes && (
                 <div className="space-y-1">
@@ -1984,15 +2014,13 @@ export function GigEditorPanel({
                     onClick={() => {
                       setShowContacts(true);
                       // Add an empty contact row when first opening
-                      if (pendingContacts.length === 0 && !gigPack?.id) {
-                        setPendingContacts([{
+                      if (contacts.length === 0) {
+                        setContacts([{
                           id: crypto.randomUUID(),
                           label: "",
                           name: "",
                           phone: null,
                           email: null,
-                          sourceType: "manual",
-                          sourceId: null,
                         }]);
                       }
                     }}
@@ -2044,6 +2072,20 @@ export function GigEditorPanel({
                     <Plus className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
                     <ParkingCircle className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
                     {t("parkingNotes")}
+                  </Button>
+                )}
+                {!showNotes && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowNotes(true)}
+                    disabled={isLoading}
+                    className="w-full justify-start text-xs"
+                  >
+                    <Plus className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
+                    <StickyNote className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
+                    {t("generalInformation")}
                   </Button>
                 )}
                 {!showInternalNotes && (

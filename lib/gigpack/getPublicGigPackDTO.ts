@@ -216,7 +216,8 @@ export async function getPublicGigPackDTO(token: string): Promise<PublicGigPackD
     dress_code: gig.dress_code,
     backline_notes: gig.backline_notes,
     parking_notes: gig.parking_notes,
-    payment_notes: null, // Not in DB
+    notes: gig.notes,
+    payment_notes: null,
     contacts: null, // Contacts not exposed in public share
 
     // Pre-fetch activity for public view (no auth available client-side)

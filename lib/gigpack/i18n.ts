@@ -73,6 +73,7 @@ const MESSAGES: MessageTree = {
     essentialInfo: "Essential Info",
     dressCode: "Dress Code",
     gear: "Gear",
+    notesLabel: "Notes",
     stageViewFooter: "Stage view · GigPack"
   },
   languageSwitcher: {
@@ -394,6 +395,7 @@ const MESSAGES: MessageTree = {
     dressCodeLabel: "Dress Code",
     gearLabel: "Gear",
     parkingLabel: "Parking",
+    notesLabel: "Notes",
     showLess: "Show less",
     showMore: "+{count} more",
     showFullSetlist: "Show full setlist",

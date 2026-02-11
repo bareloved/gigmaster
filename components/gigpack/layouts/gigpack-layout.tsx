@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, Paperclip, ExternalLink, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, FileText, Download } from "lucide-react";
+import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, Paperclip, ExternalLink, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, FileText, Download, StickyNote } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isHtmlSetlist, plainTextToHtml } from "@/lib/utils/setlist-html";
 import { exportSetlistPdf } from "@/lib/utils/setlist-pdf-export";
@@ -335,9 +335,9 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
                 </div>
               </div>
             )}
-            {(gigPack.dress_code || gigPack.backline_notes || gigPack.parking_notes) && (
+            {(gigPack.dress_code || gigPack.backline_notes || gigPack.parking_notes || gigPack.notes) && (
               <div className="space-y-4">
-                {(gigPack.dress_code || gigPack.backline_notes || gigPack.parking_notes) && (
+                {(gigPack.dress_code || gigPack.backline_notes || gigPack.parking_notes || gigPack.notes) && (
                   <div className="bg-card border rounded-lg p-6 shadow-sm">
                     <div className={`flex items-center gap-3 mb-4`}>
                       <Package className="h-5 w-5" style={{ color: accentColor }} />
@@ -368,6 +368,15 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
                           <div className={`${activeLocale === 'he' ? 'text-right' : ''}`}>
                             <div className="font-medium text-sm uppercase tracking-wider text-muted-foreground mb-1">{t("parkingLabel")}</div>
                             <div className="text-sm whitespace-pre-wrap">{gigPack.parking_notes}</div>
+                          </div>
+                        </div>
+                      )}
+                      {gigPack.notes && (
+                        <div className={`flex gap-3`}>
+                          <StickyNote className="h-4 w-4 mt-1 flex-shrink-0 text-muted-foreground" />
+                          <div className={`${activeLocale === 'he' ? 'text-right' : ''}`}>
+                            <div className="font-medium text-sm uppercase tracking-wider text-muted-foreground mb-1">{t("notesLabel")}</div>
+                            <div className="text-sm whitespace-pre-wrap">{gigPack.notes}</div>
                           </div>
                         </div>
                       )}
