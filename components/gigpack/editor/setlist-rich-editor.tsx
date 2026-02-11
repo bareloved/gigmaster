@@ -21,10 +21,11 @@ import {
 import { cn } from "@/lib/utils";
 
 // Preset sizes — value applied as CSS inline style
-// 12 steps from 0.65rem to 2rem, ~0.12rem increments
+// 16 steps from 0.65rem to 3rem
 const FONT_SIZES = [
   "0.65rem", "0.75rem", "0.85rem", "0.95rem", "1.05rem", "1.15rem",
   "1.25rem", "1.4rem", "1.55rem", "1.7rem", "1.85rem", "2rem",
+  "2.2rem", "2.45rem", "2.7rem", "3rem",
 ] as const;
 const DEFAULT_SIZE_INDEX = 5; // 1.15rem — matches the editor's base
 

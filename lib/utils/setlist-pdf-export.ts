@@ -28,6 +28,19 @@ export async function exportSetlistPdf(
          </div>`
       : "";
 
+  // Scale rem-based font sizes from the editor to match the PDF base.
+  // Editor base = 1.15rem; PDF base = 26px.
+  // So Xrem → (X / 1.15) × 26 px to keep proportions consistent.
+  const PDF_BASE_PX = 26;
+  const EDITOR_BASE_REM = 1.15;
+  const scaledBodyHtml = data.bodyHtml.replace(
+    /font-size:\s*([\d.]+)rem/g,
+    (_, val) => {
+      const px = (parseFloat(val) / EDITOR_BASE_REM) * PDF_BASE_PX;
+      return `font-size:${px.toFixed(1)}px`;
+    }
+  );
+
   const container = document.createElement("div");
   container.innerHTML = `
     <div style="
@@ -39,13 +52,13 @@ export async function exportSetlistPdf(
       ${headerHtml}
       <div style="
         padding: 8px 80px 50px;
-        font-size: 26px;
+        font-size: ${PDF_BASE_PX}px;
         font-weight: 800;
         letter-spacing: 0.02em;
         line-height: 1.4;
         color: #111;
       ">
-        ${data.bodyHtml}
+        ${scaledBodyHtml}
       </div>
     </div>
   `;
@@ -59,6 +72,7 @@ export async function exportSetlistPdf(
     let counter = 0;
     paragraphs.forEach((p) => {
       p.style.margin = "0";
+      p.style.pageBreakInside = "avoid";
       if (p.textContent?.trim()) {
         counter++;
         const num = document.createElement("span");
@@ -72,6 +86,7 @@ export async function exportSetlistPdf(
   } else {
     paragraphs.forEach((p) => {
       p.style.margin = "0";
+      p.style.pageBreakInside = "avoid";
     });
   }
 
@@ -96,7 +111,8 @@ export async function exportSetlistPdf(
           format: "a4",
           orientation: "portrait",
         },
-        margin: 0,
+        margin: [10, 0, 10, 0], // top/right/bottom/left mm — gives breathing room at page edges
+        pagebreak: { mode: ["avoid-all", "css"] },
       })
       .from(container.firstElementChild)
       .save();
