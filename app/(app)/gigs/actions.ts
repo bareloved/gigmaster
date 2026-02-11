@@ -688,17 +688,49 @@ async function saveGigPackRPC(
     }
   }
 
-  // Snapshot roles with calendar events BEFORE save, so we can cancel
-  // events for any roles that get removed by the smart merge
-  let preExistingCalendarRoles: { id: string; google_calendar_event_id: string }[] = [];
+  // Snapshot roles with calendar events BEFORE save, so we can remove
+  // attendees for any roles that get removed by the smart merge
+  let preExistingCalendarRoles: { id: string; google_calendar_event_id: string; musician_id: string | null; contact_id: string | null }[] = [];
+  let preExistingProfileEmails: Record<string, string> = {};
+  const preExistingContactEmails: Record<string, string> = {};
   if (isEditing && gigId) {
     const { data: existingRoles } = await supabase
       .from("gig_roles")
-      .select("id, google_calendar_event_id")
+      .select("id, google_calendar_event_id, musician_id, contact_id, musician_contacts(email)")
       .eq("gig_id", gigId)
       .not("google_calendar_event_id", "is", null);
 
-    preExistingCalendarRoles = (existingRoles || []) as typeof preExistingCalendarRoles;
+    preExistingCalendarRoles = (existingRoles || []).map(r => ({
+      id: r.id,
+      google_calendar_event_id: r.google_calendar_event_id!,
+      musician_id: r.musician_id,
+      contact_id: r.contact_id,
+    }));
+
+    // Build email lookups for removed roles
+    const musicianIds = preExistingCalendarRoles
+      .map(r => r.musician_id)
+      .filter((id): id is string => id !== null);
+
+    if (musicianIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, email")
+        .in("id", musicianIds);
+      if (profiles) {
+        preExistingProfileEmails = profiles.reduce((acc, p) => {
+          if (p.email) acc[p.id] = p.email;
+          return acc;
+        }, {} as Record<string, string>);
+      }
+    }
+
+    // Contact emails already fetched via join
+    for (const r of existingRoles || []) {
+      if (r.contact_id && (r as unknown as { musician_contacts: { email: string | null } | null }).musician_contacts?.email) {
+        preExistingContactEmails[r.id] = (r as unknown as { musician_contacts: { email: string | null } }).musician_contacts.email!;
+      }
+    }
   }
 
   try {
@@ -772,20 +804,25 @@ async function saveGigPackRPC(
       );
     }
 
-    // Fire-and-forget: Cancel calendar events for roles that were removed
-    if (isEditing && preExistingCalendarRoles.length > 0) {
+    // Fire-and-forget: Remove calendar attendees for roles that were removed
+    if (isEditing && gigId && preExistingCalendarRoles.length > 0) {
       const remainingRoleIds = new Set(
         (data.lineup || [])
           .map(m => m.gigRoleId)
           .filter((id): id is string => !!id)
       );
 
-      const removedEventIds = preExistingCalendarRoles
+      const removedEmails = preExistingCalendarRoles
         .filter(r => !remainingRoleIds.has(r.id))
-        .map(r => r.google_calendar_event_id);
+        .map(r => {
+          const profileEmail = r.musician_id ? preExistingProfileEmails[r.musician_id] : null;
+          const contactEmail = preExistingContactEmails[r.id];
+          return profileEmail || contactEmail || null;
+        })
+        .filter((email): email is string => email !== null);
 
-      if (removedEventIds.length > 0) {
-        cancelRoleCalendarEvents(user.id, removedEventIds).catch(err =>
+      if (removedEmails.length > 0) {
+        cancelRoleCalendarEvents(user.id, gigId, removedEmails).catch(err =>
           console.error("Background calendar cleanup error:", err)
         );
       }

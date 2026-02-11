@@ -308,6 +308,13 @@ export class GoogleCalendarClient {
           email: event.organizer.email || '',
           displayName: event.organizer.displayName || undefined,
         } : undefined,
+        attendees: event.attendees?.map(a => ({
+          email: a.email || '',
+          displayName: a.displayName || undefined,
+          responseStatus: a.responseStatus as 'accepted' | 'declined' | 'tentative' | 'needsAction' | undefined,
+          organizer: a.organizer || undefined,
+          self: a.self || undefined,
+        })),
       };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -389,6 +396,12 @@ export class GoogleCalendarClient {
           location: input.location,
           start: input.start,
           end: input.end,
+          ...(input.attendees && {
+            attendees: input.attendees.map(a => ({
+              email: a.email,
+              displayName: a.displayName,
+            })),
+          }),
         },
         sendUpdates: "all",
       });

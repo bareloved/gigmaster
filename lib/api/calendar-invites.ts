@@ -152,7 +152,6 @@ function formatTime(time: string): string {
 }
 
 function buildEventDescription(
-  role: GigRoleForInvite,
   gig: GigForInvite,
   baseUrl: string
 ): string {
@@ -291,7 +290,9 @@ function toGoogleDateTime(gig: {
 }
 
 /**
- * Send calendar invitations to lineup members
+ * Send calendar invitations to lineup members.
+ * Creates ONE shared Google Calendar event per gig with all attendees.
+ * If a gig-level event already exists (e.g. adding roles later), patches the existing event.
  */
 export async function sendCalendarInvites(
   gigId: string,
@@ -317,7 +318,7 @@ export async function sendCalendarInvites(
     throw new Error("Calendar invites not enabled");
   }
 
-  // Get gig details
+  // Get gig details (including gig-level event ID)
   const { data: gig, error: gigError } = await supabase
     .from("gigs")
     .select(`
@@ -335,6 +336,7 @@ export async function sendCalendarInvites(
       parking_notes,
       owner_id,
       band_id,
+      google_calendar_event_id,
       gig_shares ( token )
     `)
     .eq("id", gigId)
@@ -387,7 +389,6 @@ export async function sendCalendarInvites(
   const allRoles = [...roles];
   for (const role of missingEmails) {
     if (roleEmails?.[role.id]) {
-      // Add email from provided map
       allRoles.push({
         ...role,
         musician_contacts: { email: roleEmails[role.id] },
@@ -397,6 +398,37 @@ export async function sendCalendarInvites(
 
   if (allRoles.length === 0) {
     return { sent: 0, failed: 0, results: [] };
+  }
+
+  // Separate roles with emails (calendar) from those without (email fallback)
+  const calendarRoles: (GigRoleForInvite & { resolvedEmail: string })[] = [];
+  const noEmailRoles: GigRoleForInvite[] = [];
+
+  for (const role of allRoles) {
+    const email = role.email || role.musician_contacts?.email;
+    if (email) {
+      calendarRoles.push({ ...role, resolvedEmail: email });
+    } else {
+      noEmailRoles.push(role);
+    }
+  }
+
+  // Report roles with no email
+  for (const role of noEmailRoles) {
+    results.push({
+      roleId: role.id,
+      success: false,
+      method: null,
+      error: "No email address",
+    });
+  }
+
+  if (calendarRoles.length === 0) {
+    return {
+      sent: results.filter(r => r.success).length,
+      failed: results.filter(r => !r.success).length,
+      results,
+    };
   }
 
   // Initialize Google client
@@ -409,85 +441,111 @@ export async function sendCalendarInvites(
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gigmaster.io';
   const { start, end } = toGoogleDateTime(gig);
+  const now = new Date().toISOString();
 
-  // Send invites one by one
-  for (const role of allRoles) {
-    const email = role.email || role.musician_contacts?.email;
-    const displayName = role.musician_name || undefined;
+  // Build attendee list for the shared event
+  const attendees = calendarRoles.map(r => ({
+    email: r.resolvedEmail,
+    displayName: r.musician_name || undefined,
+  }));
 
-    if (!email) {
-      results.push({
-        roleId: role.id,
-        success: false,
-        method: null,
-        error: "No email address",
+  try {
+    let eventId: string;
+
+    if (gig.google_calendar_event_id) {
+      // Gig already has a shared event — PATCH to add new attendees
+      // First get existing attendees so we don't remove them
+      const existingEvent = await googleClient.getEvent(gig.google_calendar_event_id);
+      const existingAttendees = (existingEvent.attendees || []).map(a => ({
+        email: a.email,
+        displayName: a.displayName,
+      }));
+
+      // Merge: keep existing + add new (deduplicate by email)
+      const existingEmails = new Set(existingAttendees.map(a => a.email.toLowerCase()));
+      const mergedAttendees = [
+        ...existingAttendees,
+        ...attendees.filter(a => !existingEmails.has(a.email.toLowerCase())),
+      ];
+
+      await googleClient.updateEvent(gig.google_calendar_event_id, {
+        attendees: mergedAttendees,
       });
-      continue;
-    }
+      eventId = gig.google_calendar_event_id;
 
-    try {
-      // Create calendar event
+    } else {
+      // No shared event yet — CREATE one with all attendees
       const eventInput: CreateEventInput = {
         summary: buildEventTitle(gigForInvite),
-        description: buildEventDescription(role, gigForInvite, baseUrl),
+        description: buildEventDescription(gigForInvite, baseUrl),
         location: gig.location_name || undefined,
         start,
         end,
-        attendees: [{ email, displayName }],
+        attendees,
       };
 
       const event = await googleClient.createEvent(eventInput);
+      eventId = event.id;
 
-      // Update gig_role with event ID
+      // Store event ID at gig level
       await supabase
-        .from("gig_roles")
-        .update({
-          google_calendar_event_id: event.id,
-          invitation_method: "google_calendar",
-          invitation_sent_at: new Date().toISOString(),
-          invitation_status: role.invitation_status === "pending" ? "invited" : role.invitation_status,
-        })
-        .eq("id", role.id);
+        .from("gigs")
+        .update({ google_calendar_event_id: eventId })
+        .eq("id", gigId);
 
-      // Register webhook for response tracking (non-blocking)
+      // Register ONE webhook for the shared event
       try {
         const webhookUrl = `${baseUrl}/api/webhooks/google-calendar`;
-        const watch = await googleClient.watchEvent(event.id, webhookUrl);
+        const watch = await googleClient.watchEvent(eventId, webhookUrl);
 
         await supabase
           .from("google_calendar_watches")
           .insert({
             user_id: userId,
             gig_id: gigId,
-            calendar_event_id: event.id,
+            calendar_event_id: eventId,
             channel_id: watch.channelId,
             resource_id: watch.resourceId,
             expiration: new Date(watch.expiration).toISOString(),
           });
       } catch (watchError) {
         console.warn("Failed to register webhook:", watchError);
-        // Non-fatal - invites still sent successfully
       }
+    }
+
+    // Update all invited roles with the shared event ID
+    for (const role of calendarRoles) {
+      await supabase
+        .from("gig_roles")
+        .update({
+          google_calendar_event_id: eventId,
+          invitation_method: "google_calendar",
+          invitation_sent_at: now,
+          invitation_status: role.invitation_status === "pending" ? "invited" : role.invitation_status,
+        })
+        .eq("id", role.id);
 
       results.push({
         roleId: role.id,
         success: true,
         method: "google_calendar",
-        eventId: event.id,
+        eventId,
       });
+    }
 
-    } catch (error) {
-      // Fall back to email invitation
-      console.error(`Calendar invite failed for role ${role.id}:`, error);
+  } catch (error) {
+    // Calendar creation/update failed — fall back to email for each role
+    console.error(`[sendCalendarInvites] Calendar event failed for gig ${gigId}:`, error);
 
+    for (const role of calendarRoles) {
       try {
-        await inviteMusicianByEmail(role.id, email);
+        await inviteMusicianByEmail(role.id, role.resolvedEmail);
 
         await supabase
           .from("gig_roles")
           .update({
             invitation_method: "email",
-            invitation_sent_at: new Date().toISOString(),
+            invitation_sent_at: now,
           })
           .eq("id", role.id);
 
@@ -514,7 +572,8 @@ export async function sendCalendarInvites(
 }
 
 /**
- * Update calendar events when gig details change
+ * Update calendar events when gig details change.
+ * Uses gig-level event ID for single PATCH call. Falls back to per-role for legacy.
  */
 export async function updateCalendarEvents(
   gigId: string,
@@ -531,14 +590,14 @@ export async function updateCalendarEvents(
 
   const supabase = await createClient();
 
-  // Get gig and connection
+  // Get gig (including gig-level event ID) and connection
   const [gigResult, connectionResult] = await Promise.all([
     supabase
       .from("gigs")
       .select(`
         id, title, date, start_time, end_time, call_time, on_stage_time,
         location_name, location_address, dress_code, notes, parking_notes,
-        owner_id, band_id, gig_shares ( token )
+        owner_id, band_id, google_calendar_event_id, gig_shares ( token )
       `)
       .eq("id", gigId)
       .single(),
@@ -588,17 +647,6 @@ export async function updateCalendarEvents(
     ownerName,
   };
 
-  // Get roles with calendar events
-  const { data: roles } = await supabase
-    .from("gig_roles")
-    .select("id, google_calendar_event_id, role_name, musician_name")
-    .eq("gig_id", gigId)
-    .not("google_calendar_event_id", "is", null);
-
-  if (!roles || roles.length === 0) {
-    return 0;
-  }
-
   // Initialize Google client
   const googleClient = new GoogleCalendarClient();
   googleClient.setCredentials({
@@ -610,44 +658,24 @@ export async function updateCalendarEvents(
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://gigmaster.io';
   const { start, end } = toGoogleDateTime(gig);
 
-  let updated = 0;
-
-  for (const role of roles) {
-    if (!role.google_calendar_event_id) continue;
-
+  // New path: gig-level event — ONE patch call
+  if (gig.google_calendar_event_id) {
     try {
-      await googleClient.updateEvent(role.google_calendar_event_id, {
+      await googleClient.updateEvent(gig.google_calendar_event_id, {
         summary: buildEventTitle(gigForInvite),
-        description: buildEventDescription(
-          role as unknown as GigRoleForInvite,
-          gigForInvite,
-          baseUrl
-        ),
+        description: buildEventDescription(gigForInvite, baseUrl),
         location: gig.location_name || undefined,
         start,
         end,
       });
-      updated++;
+      return 1;
     } catch (error) {
-      console.error(`Failed to update event ${role.google_calendar_event_id}:`, error);
+      console.error(`Failed to update gig-level event ${gig.google_calendar_event_id}:`, error);
+      return 0;
     }
   }
 
-  return updated;
-}
-
-/**
- * Cancel all Google Calendar events for a gig (when gig is deleted)
- * Deletes the calendar events so attendees get a cancellation notification from Google.
- * Also cleans up any webhook watches.
- */
-export async function cancelCalendarEvents(
-  gigId: string,
-  userId: string
-): Promise<number> {
-  const supabase = await createClient();
-
-  // Get roles with calendar events
+  // Legacy fallback: per-role events
   const { data: roles } = await supabase
     .from("gig_roles")
     .select("id, google_calendar_event_id")
@@ -657,6 +685,40 @@ export async function cancelCalendarEvents(
   if (!roles || roles.length === 0) {
     return 0;
   }
+
+  let updated = 0;
+
+  // Deduplicate event IDs (in case roles share an event ID from partial migration)
+  const uniqueEventIds = [...new Set(roles.map(r => r.google_calendar_event_id).filter(Boolean))];
+
+  for (const eventId of uniqueEventIds) {
+    try {
+      await googleClient.updateEvent(eventId!, {
+        summary: buildEventTitle(gigForInvite),
+        description: buildEventDescription(gigForInvite, baseUrl),
+        location: gig.location_name || undefined,
+        start,
+        end,
+      });
+      updated++;
+    } catch (error) {
+      console.error(`Failed to update legacy event ${eventId}:`, error);
+    }
+  }
+
+  return updated;
+}
+
+/**
+ * Cancel all Google Calendar events for a gig (when gig is deleted).
+ * Uses gig-level event ID for single delete. Falls back to per-role for legacy.
+ * Deletes the calendar event so attendees get a cancellation notification from Google.
+ */
+export async function cancelCalendarEvents(
+  gigId: string,
+  userId: string
+): Promise<number> {
+  const supabase = await createClient();
 
   // Get calendar connection for the gig owner
   const { data: connection } = await supabase
@@ -679,18 +741,50 @@ export async function cancelCalendarEvents(
     expiry_date: new Date(connection.token_expires_at).getTime(),
   });
 
+  // Check for gig-level event
+  const { data: gig } = await supabase
+    .from("gigs")
+    .select("google_calendar_event_id")
+    .eq("id", gigId)
+    .single();
+
   let cancelled = 0;
 
-  for (const role of roles) {
-    if (!role.google_calendar_event_id) continue;
-
+  if (gig?.google_calendar_event_id) {
+    // New path: single shared event
     try {
-      // Delete the event — Google sends cancellation emails to attendees automatically
-      await googleClient.deleteEvent(role.google_calendar_event_id);
-      cancelled++;
+      await googleClient.deleteEvent(gig.google_calendar_event_id);
+      cancelled = 1;
     } catch (error) {
-      console.error(`Failed to cancel calendar event ${role.google_calendar_event_id}:`, error);
-      // Continue with other events even if one fails
+      console.error(`Failed to cancel gig-level event ${gig.google_calendar_event_id}:`, error);
+    }
+
+    // Clear gig-level event ID
+    await supabase
+      .from("gigs")
+      .update({ google_calendar_event_id: null })
+      .eq("id", gigId);
+
+  } else {
+    // Legacy fallback: per-role events
+    const { data: roles } = await supabase
+      .from("gig_roles")
+      .select("id, google_calendar_event_id")
+      .eq("gig_id", gigId)
+      .not("google_calendar_event_id", "is", null);
+
+    if (roles && roles.length > 0) {
+      // Deduplicate event IDs
+      const uniqueEventIds = [...new Set(roles.map(r => r.google_calendar_event_id).filter(Boolean))];
+
+      for (const eventId of uniqueEventIds) {
+        try {
+          await googleClient.deleteEvent(eventId!);
+          cancelled++;
+        } catch (error) {
+          console.error(`Failed to cancel legacy event ${eventId}:`, error);
+        }
+      }
     }
   }
 
@@ -719,15 +813,17 @@ export async function cancelCalendarEvents(
 }
 
 /**
- * Cancel Google Calendar events for specific removed roles.
+ * Remove specific attendees from a gig's shared calendar event.
  * Called when lineup members are removed during gig editing.
- * Deletes each event so the attendee gets a cancellation notification from Google.
+ * For shared events: patches to remove attendees (doesn't delete the event).
+ * For legacy per-role events: falls back to deleting each event.
  */
 export async function cancelRoleCalendarEvents(
   userId: string,
-  eventIds: string[]
+  gigId: string,
+  removedEmails: string[]
 ): Promise<number> {
-  if (eventIds.length === 0) return 0;
+  if (removedEmails.length === 0) return 0;
 
   const supabase = await createClient();
 
@@ -751,44 +847,108 @@ export async function cancelRoleCalendarEvents(
     expiry_date: new Date(connection.token_expires_at).getTime(),
   });
 
-  let cancelled = 0;
+  // Check for gig-level shared event
+  const { data: gig } = await supabase
+    .from("gigs")
+    .select("google_calendar_event_id")
+    .eq("id", gigId)
+    .single();
 
-  for (const eventId of eventIds) {
+  let removed = 0;
+
+  if (gig?.google_calendar_event_id) {
+    // New path: patch the shared event to remove specific attendees
     try {
-      await googleClient.deleteEvent(eventId);
-      cancelled++;
+      const existingEvent = await googleClient.getEvent(gig.google_calendar_event_id);
+      const removedSet = new Set(removedEmails.map(e => e.toLowerCase()));
+
+      const remainingAttendees = (existingEvent.attendees || [])
+        .filter(a => !removedSet.has(a.email.toLowerCase()))
+        .map(a => ({ email: a.email, displayName: a.displayName }));
+
+      await googleClient.updateEvent(gig.google_calendar_event_id, {
+        attendees: remainingAttendees,
+      });
+
+      removed = removedEmails.length;
     } catch (error) {
-      console.error(`[cancelRoleCalendarEvents] Failed to cancel event ${eventId}:`, error);
+      console.error(`[cancelRoleCalendarEvents] Failed to patch shared event:`, error);
     }
-  }
 
-  // Clean up webhook watches for these events
-  const { data: watches } = await supabase
-    .from("google_calendar_watches")
-    .select("id, channel_id, resource_id, calendar_event_id")
-    .in("calendar_event_id", eventIds);
+  } else {
+    // Legacy fallback: find per-role events for removed emails and delete them
+    // Look up roles by email to find their individual event IDs
+    const { data: roles } = await supabase
+      .from("gig_roles")
+      .select("id, google_calendar_event_id, musician_id, contact_id, musician_contacts(email)")
+      .eq("gig_id", gigId)
+      .not("google_calendar_event_id", "is", null);
 
-  if (watches && watches.length > 0) {
-    for (const watch of watches) {
-      try {
-        await googleClient.stopWatch(watch.channel_id, watch.resource_id);
-      } catch (error) {
-        console.warn(`[cancelRoleCalendarEvents] Failed to stop watch ${watch.channel_id}:`, error);
+    if (roles && roles.length > 0) {
+      // Get profile emails for musician_id roles
+      const musicianIds = roles.map(r => r.musician_id).filter((id): id is string => id !== null);
+      let profileEmails: Record<string, string> = {};
+      if (musicianIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, email")
+          .in("id", musicianIds);
+        if (profiles) {
+          profileEmails = profiles.reduce((acc, p) => {
+            if (p.email) acc[p.id] = p.email;
+            return acc;
+          }, {} as Record<string, string>);
+        }
+      }
+
+      const removedSet = new Set(removedEmails.map(e => e.toLowerCase()));
+      const eventIdsToDelete: string[] = [];
+
+      for (const role of roles) {
+        const email = (role.musician_id ? profileEmails[role.musician_id] : null)
+          || role.musician_contacts?.email;
+        if (email && removedSet.has(email.toLowerCase()) && role.google_calendar_event_id) {
+          eventIdsToDelete.push(role.google_calendar_event_id);
+        }
+      }
+
+      const uniqueEventIds = [...new Set(eventIdsToDelete)];
+      for (const eventId of uniqueEventIds) {
+        try {
+          await googleClient.deleteEvent(eventId);
+          removed++;
+        } catch (error) {
+          console.error(`[cancelRoleCalendarEvents] Failed to delete legacy event ${eventId}:`, error);
+        }
+      }
+
+      // Clean up webhook watches for deleted events
+      if (uniqueEventIds.length > 0) {
+        const { data: watches } = await supabase
+          .from("google_calendar_watches")
+          .select("id, channel_id, resource_id")
+          .in("calendar_event_id", uniqueEventIds);
+
+        if (watches && watches.length > 0) {
+          for (const watch of watches) {
+            try {
+              await googleClient.stopWatch(watch.channel_id, watch.resource_id);
+            } catch (error) {
+              console.warn(`[cancelRoleCalendarEvents] Failed to stop watch:`, error);
+            }
+          }
+
+          await supabase
+            .from("google_calendar_watches")
+            .delete()
+            .in("id", watches.map(w => w.id));
+        }
       }
     }
-
-    const { error: deleteError } = await supabase
-      .from("google_calendar_watches")
-      .delete()
-      .in("id", watches.map(w => w.id));
-
-    if (deleteError) {
-      console.error("[cancelRoleCalendarEvents] Failed to delete watch rows:", deleteError);
-    }
   }
 
-  console.log(`[cancelRoleCalendarEvents] Cancelled ${cancelled}/${eventIds.length} events`);
-  return cancelled;
+  console.log(`[cancelRoleCalendarEvents] Removed ${removed} attendees from calendar event(s)`);
+  return removed;
 }
 
 /**

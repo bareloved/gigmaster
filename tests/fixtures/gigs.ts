@@ -42,6 +42,7 @@ export const mockGig: Gig = {
   external_calendar_event_id: null,
   external_calendar_provider: null,
   external_event_url: null,
+  google_calendar_event_id: null,
   imported_from_calendar: false,
   is_external: false,
   deleted_at: null,

@@ -30,10 +30,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify user owns this gig
+    // Verify user owns this gig (and get gig-level event ID)
     const { data: gig, error: gigError } = await supabase
       .from("gigs")
-      .select("id, owner_id")
+      .select("id, owner_id, google_calendar_event_id")
       .eq("id", gigId)
       .single();
 
@@ -105,16 +105,18 @@ export async function POST(request: NextRequest) {
       expiry_date: new Date(connection.token_expires_at).getTime(),
     });
 
-    // Group roles by event ID to avoid duplicate API calls
-    const eventIds = [
-      ...new Set(
-        roles
-          .map((r) => r.google_calendar_event_id)
-          .filter((id): id is string => id !== null)
-      ),
-    ];
+    // Fetch event(s) from Google Calendar
+    // Prefer gig-level event ID (single shared event), fall back to per-role IDs
+    const eventIds = gig.google_calendar_event_id
+      ? [gig.google_calendar_event_id]
+      : [
+          ...new Set(
+            roles
+              .map((r) => r.google_calendar_event_id)
+              .filter((id): id is string => id !== null)
+          ),
+        ];
 
-    // Fetch all events from Google Calendar
     const events: Record<
       string,
       Awaited<ReturnType<typeof googleClient.getEvent>>
@@ -130,9 +132,11 @@ export async function POST(request: NextRequest) {
     // Check each role's attendee status
     let updated = 0;
     for (const role of roles) {
-      if (!role.google_calendar_event_id) continue;
+      // Use gig-level event if available, otherwise role-level
+      const eventId = gig.google_calendar_event_id || role.google_calendar_event_id;
+      if (!eventId) continue;
 
-      const event = events[role.google_calendar_event_id];
+      const event = events[eventId];
       if (!event?.attendees) continue;
 
       // Resolve email for this role
