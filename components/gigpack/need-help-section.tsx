@@ -4,6 +4,29 @@ import { Phone, Mail, User, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { GigContact } from "@/lib/gigpack/types";
 
+/**
+ * Normalize a phone number for WhatsApp wa.me links.
+ * wa.me expects digits only with country code (no leading + or 0).
+ * Israeli local numbers (starting with 0) get 972 prefix automatically.
+ */
+function normalizePhoneForWhatsApp(phone: string): string {
+  // Strip everything except digits and +
+  const cleaned = phone.replace(/[^\d+]/g, "");
+
+  if (cleaned.startsWith("+")) {
+    // Already has country code — just remove the +
+    return cleaned.slice(1);
+  }
+
+  if (cleaned.startsWith("0")) {
+    // Local Israeli number (e.g. 0501234567) → 972501234567
+    return "972" + cleaned.slice(1);
+  }
+
+  // Assume it already has a country code without +
+  return cleaned;
+}
+
 interface NeedHelpSectionProps {
   contacts: GigContact[];
   accentColor?: string;
@@ -13,15 +36,10 @@ export function NeedHelpSection({ contacts, accentColor }: NeedHelpSectionProps)
   if (!contacts || contacts.length === 0) return null;
 
   return (
-    <div className="bg-card border rounded-lg p-6 shadow-sm">
-      <div className="flex items-center gap-3 mb-4">
+    <div>
+      <div className="flex items-center gap-3 mb-3">
         <User className="h-5 w-5" style={{ color: accentColor }} />
-        <div>
-          <h3 className="font-semibold text-lg">Need Help?</h3>
-          <p className="text-sm text-muted-foreground">
-            Contact these people about the gig
-          </p>
-        </div>
+        <h3 className="font-semibold text-lg">Contact</h3>
       </div>
 
       <div className="space-y-4">
@@ -54,7 +72,7 @@ export function NeedHelpSection({ contacts, accentColor }: NeedHelpSectionProps)
                       asChild
                     >
                       <a
-                        href={`https://wa.me/${contact.phone.replace(/[^0-9+]/g, "").replace(/^\+/, "")}`}
+                        href={`https://wa.me/${normalizePhoneForWhatsApp(contact.phone)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                       >

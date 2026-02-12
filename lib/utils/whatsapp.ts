@@ -26,14 +26,37 @@ ${magicLink}
 
 Looking forward to having you on this gig!`;
 
-  // Clean phone number (remove + and any spaces/dashes)
-  const cleanPhone = phone.replace(/[\s\-+()]/g, '');
-  
+  // Normalize phone for wa.me (needs country code, digits only)
+  const cleanPhone = normalizePhoneForWhatsApp(phone);
+
   // URL encode the message
   const encodedMessage = encodeURIComponent(message);
-  
+
   // Return WhatsApp wa.me link
   return `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
+}
+
+/**
+ * Normalize a phone number for WhatsApp wa.me links.
+ * wa.me expects digits only with country code (no leading + or 0).
+ * Israeli local numbers (starting with 0) get 972 prefix automatically.
+ */
+export function normalizePhoneForWhatsApp(phone: string): string {
+  // Strip everything except digits and +
+  const cleaned = phone.replace(/[^\d+]/g, "");
+
+  if (cleaned.startsWith("+")) {
+    // Already has country code — just remove the +
+    return cleaned.slice(1);
+  }
+
+  if (cleaned.startsWith("0")) {
+    // Local Israeli number (e.g. 0501234567) → 972501234567
+    return "972" + cleaned.slice(1);
+  }
+
+  // Assume it already has a country code without +
+  return cleaned;
 }
 
 /**

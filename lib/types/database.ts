@@ -670,6 +670,7 @@ export type Database = {
           external_calendar_provider: string | null
           external_event_url: string | null
           gig_type: string | null
+          google_calendar_event_id: string | null
           hero_image_url: string | null
           id: string
           imported_from_calendar: boolean
@@ -715,6 +716,7 @@ export type Database = {
           external_calendar_provider?: string | null
           external_event_url?: string | null
           gig_type?: string | null
+          google_calendar_event_id?: string | null
           hero_image_url?: string | null
           id?: string
           imported_from_calendar?: boolean
@@ -760,6 +762,7 @@ export type Database = {
           external_calendar_provider?: string | null
           external_event_url?: string | null
           gig_type?: string | null
+          google_calendar_event_id?: string | null
           hero_image_url?: string | null
           id?: string
           imported_from_calendar?: boolean

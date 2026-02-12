@@ -390,6 +390,8 @@ const MESSAGES: MessageTree = {
     schedule: "Schedule",
     logistics: "Logistics",
     openMaps: "Open Maps",
+    dateAndTime: "Date And Time",
+    addressLabel: "Address",
     callLabel: "Arrival:",
     stageLabel: "Soundcheck:",
     dressCodeLabel: "Dress Code",

@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    // Get gig roles with this event ID
+    // Get all gig roles that were invited via calendar
+    // With shared events, all roles share the same event ID — match by gig_id
     const { data: roles } = await supabase
       .from("gig_roles")
       .select(`
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
         musician_contacts (email)
       `)
       .eq("gig_id", watch.gig_id)
-      .eq("google_calendar_event_id", watch.calendar_event_id);
+      .not("google_calendar_event_id", "is", null);
 
     if (!roles || roles.length === 0) {
       return NextResponse.json({ received: true });

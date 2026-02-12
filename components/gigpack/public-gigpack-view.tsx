@@ -9,7 +9,8 @@ import { GigPackLayout } from "@/components/gigpack/layouts/gigpack-layout";
 // import { RehearsalView } from "@/components/gigpack/rehearsal-view";
 import { DarkModeToggle as ThemeToggle } from "@/components/layout/dark-mode-toggle";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { RefreshCw } from "lucide-react";
+import { Share2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 class PublicGigPackErrorBoundary extends React.Component<
   { children: React.ReactNode; slug: string },
@@ -96,24 +97,28 @@ export function PublicGigPackView({ initialGigPack, slug, locale = "en" }: Publi
     <TooltipProvider>
       <GigPackLayout gigPack={gigPack as GigPack} openMaps={openMaps} slug={slug} locale={locale} />
       
-      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
         <div className="bg-background/80 backdrop-blur-sm rounded-lg border border-border/50 shadow-lg">
-        <ThemeToggle />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 text-foreground"
+            onClick={() => {
+              if (navigator.share) {
+                navigator.share({ title: gigPack.title, url: window.location.href }).catch(() => {});
+              } else {
+                navigator.clipboard?.writeText(window.location.href);
+              }
+            }}
+          >
+            <Share2 className="h-4 w-4" />
+          </Button>
+        </div>
+        <div className="bg-background/80 backdrop-blur-sm rounded-lg border border-border/50 shadow-lg">
+          <ThemeToggle />
         </div>
       </div>
       
-      <div className="fixed bottom-4 right-4 z-50">
-        <div className="bg-card border rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 text-xs text-muted-foreground">
-          <RefreshCw className="h-3 w-3 text-green-500" />
-          <span className="hidden sm:inline">
-            Live • Updated {new Date(gigPack.updated_at).toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit'
-            })}
-          </span>
-          <span className="sm:hidden">🟢</span>
-        </div>
-      </div>
     </TooltipProvider>
     </PublicGigPackErrorBoundary>
   );
