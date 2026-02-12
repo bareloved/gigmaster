@@ -7,10 +7,23 @@ All notable changes to GigMaster are documented here. Update this file with ever
 ### Added
 - "Decline Gig" action for accepted musicians on the All Gigs page via the 3-dot menu
 - `.env.example` — Environment variables template
+- Rich HTML setlist preview in gigpack with PDF download
+- WhatsApp share button for gig contacts
+- Mobile-first redesign of public gigpack layout
+- One calendar event per gig (replaces per-attendee events)
+- Smart event duration for calendar invites
 
 ### Changed
 - "Duplicate Gig" now opens the full editor with all fields pre-filled (lineup, setlist, schedule, materials, packing, branding) instead of a simple title/date dialog
 - Compacted player-only gig cards — dropdown sits inline instead of taking a separate action row
+- Consolidated gigpack data transforms into shared `lib/gigpack/transforms.ts`, eliminating ~170 lines of duplication
+- Simplified gig contacts and redesigned calendar import flow
+- Improved calendar invite description with venue and schedule details
+
+### Fixed
+- Gig type badge no longer overlaps share/dark-mode buttons on public gigpack view
+- Calendar attendee status now syncs correctly with invitation status
+- Auth gigpack setlist query now includes `reference_url` (was missing)
 
 ---
 
