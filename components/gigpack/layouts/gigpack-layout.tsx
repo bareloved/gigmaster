@@ -8,13 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, Paperclip, ExternalLink, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, FileText, Download, StickyNote } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, Paperclip, ExternalLink, Mic, Building, Beer, Coffee, Tent, Headphones, Star, PartyPopper, FileText, Download, StickyNote, Share2, Phone, Mail, MessageCircle } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { normalizePhoneForWhatsApp } from "@/lib/utils/whatsapp";
 import { isHtmlSetlist, plainTextToHtml } from "@/lib/utils/setlist-html";
 import { exportSetlistPdf } from "@/lib/utils/setlist-pdf-export";
 import { classifyGigVisualTheme, pickFallbackImageForTheme } from "@/lib/gigpack/gig-visual-theme";
-import { GigActivityWidget } from "@/components/dashboard/activity-widget";
-import type { GigActivityLogEntry } from "@/lib/api/gig-activity";
 import { NeedHelpSection } from "@/components/gigpack/need-help-section";
 import { HostingServiceIcon } from "@/components/shared/hosting-service-icon";
 import { InvitationStatusIcon } from "@/components/gigpack/ui/invitation-status-icon";
@@ -29,11 +28,11 @@ function getInitials(name: string): string {
 
 
 const MATERIAL_KIND_ICON: Record<GigMaterialKind, { icon: React.ElementType; color: string }> = {
-  rehearsal: { icon: Mic, color: "text-primary" },
-  performance: { icon: Star, color: "text-secondary" },
-  charts: { icon: Music, color: "text-accent" },
-  reference: { icon: Headphones, color: "text-[hsl(var(--chart-4))]" },
-  other: { icon: Paperclip, color: "text-muted-foreground" },
+  rehearsal: { icon: Mic, color: "text-amber-700 dark:text-amber-400" },
+  performance: { icon: Star, color: "text-rose-600 dark:text-rose-400" },
+  charts: { icon: Music, color: "text-blue-600 dark:text-blue-400" },
+  reference: { icon: Headphones, color: "text-violet-600 dark:text-violet-400" },
+  other: { icon: Paperclip, color: "text-slate-600 dark:text-slate-400" },
 };
 
 interface GigPackLayoutProps {
@@ -48,10 +47,10 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
   
   const t = useTranslations("public");
   const [setlistExpanded, setSetlistExpanded] = useState(false);
+  const [mobileScheduleExpanded, setMobileScheduleExpanded] = useState(false);
   
   const accentColor = gigPack.accent_color || "hsl(var(--primary))";
-  const posterSkin = gigPack.poster_skin || "clean";
-  
+
   const customStyle = accentColor ? {
     "--custom-accent": accentColor,
   } as React.CSSProperties : {};
@@ -158,86 +157,118 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
   
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-background" style={customStyle}>
-      <div className={`container max-w-6xl mx-auto px-4 py-6 md:py-8 ${activeLocale === 'he' ? 'rtl' : ''}`} dir={activeLocale === 'he' ? 'rtl' : 'ltr'}>
-        <div className="relative min-h-[400px] md:min-h-[500px] rounded-lg overflow-hidden mb-8 shadow-lg">
+      <div className={`min-h-screen bg-background ${activeLocale === 'he' ? 'rtl' : ''}`} style={customStyle} dir={activeLocale === 'he' ? 'rtl' : 'ltr'}>
+        {/* ─── Clean Hero Image (full-width) ─── */}
+        <div className="relative h-[280px] sm:h-[320px] md:h-[400px] w-full overflow-hidden mb-0">
           <div
             className="absolute inset-0 bg-cover bg-center"
             style={{ backgroundImage: `url(${backgroundImage})` }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30 backdrop-blur-[1px]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10" />
           {gigPack.band_logo_url && (
             <div className={`absolute top-4 md:top-6 z-10 ${activeLocale === 'he' ? 'right-4 md:right-6' : 'left-4 md:left-6'}`}>
               <div className="bg-white/95 dark:bg-black/80 p-2 rounded-lg shadow-lg">
                 <Image src={gigPack.band_logo_url} alt="Band logo" width={64} height={64} className="band-logo-small object-contain" />
               </div>
-          </div>
-        )}
-          <div className="relative z-10 flex flex-col justify-center items-center text-center text-white px-4 py-12 md:py-16 min-h-full">
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                top: '-60px',
-                left: '-60px',
-                right: '-60px',
-                bottom: '-60px',
-                backdropFilter: 'blur(16px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(16px) saturate(180%)',
-                background: 'rgba(0, 0, 0, 0.3)',
-                maskImage: 'radial-gradient(ellipse 60% 50% at center, rgba(0,0,0,1) 30%, rgba(0,0,0,0.9) 45%, rgba(0,0,0,0.6) 60%, rgba(0,0,0,0.3) 75%, rgba(0,0,0,0.1) 90%, rgba(0,0,0,0) 100%)',
-                WebkitMaskImage: 'radial-gradient(ellipse 60% 50% at center, rgba(0,0,0,1) 30%, rgba(0,0,0,0.9) 45%, rgba(0,0,0,0.6) 60%, rgba(0,0,0,0.3) 75%, rgba(0,0,0,0.1) 90%, rgba(0,0,0,0) 100%)',
-                zIndex: -1,
-              }}
-            />
-            {gigPack.gig_type && gigPack.gig_type !== "other" && (
-              <div className={`absolute top-6 z-20 ${activeLocale === 'he' ? 'left-6' : 'right-6'}`}>
-                <Badge
-                  variant="secondary"
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold backdrop-blur-sm shadow-lg ${getGigTypeBadgeColors(gigPack.gig_type)}`}
-                >
-                  {getGigTypeIcon(gigPack.gig_type)}
-                  {getGigTypeLabel(gigPack.gig_type)}
-                </Badge>
-              </div>
-            )}
-            <div className="relative px-6 py-8 md:px-8 md:py-10 max-w-4xl w-full mx-4">
-              <div className="mb-6">
-                <div className="flex flex-col items-center justify-center mb-4">
-                  <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight drop-shadow-lg">
-                    {gigPack.title}
-                  </h1>
-                </div>
-              {gigPack.band_name && (
-                  <p className="text-xl md:text-2xl lg:text-3xl font-semibold text-white/90 drop-shadow-md">
-                  {gigPack.band_name}
-                </p>
-              )}
-              </div>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-6 text-lg md:text-xl">
-                {gigPack.date && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-white/90" />
-                    <span className="font-semibold text-white drop-shadow-sm">{formatDate(gigPack.date)}</span>
+            </div>
+          )}
+          {gigPack.gig_type && gigPack.gig_type !== "other" && (
+            <div className={`absolute top-4 md:top-6 z-10 ${activeLocale === 'he' ? 'left-4 md:left-6' : 'right-4 md:right-6'}`}>
+              <Badge
+                variant="secondary"
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold backdrop-blur-sm shadow-lg ${getGigTypeBadgeColors(gigPack.gig_type)}`}
+              >
+                {getGigTypeIcon(gigPack.gig_type)}
+                {getGigTypeLabel(gigPack.gig_type)}
+              </Badge>
+            </div>
+          )}
+        </div>
+
+        {/* ─── Content container ─── */}
+        <div className="max-w-5xl mx-auto px-6 sm:px-10 md:px-16 lg:px-24">
+
+        {/* ─── Floating Info Card (wide, like reference) ─── */}
+        <div className="-mt-40 md:-mt-56 mb-10 relative z-10">
+          <div className="mx-auto bg-card border rounded-xl shadow-xl p-6 md:p-8">
+            <div className="flex flex-col lg:flex-row lg:gap-0">
+              {/* Left 2/3 — Gig info */}
+              <div className="flex-1 min-w-0 lg:pr-8">
+                {/* Title + Band */}
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                  {gigPack.title}
+                </h1>
+                {gigPack.band_name && (
+                  <p className="text-muted-foreground mt-1">
+                    {gigPack.band_name}
+                  </p>
+                )}
+
+                {/* Date And Time — labeled section */}
+                {(gigPack.date || gigPack.call_time || gigPack.on_stage_time) && (
+                  <div className="mt-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="h-4 w-4" style={{ color: accentColor }} />
+                      <span className="text-sm font-medium" style={{ color: accentColor }}>{t("dateAndTime") || "Date And Time"}</span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-4">
+                      {gigPack.date && (
+                        <span className="font-medium">{formatDate(gigPack.date)}</span>
+                      )}
+                      {(gigPack.call_time || gigPack.on_stage_time) && (
+                        <div className="flex items-center gap-3 text-sm sm:text-base">
+                          {gigPack.call_time && (
+                            <button
+                              className="hover:bg-muted rounded px-1.5 py-0.5 transition-colors"
+                              onClick={() => navigator.clipboard?.writeText(gigPack.call_time || '')}
+                              title="Copy call time"
+                            >
+                              <span className="text-muted-foreground">{t("callLabel")}</span>{" "}
+                              <span dir="ltr" className="font-semibold">{gigPack.call_time}</span>
+                            </button>
+                          )}
+                          {gigPack.call_time && gigPack.on_stage_time && (
+                            <span className="text-muted-foreground/50">|</span>
+                          )}
+                          {gigPack.on_stage_time && (
+                            <button
+                              className="hover:bg-muted rounded px-1.5 py-0.5 transition-colors"
+                              onClick={() => navigator.clipboard?.writeText(gigPack.on_stage_time || '')}
+                              title="Copy stage time"
+                            >
+                              <span className="text-muted-foreground">{t("stageLabel")}</span>{" "}
+                              <span dir="ltr" className="font-semibold">{gigPack.on_stage_time}</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
-            </div>
-              {(gigPack.venue_name || gigPack.venue_address) && (
-                <div className="mb-6">
-                  {gigPack.venue_name && (
-                    <div className="text-xl md:text-2xl font-bold text-white drop-shadow-md mb-1">
-                      {gigPack.venue_name}
+
+                {/* Address — labeled section */}
+                {(gigPack.venue_name || gigPack.venue_address) && (
+                  <div className="mt-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin className="h-4 w-4" style={{ color: accentColor }} />
+                      <span className="text-sm font-medium" style={{ color: accentColor }}>{t("addressLabel") || "Address"}</span>
                     </div>
-                  )}
-                  {gigPack.venue_address && (
-                    <div className="flex items-center justify-center gap-2 text-white/90 text-sm md:text-base drop-shadow-sm">
-                      {gigPack.venue_address}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        {gigPack.venue_name && (
+                          <span className="font-medium">{gigPack.venue_name}</span>
+                        )}
+                        {gigPack.venue_address && (
+                          <p className="text-sm text-muted-foreground mt-0.5">{gigPack.venue_address}</p>
+                        )}
+                      </div>
                       {gigPack.venue_maps_url && (
-                        <>
+                        <div className="flex items-center gap-2 shrink-0">
                           <Button
                             onClick={openMaps}
-                            variant="secondary"
+                            variant="outline"
                             size="sm"
-                            className="h-8 w-8 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm border-white/30 text-white shadow-lg"
+                            className="h-8 w-8 p-0"
                           >
                             <MapPin className="h-4 w-4" />
                           </Button>
@@ -247,219 +278,313 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
                               const wazeUrl = `https://waze.com/ul?q=${address}`;
                               window.open(wazeUrl, '_blank', 'noopener,noreferrer');
                             }}
-                            variant="secondary"
+                            variant="outline"
                             size="sm"
-                            className="h-8 w-8 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm border-white/30 text-white shadow-lg"
+                            className="h-8 w-8 p-0"
                           >
-                            <Image src="/wazeicon.png" alt="Waze" width={28} height={28} />
+                            <Image src="/wazeicon.png" alt="Waze" width={20} height={20} />
                           </Button>
-                        </>
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
-              )}
-              <div className="flex flex-wrap items-center justify-center gap-3">
-                {gigPack.call_time && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="gap-2 bg-white/20 backdrop-blur-sm border-white/30 text-white shadow-lg transition-colors"
-                    style={{
-                      '--tw-bg-opacity': '0.2'
-                    } as React.CSSProperties}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = accentColor;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-                    }}
-                    onClick={() => navigator.clipboard?.writeText(gigPack.call_time || '')}
-                  >
-                    <Clock className="h-4 w-4" />
-                    <span>{t("callLabel")} <span dir="ltr">{gigPack.call_time}</span></span>
-                  </Button>
-                )}
-                {gigPack.on_stage_time && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="gap-2 bg-white/20 backdrop-blur-sm border-white/30 text-white shadow-lg transition-colors"
-                    style={{
-                      '--tw-bg-opacity': '0.2'
-                    } as React.CSSProperties}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = accentColor;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-                    }}
-                    onClick={() => navigator.clipboard?.writeText(gigPack.on_stage_time || '')}
-                  >
-                    <Music className="h-4 w-4" />
-                    <span>{t("stageLabel")} <span dir="ltr">{gigPack.on_stage_time}</span></span>
-                  </Button>
+                  </div>
                 )}
               </div>
+
+              {/* Right 1/3 — Who's Playing */}
+              {gigPack.lineup && gigPack.lineup.length > 0 && (() => {
+                const visibleMembers = gigPack.lineup.filter(m => m.name?.trim());
+                const MAX_VISIBLE = 4;
+                const shown = visibleMembers.slice(0, MAX_VISIBLE);
+                const overflow = visibleMembers.slice(MAX_VISIBLE);
+
+                const renderMemberRow = (member: typeof visibleMembers[number], index: number) => {
+                  const hasContactInfo = member.email || member.phone;
+                  const row = (
+                    <div
+                      className={`flex items-center gap-2.5 py-2 hover:bg-muted/30 transition-colors rounded-md px-1 -mx-1 ${hasContactInfo ? 'cursor-pointer' : ''}`}
+                    >
+                      <div className="relative shrink-0">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={member.avatarUrl || undefined} />
+                          <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                            {getInitials(member.name!)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <InvitationStatusIcon
+                          status={member.invitationStatus}
+                          size="sm"
+                          className="absolute -bottom-0.5 -right-0.5 border-2 border-background"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{member.name}</p>
+                        {member.role && (
+                          <p className="text-xs text-muted-foreground truncate">{member.role}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+
+                  if (!hasContactInfo) {
+                    return <div key={`${member.name}-${index}`}>{row}</div>;
+                  }
+
+                  return (
+                    <Popover key={`${member.name}-${index}`}>
+                      <PopoverTrigger asChild>
+                        {row}
+                      </PopoverTrigger>
+                      <PopoverContent className="w-72 p-4" align="start">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Avatar className="h-11 w-11">
+                            <AvatarImage src={member.avatarUrl || undefined} />
+                            <AvatarFallback className="text-sm bg-primary/10 text-primary">
+                              {getInitials(member.name!)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-semibold">{member.name}</p>
+                            {member.role && (
+                              <p className="text-sm text-muted-foreground">{member.role}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {member.phone && (
+                            <>
+                              <Button variant="outline" size="sm" className="gap-2" asChild>
+                                <a href={`tel:${member.phone}`}>
+                                  <Phone className="h-4 w-4" />
+                                  {member.phone}
+                                </a>
+                              </Button>
+                              <Button variant="outline" size="sm" className="gap-2" asChild>
+                                <a
+                                  href={`https://wa.me/${normalizePhoneForWhatsApp(member.phone)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <MessageCircle className="h-4 w-4" />
+                                  WhatsApp
+                                </a>
+                              </Button>
+                            </>
+                          )}
+                          {member.email && (
+                            <Button variant="outline" size="sm" className="gap-2" asChild>
+                              <a href={`mailto:${member.email}`}>
+                                <Mail className="h-4 w-4" />
+                                {member.email}
+                              </a>
+                            </Button>
+                          )}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  );
+                };
+
+                return (
+                  <>
+                    {/* Desktop — full member list in right 1/3 */}
+                    <div className="hidden lg:block w-px bg-border/50 shrink-0" />
+                    <div className="hidden lg:block lg:pl-8 lg:w-[280px] shrink-0">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Users className="h-4 w-4" style={{ color: accentColor }} />
+                        <span className="font-semibold">{t("whosPlaying")}</span>
+                        <Badge variant="secondary" className="text-xs">{visibleMembers.length}</Badge>
+                      </div>
+                      <div className="space-y-0">
+                        {shown.map((member, i) => renderMemberRow(member, i))}
+                        {overflow.length > 0 && (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className="flex items-center gap-2 py-2 px-1 -mx-1 text-sm font-medium hover:bg-muted/30 rounded-md transition-colors w-full">
+                                <div className="flex -space-x-2">
+                                  {overflow.slice(0, 3).map((m, i) => (
+                                    <Avatar key={i} className="h-6 w-6 border-2 border-card">
+                                      <AvatarImage src={m.avatarUrl || undefined} />
+                                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                                        {getInitials(m.name!)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                  ))}
+                                </div>
+                                <span style={{ color: accentColor }}>+{overflow.length} more</span>
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80 p-3 max-h-[400px] overflow-y-auto" align="start">
+                              <div className="space-y-0">
+                                {visibleMembers.map((member, i) => renderMemberRow(member, i))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Mobile — compact avatar stack with "show all" popover */}
+                    <div className="lg:hidden mt-5 pt-5 border-t border-border/50">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="flex items-center gap-3 w-full">
+                            <div className="flex -space-x-2.5">
+                              {visibleMembers.slice(0, 5).map((m, i) => (
+                                <Avatar key={i} className="h-9 w-9 border-2 border-card ring-1 ring-border/20">
+                                  <AvatarImage src={m.avatarUrl || undefined} />
+                                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                                    {getInitials(m.name!)}
+                                  </AvatarFallback>
+                                </Avatar>
+                              ))}
+                              {visibleMembers.length > 5 && (
+                                <div className="h-9 w-9 rounded-full border-2 border-card ring-1 ring-border/20 bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
+                                  +{visibleMembers.length - 5}
+                                </div>
+                              )}
+                            </div>
+                            <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80 p-3 max-h-[400px] overflow-y-auto" align="start">
+                          <div className="flex items-center gap-2 mb-2 pb-2 border-b">
+                            <Users className="h-4 w-4" style={{ color: accentColor }} />
+                            <span className="font-semibold text-sm">{t("whosPlaying")}</span>
+                            <Badge variant="secondary" className="text-xs">{visibleMembers.length}</Badge>
+                          </div>
+                          <div className="space-y-0">
+                            {visibleMembers.map((member, i) => renderMemberRow(member, i))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            {gigPack.schedule && gigPack.schedule.length > 0 && (
-              <div className="bg-card border rounded-lg p-6 shadow-sm">
-                <div className={`flex items-center gap-3 mb-4`}>
-                  <Clock className="h-5 w-5" style={{ color: accentColor }} />
-                  <h3 className="font-semibold text-lg">{t("schedule")}</h3>
-                </div>
-                <div className="space-y-1">
-                  {gigPack.schedule.sort((a, b) => {
-                    if (!a.time && !b.time) return 0;
-                    if (!a.time) return 1;
-                    if (!b.time) return -1;
-                    return a.time.localeCompare(b.time);
-                  }).map((item, index) => (
-                    <div key={item.id}>
-                      <div className="py-2">
-                        <span dir="ltr" className="text-base font-bold text-foreground">
-                          {item.time}
-                        </span>
-                        <span className="mx-1 text-muted-foreground/60" aria-hidden="true">–</span>
-                        <span className="font-medium text-foreground/90">{item.label}</span>
-                      </div>
-                      {index < gigPack.schedule!.length - 1 && (
-                        <hr className="border-muted-foreground/20" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {(gigPack.dress_code || gigPack.backline_notes || gigPack.parking_notes || gigPack.notes) && (
-              <div className="space-y-4">
-                {(gigPack.dress_code || gigPack.backline_notes || gigPack.parking_notes || gigPack.notes) && (
-                  <div className="bg-card border rounded-lg p-6 shadow-sm">
-                    <div className={`flex items-center gap-3 mb-4`}>
-                      <Package className="h-5 w-5" style={{ color: accentColor }} />
-                      <h3 className="font-semibold text-lg">{t("logistics")}</h3>
-                    </div>
-                    <div className="space-y-4">
-                      {gigPack.dress_code && (
-                        <div className={`flex gap-3`}>
-                          <Shirt className="h-4 w-4 mt-1 flex-shrink-0 text-muted-foreground" />
-                          <div className={`${activeLocale === 'he' ? 'text-right' : ''}`}>
-                            <div className="font-medium text-sm uppercase tracking-wider text-muted-foreground mb-1">{t("dressCodeLabel")}</div>
-                            <div className="text-sm">{gigPack.dress_code}</div>
-                          </div>
-                        </div>
-                      )}
-                      {gigPack.backline_notes && (
-                        <div className={`flex gap-3`}>
-                          <Package className="h-4 w-4 mt-1 flex-shrink-0 text-muted-foreground" />
-                          <div className={`${activeLocale === 'he' ? 'text-right' : ''}`}>
-                            <div className="font-medium text-sm uppercase tracking-wider text-muted-foreground mb-1">{t("gearLabel")}</div>
-                            <div className="text-sm whitespace-pre-wrap">{gigPack.backline_notes}</div>
-                          </div>
-                        </div>
-                      )}
-                      {gigPack.parking_notes && (
-                        <div className={`flex gap-3`}>
-                          <ParkingCircle className="h-4 w-4 mt-1 flex-shrink-0 text-muted-foreground" />
-                          <div className={`${activeLocale === 'he' ? 'text-right' : ''}`}>
-                            <div className="font-medium text-sm uppercase tracking-wider text-muted-foreground mb-1">{t("parkingLabel")}</div>
-                            <div className="text-sm whitespace-pre-wrap">{gigPack.parking_notes}</div>
-                          </div>
-                        </div>
-                      )}
-                      {gigPack.notes && (
-                        <div className={`flex gap-3`}>
-                          <StickyNote className="h-4 w-4 mt-1 flex-shrink-0 text-muted-foreground" />
-                          <div className={`${activeLocale === 'he' ? 'text-right' : ''}`}>
-                            <div className="font-medium text-sm uppercase tracking-wider text-muted-foreground mb-1">{t("notesLabel")}</div>
-                            <div className="text-sm whitespace-pre-wrap">{gigPack.notes}</div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            <div className="text-center py-2">
-              <p className="text-muted-foreground/60 text-xs italic">
-                Smart packing checklist coming soon...
-              </p>
-            </div>
-          </div>
-          <div className="space-y-6">
-            {gigPack.lineup && gigPack.lineup.length > 0 && (
-              <div className="bg-card border rounded-lg p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <Users className="h-5 w-5" style={{ color: accentColor }} />
-                  <h3 className="font-semibold text-lg">{t("whosPlaying")}</h3>
-                  <Badge variant="secondary" className="text-xs">{gigPack.lineup.filter(m => m.name?.trim()).length}</Badge>
-                </div>
-                <div className="rounded-lg border bg-card">
-                  {gigPack.lineup.map((member, index) => {
-                    if (!member.name?.trim()) return null;
-                    return (
-                      <div
-                        key={`${member.name}-${index}`}
-                        className="flex items-center gap-3 py-2.5 px-3 hover:bg-muted/50 transition-colors first:rounded-t-lg last:rounded-b-lg"
-                      >
-                        {/* Avatar with status icon */}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="relative shrink-0">
-                              <Avatar className="h-10 w-10">
-                                <AvatarImage src={member.avatarUrl || undefined} />
-                                <AvatarFallback className="text-sm bg-primary/10 text-primary">
-                                  {getInitials(member.name!)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <InvitationStatusIcon
-                                status={member.invitationStatus}
-                                size="sm"
-                                className="absolute -bottom-0.5 -right-0.5 border-2 border-background"
-                              />
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="capitalize">
-                              {member.invitationStatus?.replace("_", " ") || "pending"}
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
 
-                        {/* Name and secondary info */}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{member.name}</p>
-                          {(member.role || member.email) && (
-                            <p className="text-xs text-muted-foreground truncate">
-                              {member.role}
-                              {member.role && member.email && <span className="text-border"> · </span>}
-                              {member.email}
-                            </p>
+        {/* ─── Main + Sidebar Grid ─── */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-x-10 gap-y-8">
+
+          {/* ─── Main Column (left, wider) ─── */}
+          <div className="lg:col-span-3 space-y-0">
+            {/* Logistics */}
+            {(gigPack.dress_code || gigPack.backline_notes || gigPack.parking_notes || gigPack.notes) && (
+              <div className="pb-8">
+                <div className="space-y-4">
+                  {gigPack.dress_code && (
+                    <div className={`flex gap-3 ${activeLocale === 'he' ? 'text-right' : ''}`}>
+                      <Shirt className="h-4 w-4 mt-1 flex-shrink-0 text-muted-foreground" />
+                      <div>
+                        <div className="font-medium text-sm text-muted-foreground mb-1">{t("dressCodeLabel")}</div>
+                        <div className="text-base">{gigPack.dress_code}</div>
+                      </div>
+                    </div>
+                  )}
+                  {gigPack.backline_notes && (
+                    <div className={`flex gap-3 ${activeLocale === 'he' ? 'text-right' : ''}`}>
+                      <Package className="h-4 w-4 mt-1 flex-shrink-0 text-muted-foreground" />
+                      <div>
+                        <div className="font-medium text-sm text-muted-foreground mb-1">{t("gearLabel")}</div>
+                        <div className="text-base whitespace-pre-wrap">{gigPack.backline_notes}</div>
+                      </div>
+                    </div>
+                  )}
+                  {gigPack.parking_notes && (
+                    <div className={`flex gap-3 ${activeLocale === 'he' ? 'text-right' : ''}`}>
+                      <ParkingCircle className="h-4 w-4 mt-1 flex-shrink-0 text-muted-foreground" />
+                      <div>
+                        <div className="font-medium text-sm text-muted-foreground mb-1">{t("parkingLabel")}</div>
+                        <div className="text-base whitespace-pre-wrap">{gigPack.parking_notes}</div>
+                      </div>
+                    </div>
+                  )}
+                  {gigPack.notes && (
+                    <div className={`flex gap-3 ${activeLocale === 'he' ? 'text-right' : ''}`}>
+                      <StickyNote className="h-4 w-4 mt-1 flex-shrink-0 text-muted-foreground" />
+                      <div>
+                        <div className="font-medium text-sm text-muted-foreground mb-1">{t("notesLabel")}</div>
+                        <div className="text-base whitespace-pre-wrap">{gigPack.notes}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Schedule — mobile only (above setlist) */}
+            {gigPack.schedule && gigPack.schedule.length > 0 && (() => {
+              const sorted = [...gigPack.schedule].sort((a, b) => {
+                if (!a.time && !b.time) return 0;
+                if (!a.time) return 1;
+                if (!b.time) return -1;
+                return a.time.localeCompare(b.time);
+              });
+              const PREVIEW_COUNT = 2;
+              const needsCollapse = sorted.length > PREVIEW_COUNT;
+              const displayed = mobileScheduleExpanded ? sorted : sorted.slice(0, PREVIEW_COUNT);
+
+              return (
+                <div className="lg:hidden pb-8 border-t border-border/30 pt-6">
+                  <h3 className="font-semibold text-lg mb-3">{t("schedule")}</h3>
+                  <div className="relative">
+                    <div className="space-y-1">
+                      {displayed.map((item, index) => (
+                        <div key={item.id}>
+                          <div className="py-2">
+                            <span dir="ltr" className="text-base font-bold text-foreground">
+                              {item.time}
+                            </span>
+                            <span className="mx-1.5 text-muted-foreground/50" aria-hidden="true">–</span>
+                            <span className="font-medium text-foreground/90">{item.label}</span>
+                          </div>
+                          {index < displayed.length - 1 && (
+                            <hr className="border-muted-foreground/10" />
                           )}
                         </div>
+                      ))}
+                    </div>
+                    {needsCollapse && !mobileScheduleExpanded && (
+                      <div className="absolute inset-x-0 bottom-0 pointer-events-none">
+                        <div className="h-10 bg-gradient-to-t from-background to-transparent" />
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-            {hasSetlistContent && (
-              <div className="bg-card border rounded-lg p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <Music className="h-5 w-5" style={{ color: accentColor }} />
-                    <h3 className="font-semibold text-lg">{t("setlist")}</h3>
+                    )}
                   </div>
-                  <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
-                    <Download className="h-3.5 w-3.5 mr-1.5" />
-                    Download PDF
-                  </Button>
+                  {needsCollapse && !mobileScheduleExpanded && (
+                    <div className="flex justify-center mt-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="bg-white/80 backdrop-blur-sm border shadow-sm text-gray-700 hover:bg-white"
+                        onClick={() => setMobileScheduleExpanded(true)}
+                      >
+                        {`${t("showMoreUpdates") || "Show more"} (+${sorted.length - PREVIEW_COUNT})`}
+                      </Button>
+                    </div>
+                  )}
+                  {needsCollapse && mobileScheduleExpanded && (
+                    <div className="flex justify-center mt-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => setMobileScheduleExpanded(false)}
+                      >
+                        {t("showLess")}
+                      </Button>
+                    </div>
+                  )}
                 </div>
+              );
+            })()}
+
+            {/* Setlist */}
+            {hasSetlistContent && (
+              <div className="pb-8 border-t border-border/30 pt-6">
+                <h2 className="text-xl font-bold mb-4">{t("setlist")}</h2>
                 <div
                   className="relative overflow-hidden rounded-lg"
                   style={{ maxHeight: setlistExpanded ? "none" : "180px" }}
@@ -502,7 +627,7 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
                   )}
                 </div>
                 {setlistExpanded && (
-                  <div className="flex justify-center mt-3">
+                  <div className="flex items-center justify-center gap-3 mt-3">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -511,16 +636,19 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
                     >
                       {t("showLess")}
                     </Button>
+                    <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
+                      <Download className="h-3.5 w-3.5 mr-1.5" />
+                      Download PDF
+                    </Button>
                   </div>
                 )}
               </div>
             )}
+
+            {/* Setlist PDF */}
             {gigPack.setlist_pdf_url && (
-              <div className="bg-card border rounded-lg p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <FileText className="h-5 w-5" style={{ color: accentColor }} />
-                  <h3 className="font-semibold text-lg">{t("setlist")} (PDF)</h3>
-                </div>
+              <div className="pb-8 border-t border-border/30 pt-6">
+                <h2 className="text-xl font-bold mb-4">{t("setlist")} (PDF)</h2>
                 <iframe
                   src={`${gigPack.setlist_pdf_url}#toolbar=0&navpanes=0`}
                   title="Setlist PDF"
@@ -537,18 +665,18 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
                 </Button>
               </div>
             )}
+
+            {/* Materials */}
             {gigPack.materials && gigPack.materials.length > 0 && (
-              <div className="bg-card border rounded-lg p-6 shadow-sm">
+              <div className="pb-8 border-t border-border/30 pt-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <Paperclip className="h-5 w-5" style={{ color: accentColor }} />
-                  <h3 className="font-semibold text-lg">{t("materials")}</h3>
-                  <Badge variant="secondary" className="text-xs">{gigPack.materials.length}</Badge>
+                  <h2 className="text-xl font-bold">{t("materials")}</h2>
+                  <Badge variant="secondary" className="text-xs bg-white dark:bg-card">{gigPack.materials.length}</Badge>
                 </div>
-                <div className="rounded-lg border bg-card">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {gigPack.materials.map((material) => {
                     const kindConfig = MATERIAL_KIND_ICON[material.kind as GigMaterialKind] ?? MATERIAL_KIND_ICON.other;
                     const KindIcon = kindConfig.icon;
-                    const hostname = material.url ? (() => { try { return new URL(material.url).hostname; } catch { return null; } })() : null;
 
                     return (
                       <a
@@ -556,55 +684,92 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
                         href={material.url || undefined}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group flex items-center gap-3 py-2.5 px-3 hover:bg-muted/50 transition-colors cursor-pointer first:rounded-t-lg last:rounded-b-lg"
+                        className="group relative flex items-center gap-3.5 p-4 rounded-xl border border-transparent hover:border-border/50 hover:shadow-sm transition-all cursor-pointer bg-white dark:bg-card"
                       >
+                        {material.url && (
+                          <div className="absolute top-2 right-2">
+                            <HostingServiceIcon url={material.url} className="h-4 w-4" />
+                          </div>
+                        )}
                         <div className="shrink-0">
-                          <KindIcon className={`h-5 w-5 ${kindConfig.color}`} />
+                          <KindIcon className={`h-7 w-7 ${kindConfig.color}`} />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">
+                        <div className="flex-1 min-w-0 pr-4">
+                          <p className="font-medium">
                             {material.label || t(`materialType${material.kind.charAt(0).toUpperCase()}${material.kind.slice(1)}` as never)}
                           </p>
-                          <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-                            <span>{t(`materialType${material.kind.charAt(0).toUpperCase()}${material.kind.slice(1)}` as never)}</span>
-                            {hostname && (
-                              <>
-                                <span className="text-border">·</span>
-                                <span className="inline-flex items-center gap-1 truncate">
-                                  <HostingServiceIcon url={material.url!} className="h-3 w-3 shrink-0" />
-                                  <span className="truncate">{hostname}</span>
-                                </span>
-                              </>
-                            )}
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {t(`materialType${material.kind.charAt(0).toUpperCase()}${material.kind.slice(1)}` as never)}
                           </p>
                         </div>
-                        <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
                       </a>
                     );
                   })}
                 </div>
               </div>
             )}
-          </div>
-        </div>
-        {/* Need Help - Contacts */}
-        {gigPack.contacts && gigPack.contacts.length > 0 && (
-          <div className="mt-8">
-            <NeedHelpSection
-              contacts={gigPack.contacts}
-              accentColor={accentColor}
-            />
-          </div>
-        )}
 
-        {/* Updates / Activity Log — reuses the dashboard widget scoped to this gig */}
-        <GigActivityWidget gigId={gigPack.id} limit={10} showViewAll className="mt-8 shadow-sm" initialData={gigPack.activity as GigActivityLogEntry[] | undefined} />
-        <div className="mt-12 text-center text-xs text-muted-foreground/60">
+          </div>{/* end main column */}
+
+          {/* ─── Sidebar Column (right, narrower — bordered card like reference) ─── */}
+          <div className="lg:col-span-2">
+            <div className="lg:sticky lg:top-6 space-y-6">
+              {/* Schedule card — desktop only (mobile version is in main column) */}
+              {gigPack.schedule && gigPack.schedule.length > 0 && (
+                <div className="hidden lg:block border rounded-xl p-5">
+                  <h3 className="font-semibold text-lg mb-3">{t("schedule")}</h3>
+                  <div className="space-y-1">
+                    {gigPack.schedule.sort((a, b) => {
+                      if (!a.time && !b.time) return 0;
+                      if (!a.time) return 1;
+                      if (!b.time) return -1;
+                      return a.time.localeCompare(b.time);
+                    }).map((item, index) => (
+                      <div key={item.id}>
+                        <div className="py-2">
+                          <span dir="ltr" className="text-base font-bold text-foreground">
+                            {item.time}
+                          </span>
+                          <span className="mx-1.5 text-muted-foreground/50" aria-hidden="true">–</span>
+                          <span className="font-medium text-foreground/90">{item.label}</span>
+                        </div>
+                        {index < gigPack.schedule!.length - 1 && (
+                          <hr className="border-muted-foreground/10" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Contact card */}
+              {gigPack.contacts && gigPack.contacts.length > 0 && (
+                <div className="border rounded-xl p-5">
+                  <NeedHelpSection
+                    contacts={gigPack.contacts}
+                    accentColor={accentColor}
+                  />
+                </div>
+              )}
+            </div>
+          </div>{/* end sidebar column */}
+
+        </div>{/* end main+sidebar grid */}
+
+        {/* Footer */}
+        <div className="mt-8 pb-8 text-center text-xs text-muted-foreground/60 space-y-1">
+          <p className="flex items-center justify-center gap-1.5">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
+            Live • Updated {new Date(gigPack.updated_at).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit'
+            })}
+          </p>
           <p>
-            Powered by <span className="font-semibold" style={{ color: accentColor }}>GigPack</span>
+            Powered by <a href="https://gigmaster.io" target="_blank" rel="noopener noreferrer" className="font-semibold hover:underline" style={{ color: accentColor }}>GigMaster</a>
           </p>
         </div>
-      </div>
+        </div>{/* end content container */}
     </div>
   </TooltipProvider>
   );

@@ -124,7 +124,7 @@ function ContactRow({ contact, onUpdate, onDelete, disabled }: ContactRowProps) 
           <Input
             value={contact.phone || ""}
             onChange={(e) => onUpdate("phone", e.target.value)}
-            placeholder="Phone"
+            placeholder="+972 or 05..."
             type="tel"
             disabled={disabled}
             className="h-8 text-sm pl-7"

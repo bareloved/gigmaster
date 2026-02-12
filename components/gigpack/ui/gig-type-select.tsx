@@ -11,7 +11,18 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { X } from "lucide-react"
+import {
+  X,
+  PartyPopper,
+  Mic,
+  Building,
+  Beer,
+  Coffee,
+  Tent,
+  Headphones,
+  Music,
+  Sparkles,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface GigTypeSelectProps {
@@ -44,6 +55,18 @@ const GIG_TYPE_TRANSLATION_KEYS: Record<string, string> = {
   concert_hall: "concertHall",
   festival: "festival",
   rehearsal: "rehearsal",
+}
+
+// Icons for each gig type (matches gigpack-layout badge icons)
+const GIG_TYPE_ICONS: Record<string, React.ReactNode> = {
+  wedding: <PartyPopper className="h-4 w-4 shrink-0" />,
+  club_show: <Mic className="h-4 w-4 shrink-0" />,
+  corporate: <Building className="h-4 w-4 shrink-0" />,
+  bar_gig: <Beer className="h-4 w-4 shrink-0" />,
+  coffee_house: <Coffee className="h-4 w-4 shrink-0" />,
+  concert_hall: <Music className="h-4 w-4 shrink-0" />,
+  festival: <Tent className="h-4 w-4 shrink-0" />,
+  rehearsal: <Headphones className="h-4 w-4 shrink-0" />,
 }
 
 const CUSTOM_VALUE = "__custom__"
@@ -154,11 +177,17 @@ export function GigTypeSelect({ value, onChange, disabled, className, id }: GigT
       <SelectContent dir={locale === "he" ? "rtl" : "ltr"}>
         {PREDEFINED_GIG_TYPES.map((type) => (
           <SelectItem key={type} value={type} className="text-sm">
-            {getGigTypeLabel(type)}
+            <span className="flex items-center gap-2">
+              {GIG_TYPE_ICONS[type]}
+              {getGigTypeLabel(type)}
+            </span>
           </SelectItem>
         ))}
         <SelectItem value={CUSTOM_VALUE} className="text-sm">
-          {t("customGigType")}
+          <span className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 shrink-0" />
+            {t("customGigType")}
+          </span>
         </SelectItem>
       </SelectContent>
     </Select>
