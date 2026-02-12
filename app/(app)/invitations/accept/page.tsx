@@ -22,9 +22,9 @@ function AcceptInvitationContent() {
       await acceptInvitation(token);
       setStatus('success');
 
-      // Redirect to dashboard after 2 seconds
+      // Redirect to gigs after 2 seconds
       setTimeout(() => {
-        router.push('/dashboard?view=player');
+        router.push('/gigs');
       }, 2000);
     } catch (err: unknown) {
       setStatus('error');
@@ -101,10 +101,10 @@ function AcceptInvitationContent() {
                 Log In
               </Button>
               <Button
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push('/gigs')}
                 className="flex-1"
               >
-                Go to Dashboard
+                Go to Gigs
               </Button>
             </div>
           </CardContent>
@@ -127,12 +127,12 @@ function AcceptInvitationContent() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground mb-4">
-            You can now view gig details, setlist, and other information in your dashboard. 
+            You can now view gig details, setlist, and other information.
             Redirecting you now...
           </p>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Taking you to your dashboard...</span>
+            <span>Taking you to your gigs...</span>
           </div>
         </CardContent>
       </Card>

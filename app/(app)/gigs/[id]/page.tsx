@@ -64,7 +64,7 @@ export default function GigDetailPage() {
     if (!gigId) return;
 
     // Navigate away immediately for responsive UX
-    const returnUrl = searchParams.get('returnUrl') || '/dashboard';
+    const returnUrl = searchParams.get('returnUrl') || '/gigs';
     router.push(returnUrl);
 
     // Clean up detail caches so the gig doesn't flash if user navigates back
@@ -109,7 +109,7 @@ export default function GigDetailPage() {
               <>
                 <h3 className="text-lg font-semibold mb-2">Gig Not Found</h3>
                 <p className="text-destructive mb-4">{error || "This gig may have been deleted or doesn't exist."}</p>
-                <Button onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>
+                <Button onClick={() => router.push('/gigs')}>Go to Gigs</Button>
               </>
             )}
           </CardContent>

@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Music, Calendar, Guitar, Mail } from "lucide-react";
+import { Music, Calendar, Guitar, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, disabled: true },
   { title: "Gigs", href: "/gigs", icon: Music },
   { title: "Calendar", href: "/calendar", icon: Calendar },
   { title: "Bands", href: "/bands", icon: Guitar },

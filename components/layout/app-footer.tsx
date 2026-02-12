@@ -5,7 +5,6 @@ import Link from "next/link";
 import { FaInstagram, FaFacebookF, FaXTwitter, FaYoutube } from "react-icons/fa6";
 
 const productLinks = [
-  { label: "Dashboard", href: "/dashboard" },
   { label: "Gigs", href: "/gigs" },
   { label: "Bands", href: "/bands" },
   { label: "Invitations", href: "/invitations" },
