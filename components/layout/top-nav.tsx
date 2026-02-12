@@ -12,7 +12,6 @@ const navItems = [
   { title: "Gigs", href: "/gigs" },
   { title: "Calendar", href: "/calendar" },
   { title: "Bands", href: "/bands" },
-  { title: "Invitations", href: "/invitations" },
 ] as const;
 
 export function TopNav() {
@@ -51,6 +50,7 @@ export function TopNav() {
             alt="GigMaster"
             width={400}
             height={120}
+            style={{ width: "auto", height: "auto" }}
             className={cn(
               "absolute left-0 top-1/2 -translate-y-1/2 object-contain w-[160px] sm:w-[190px] lg:w-[220px] h-auto transition-opacity duration-300",
               scrolled ? "opacity-100" : "opacity-0 pointer-events-none"

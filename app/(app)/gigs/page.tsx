@@ -18,6 +18,7 @@ import {
   History,
   Trash2,
   Download,
+  Mail,
 } from "lucide-react";
 import Link from "next/link";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
@@ -417,24 +418,32 @@ export default function AllGigsPage() {
         </Button>
         </div>
 
-        {/* Search */}
-        <div className="relative w-48 sm:w-56">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            type="text"
-            placeholder="Search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 pr-8 h-9 sm:h-10 text-sm rounded-full border-border bg-card"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
+        {/* Search + Invitations */}
+        <div className="flex items-center gap-2">
+          <div className="relative w-48 sm:w-56">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-8 h-9 sm:h-10 text-sm rounded-full border-border bg-card"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          <Link href="/invitations">
+            <Button variant="outline" size="sm" className="gap-1.5 h-9 sm:h-10 text-sm">
+              <Mail className="h-4 w-4" />
+              <span className="hidden sm:inline">Invitations</span>
+            </Button>
+          </Link>
         </div>
       </div>
 
