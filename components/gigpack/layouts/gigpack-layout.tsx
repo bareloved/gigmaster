@@ -173,7 +173,7 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
             </div>
           )}
           {gigPack.gig_type && gigPack.gig_type !== "other" && (
-            <div className={`absolute top-4 md:top-6 z-10 ${activeLocale === 'he' ? 'left-4 md:left-6' : 'right-4 md:right-6'}`}>
+            <div className={`absolute top-14 md:top-16 z-10 ${activeLocale === 'he' ? 'left-4 md:left-6' : 'right-4 md:right-6'}`}>
               <Badge
                 variant="secondary"
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold backdrop-blur-sm shadow-lg ${getGigTypeBadgeColors(gigPack.gig_type)}`}
