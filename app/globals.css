@@ -157,6 +157,16 @@
   }
 }
 
+/* Calendar swipe transition */
+@keyframes swipe-in-from-left {
+  from { transform: translateX(-60px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes swipe-in-from-right {
+  from { transform: translateX(60px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
 /* Scroll-to-end-and-back for overflowing event text */
 @keyframes marquee {
   0%, 15%  { transform: translateX(0); }

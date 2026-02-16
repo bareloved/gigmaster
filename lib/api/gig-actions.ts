@@ -124,7 +124,7 @@ export async function updateGigStatus(gigId: string, status: GigStatus): Promise
               type: 'gig_cancelled',
               title: `Gig cancelled: ${gig.title}`,
               message: 'This gig has been cancelled',
-              link: `/dashboard`,
+              link: `/gigs`,
               gig_id: gigId,
             });
           }

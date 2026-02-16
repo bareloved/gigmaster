@@ -26,7 +26,7 @@ export default function GigPackPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const gigId = params.id as string;
-  const returnUrl = searchParams.get('returnUrl') || '/dashboard';
+  const returnUrl = searchParams.get('returnUrl') || '/gigs';
   const { user } = useUser();
   
   // Share dialog state
@@ -342,27 +342,6 @@ export default function GigPackPage() {
           </div>
         </div>
       )}
-      
-      {/* Live status indicator */}
-      <div className="fixed bottom-20 right-4 lg:bottom-4 z-50">
-        <div className="bg-card border rounded-lg shadow-lg px-3 py-2 flex items-center gap-2 text-xs text-muted-foreground">
-          <RefreshCw 
-            className={`h-3 w-3 transition-all ${
-              isPolling 
-                ? 'animate-spin text-primary' 
-                : isUserActive 
-                  ? 'text-green-500' 
-                  : 'text-orange-500'
-            }`} 
-          />
-          <span>
-            {isUserActive ? 'Live' : 'Idle'} • Updated {lastUpdated.toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit'
-            })}
-          </span>
-        </div>
-      </div>
       
       {/* Refresh Diff Dialog */}
       <Dialog open={refreshDialogOpen} onOpenChange={setRefreshDialogOpen}>
