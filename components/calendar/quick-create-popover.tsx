@@ -129,17 +129,25 @@ export function QuickCreatePopover({
   }
 
   // Position: LEFT of anchor, flip right if no space
-  const popoverWidth = 400;
-  const popoverHeight = 380;
+  // On mobile (<640px), use compact size centered horizontally
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+  const popoverWidth = isMobile ? Math.min(320, window.innerWidth - 16) : 400;
+  const popoverHeight = isMobile ? 340 : 380;
   let top = 100;
   let left = 100;
 
   if (anchorRect) {
-    left = anchorRect.left - popoverWidth - 12;
-    top = anchorRect.top;
+    if (isMobile) {
+      // Center horizontally on mobile
+      left = Math.round((window.innerWidth - popoverWidth) / 2);
+      top = anchorRect.bottom + 8;
+    } else {
+      left = anchorRect.left - popoverWidth - 12;
+      top = anchorRect.top;
 
-    if (left < 8) {
-      left = anchorRect.right + 12;
+      if (left < 8) {
+        left = anchorRect.right + 12;
+      }
     }
 
     if (left + popoverWidth > window.innerWidth - 8) {
@@ -157,8 +165,8 @@ export function QuickCreatePopover({
   return (
     <div
       ref={ref}
-      className="fixed z-[70] w-[400px] rounded-xl border bg-popover text-popover-foreground shadow-xl animate-in fade-in-0 zoom-in-95"
-      style={{ top, left }}
+      className="fixed z-[70] rounded-xl border bg-popover text-popover-foreground shadow-xl animate-in fade-in-0 zoom-in-95"
+      style={{ top, left, width: popoverWidth }}
     >
       {/* Close button */}
       <button
@@ -169,7 +177,7 @@ export function QuickCreatePopover({
         <X className="h-4 w-4" />
       </button>
 
-      <div className="p-4 pb-3">
+      <div className="p-3 pb-2 sm:p-4 sm:pb-3">
         {/* Title — InlineInput style from gig editor */}
         <div className="pr-6">
           <input
@@ -178,12 +186,12 @@ export function QuickCreatePopover({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="w-full bg-transparent border-none outline-none text-xl font-semibold leading-snug text-foreground placeholder:text-muted-foreground/50 hover:bg-accent/30 focus:bg-accent/20 rounded px-2 py-0.5 -mx-2 transition-colors"
+            className="w-full bg-transparent border-none outline-none text-lg sm:text-xl font-semibold leading-snug text-foreground placeholder:text-muted-foreground/50 hover:bg-accent/30 focus:bg-accent/20 rounded px-2 py-0.5 -mx-2 transition-colors"
           />
         </div>
 
         {/* Band selector — matches editor style */}
-        <div className="mt-1 mb-4 max-w-[240px]">
+        <div className="mt-1 mb-3 sm:mb-4 max-w-[240px]">
           <Select
             value={bandId || "none"}
             onValueChange={(v) => setBandId(v === "none" ? "" : v)}
@@ -217,7 +225,7 @@ export function QuickCreatePopover({
         </div>
 
         {/* Metadata rows — same MetadataRow pattern as gig editor */}
-        <div className="space-y-2.5">
+        <div className="space-y-2 sm:space-y-2.5">
           {/* Date */}
           <div className="flex items-center gap-3">
             <span className="w-20 shrink-0 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -288,7 +296,7 @@ export function QuickCreatePopover({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 mt-4">
+        <div className="flex items-center justify-end gap-2 mt-3 sm:mt-4">
           <Button
             variant="ghost"
             size="sm"

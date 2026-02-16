@@ -68,24 +68,36 @@ export function CalendarView() {
     filterGigs,
   } = useCalendarFilters();
 
+  // Swipe animation direction
+  const [swipeDir, setSwipeDir] = useState<"left" | "right" | null>(null);
+
+  // Shared prev/next navigation with animation
+  const navigateNext = useCallback(() => {
+    setSwipeDir("left");
+    setCurrentDate((d) =>
+      viewType === "3day"
+        ? addDays(d, 3)
+        : viewType === "week"
+          ? addWeeks(d, 1)
+          : addMonths(d, 1)
+    );
+  }, [viewType]);
+
+  const navigatePrev = useCallback(() => {
+    setSwipeDir("right");
+    setCurrentDate((d) =>
+      viewType === "3day"
+        ? subDays(d, 3)
+        : viewType === "week"
+          ? subWeeks(d, 1)
+          : subMonths(d, 1)
+    );
+  }, [viewType]);
+
   // Swipe navigation (mobile)
   const swipeHandlers = useSwipe({
-    onSwipeLeft: () =>
-      setCurrentDate((d) =>
-        viewType === "3day"
-          ? addDays(d, 3)
-          : viewType === "week"
-            ? addWeeks(d, 1)
-            : addMonths(d, 1)
-      ),
-    onSwipeRight: () =>
-      setCurrentDate((d) =>
-        viewType === "3day"
-          ? subDays(d, 3)
-          : viewType === "week"
-            ? subWeeks(d, 1)
-            : subMonths(d, 1)
-      ),
+    onSwipeLeft: navigateNext,
+    onSwipeRight: navigatePrev,
   });
 
   // Filtered gigs
@@ -221,10 +233,24 @@ export function CalendarView() {
             onToggleSidebar={() => setSidebarOpen(true)}
             showSidebarToggle={isMobile}
             onImport={() => setImportSheetOpen(true)}
+            onPrev={navigatePrev}
+            onNext={navigateNext}
           />
 
           <div
             className="flex-1 min-h-0"
+            style={
+              swipeDir
+                ? {
+                    animation: `${
+                      swipeDir === "left"
+                        ? "swipe-in-from-right"
+                        : "swipe-in-from-left"
+                    } 250ms ease-out`,
+                  }
+                : undefined
+            }
+            onAnimationEnd={() => setSwipeDir(null)}
             onTouchStart={swipeHandlers.onTouchStart}
             onTouchEnd={swipeHandlers.onTouchEnd}
           >

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { CalendarSidebar } from "./calendar-sidebar";
 import type { CalendarBand } from "@/hooks/use-calendar-bands";
-import type { CalendarViewType } from "./calendar-toolbar";
+import { ViewToggle, type CalendarViewType } from "./calendar-toolbar";
 import type { DashboardGig } from "@/lib/types/shared";
 
 interface CalendarSidebarSheetProps {
@@ -50,32 +50,10 @@ export function CalendarSidebarSheet({
 
         {/* View toggle + Import */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center rounded-lg border bg-muted p-0.5">
-            <Button
-              variant={viewType === "3day" ? "default" : "ghost"}
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => { onViewChange("3day"); onOpenChange(false); }}
-            >
-              3 Day
-            </Button>
-            <Button
-              variant={viewType === "week" ? "default" : "ghost"}
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => { onViewChange("week"); onOpenChange(false); }}
-            >
-              Week
-            </Button>
-            <Button
-              variant={viewType === "month" ? "default" : "ghost"}
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => { onViewChange("month"); onOpenChange(false); }}
-            >
-              Month
-            </Button>
-          </div>
+          <ViewToggle
+            viewType={viewType}
+            onViewChange={(v) => { onViewChange(v); onOpenChange(false); }}
+          />
           {onImport && (
             <Button
               variant="outline"

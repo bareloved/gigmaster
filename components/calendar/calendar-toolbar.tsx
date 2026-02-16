@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Download, Menu } from "lucide-react";
 import { format, addWeeks, subWeeks, addMonths, subMonths, addDays, subDays } from "date-fns";
@@ -14,6 +15,8 @@ interface CalendarToolbarProps {
   onToggleSidebar?: () => void;
   showSidebarToggle?: boolean;
   onImport?: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
 }
 
 export function CalendarToolbar({
@@ -24,29 +27,39 @@ export function CalendarToolbar({
   onToggleSidebar,
   showSidebarToggle,
   onImport,
+  onPrev,
+  onNext,
 }: CalendarToolbarProps) {
   function goToday() {
     onDateChange(new Date());
   }
 
   function goPrev() {
-    onDateChange(
-      viewType === "3day"
-        ? subDays(currentDate, 3)
-        : viewType === "week"
-          ? subWeeks(currentDate, 1)
-          : subMonths(currentDate, 1)
-    );
+    if (onPrev) {
+      onPrev();
+    } else {
+      onDateChange(
+        viewType === "3day"
+          ? subDays(currentDate, 3)
+          : viewType === "week"
+            ? subWeeks(currentDate, 1)
+            : subMonths(currentDate, 1)
+      );
+    }
   }
 
   function goNext() {
-    onDateChange(
-      viewType === "3day"
-        ? addDays(currentDate, 3)
-        : viewType === "week"
-          ? addWeeks(currentDate, 1)
-          : addMonths(currentDate, 1)
-    );
+    if (onNext) {
+      onNext();
+    } else {
+      onDateChange(
+        viewType === "3day"
+          ? addDays(currentDate, 3)
+          : viewType === "week"
+            ? addWeeks(currentDate, 1)
+            : addMonths(currentDate, 1)
+      );
+    }
   }
 
   const title =
@@ -125,37 +138,76 @@ export function CalendarToolbar({
             <span className="hidden lg:inline text-xs">Import</span>
           </Button>
         )}
-        <div className="flex items-center rounded-lg border bg-muted p-0.5">
-          <Button
-            variant={viewType === "3day" ? "default" : "ghost"}
-            size="sm"
-            className="h-7 text-xs px-2 lg:px-3"
-            onClick={() => onViewChange("3day")}
-          >
-            <span className="lg:hidden">3D</span>
-            <span className="hidden lg:inline">3 Day</span>
-          </Button>
-          <Button
-            variant={viewType === "week" ? "default" : "ghost"}
-            size="sm"
-            className="h-7 text-xs px-2 lg:px-3"
-            onClick={() => onViewChange("week")}
-          >
-            <span className="lg:hidden">W</span>
-            <span className="hidden lg:inline">Week</span>
-          </Button>
-          <Button
-            variant={viewType === "month" ? "default" : "ghost"}
-            size="sm"
-            className="h-7 text-xs px-2 lg:px-3"
-            onClick={() => onViewChange("month")}
-          >
-            <span className="lg:hidden">M</span>
-            <span className="hidden lg:inline">Month</span>
-          </Button>
-        </div>
+        <ViewToggle viewType={viewType} onViewChange={onViewChange} />
       </div>
     </div>
     </>
+  );
+}
+
+/* ── Animated view toggle with sliding pill ── */
+
+const VIEW_OPTIONS: { value: CalendarViewType; label: string; shortLabel: string }[] = [
+  { value: "3day", label: "3 Day", shortLabel: "3D" },
+  { value: "week", label: "Week", shortLabel: "W" },
+  { value: "month", label: "Month", shortLabel: "M" },
+];
+
+export function ViewToggle({
+  viewType,
+  onViewChange,
+}: {
+  viewType: CalendarViewType;
+  onViewChange: (v: CalendarViewType) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const btnRefs = useRef<Map<CalendarViewType, HTMLButtonElement>>(new Map());
+  const [pill, setPill] = useState<{ left: number; width: number } | null>(null);
+
+  // Measure active button and position the pill
+  useEffect(() => {
+    const btn = btnRefs.current.get(viewType);
+    const container = containerRef.current;
+    if (!btn || !container) return;
+
+    const cRect = container.getBoundingClientRect();
+    const bRect = btn.getBoundingClientRect();
+    setPill({
+      left: bRect.left - cRect.left,
+      width: bRect.width,
+    });
+  }, [viewType]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative flex items-center rounded-lg border bg-muted p-0.5"
+    >
+      {/* Sliding pill */}
+      {pill && (
+        <div
+          className="absolute top-0.5 bottom-0.5 rounded-md bg-primary shadow-sm transition-all duration-200 ease-out"
+          style={{ left: pill.left, width: pill.width }}
+        />
+      )}
+
+      {VIEW_OPTIONS.map((opt) => (
+        <button
+          key={opt.value}
+          ref={(el) => {
+            if (el) btnRefs.current.set(opt.value, el);
+          }}
+          onClick={() => onViewChange(opt.value)}
+          className={`relative z-10 h-7 text-xs px-2 lg:px-3 rounded-md font-medium transition-colors duration-200 ${
+            viewType === opt.value
+              ? "text-primary-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <span className="lg:hidden">{opt.shortLabel}</span>
+          <span className="hidden lg:inline">{opt.label}</span>
+        </button>
+      ))}
+    </div>
   );
 }
