@@ -16,7 +16,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Clock, Users, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed, Music2 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Clock, Users, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUser } from "@/lib/providers/user-provider";
@@ -87,18 +93,18 @@ const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, he
             </Badge>
           )}
           {gig.isManager ? (
-            <Badge variant="outline" className="gap-0.5 text-[10px] px-1.5 py-0 border font-semibold bg-orange-50/90 border-orange-200 text-orange-700 dark:bg-orange-950/90 dark:border-orange-800 dark:text-orange-300 backdrop-blur-sm">
-              <Crown className="h-2.5 w-2.5" />
+            <Badge variant="outline" className="gap-1 text-xs px-2 py-0.5 border font-semibold bg-orange-50/90 border-orange-200 text-orange-700 dark:bg-orange-950/90 dark:border-orange-800 dark:text-orange-300 backdrop-blur-sm">
+              <Crown className="h-3 w-3" />
               You
             </Badge>
           ) : gig.hostName && !gig.isExternal ? (
-            <Badge variant="outline" className="gap-0.5 text-[10px] px-1.5 py-0 border font-semibold bg-blue-50/90 border-blue-200 text-blue-700 dark:bg-blue-950/90 dark:border-blue-800 dark:text-blue-300 backdrop-blur-sm">
-              <Mail className="h-2.5 w-2.5" />
+            <Badge variant="outline" className="gap-1 text-xs px-2 py-0.5 border font-semibold bg-blue-50/90 border-blue-200 text-blue-700 dark:bg-blue-950/90 dark:border-blue-800 dark:text-blue-300 backdrop-blur-sm">
+              <Mail className="h-3 w-3" />
               {gig.hostName}
             </Badge>
           ) : null}
           {gig.status && (
-            <GigStatusBadge status={gig.status} className="text-[10px] px-1.5 py-0 border font-semibold" />
+            <GigStatusBadge status={gig.status} className="text-xs px-2 py-0.5 border font-semibold backdrop-blur-sm !bg-background/90" />
           )}
         </div>
       </div>
@@ -121,23 +127,34 @@ const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, he
             )}
           </div>
 
-          {/* Location row with accepted musicians count */}
-          <div className="flex items-center justify-between gap-2">
-            {gig.locationName ? (
-              <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-muted-foreground flex-1 min-w-0">
-                <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
-                <span className="truncate">{gig.locationName}</span>
-              </div>
-            ) : (
-              <div className="flex-1" />
-            )}
-            {gig.roleStats && gig.roleStats.accepted > 0 && (
-              <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">
-                <Users className="h-3 w-3" />
-                <span>{gig.roleStats.accepted}</span>
-              </div>
-            )}
-          </div>
+          {/* Location row with accepted musicians count — role tooltip on desktop */}
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center justify-between gap-2">
+                  {gig.locationName ? (
+                    <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-muted-foreground flex-1 min-w-0">
+                      <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                      <span className="truncate">{gig.locationName}</span>
+                    </div>
+                  ) : (
+                    <div className="flex-1" />
+                  )}
+                  {gig.roleStats && gig.roleStats.accepted > 0 && (
+                    <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">
+                      <Users className="h-3 w-3" />
+                      <span>{gig.roleStats.accepted}</span>
+                    </div>
+                  )}
+                </div>
+              </TooltipTrigger>
+              {gig.isPlayer && gig.playerRoleName && (
+                <TooltipContent>
+                  <span className="capitalize">Your role: {gig.playerRoleName}</span>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
 
           {/* Invitation Summary (Host-only meta) - Compact on mobile */}
           {gig.isManager && gig.roleStats && gig.roleStats.total > 0 && (
@@ -149,36 +166,27 @@ const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, he
             </div>
           )}
 
-          {/* Participation Status (Musician-only) - Shortened on mobile */}
-          {gig.isPlayer && gig.invitationStatus && (
+          {/* Participation Status (Musician-only) - Only show for non-accepted statuses */}
+          {gig.isPlayer && gig.invitationStatus && gig.invitationStatus !== 'accepted' && (
             <div className="text-[10px] sm:text-xs text-muted-foreground">
-              {gig.invitationStatus === 'accepted' ? "You're in" :
-               gig.invitationStatus === 'invited' ? 'Respond' :
+              {gig.invitationStatus === 'invited' ? 'Respond' :
                gig.invitationStatus === 'declined' ? 'Declined' : gig.invitationStatus}
             </div>
           )}
 
-          {/* Player Badges - only render if there's content */}
-          {gig.isPlayer && (gig.playerRoleName || (gig.invitationStatus && gig.invitationStatus !== "accepted")) && (
+          {/* Invitation Status Badge - only for non-accepted statuses */}
+          {gig.isPlayer && gig.invitationStatus && gig.invitationStatus !== "accepted" && (
             <div className="flex flex-wrap gap-1 sm:gap-1.5">
-              {gig.playerRoleName && (
-                <Badge variant="outline" className="text-[10px] sm:text-xs capitalize h-5">
-                  {gig.playerRoleName}
-                </Badge>
-              )}
-
-              {gig.invitationStatus && gig.invitationStatus !== "accepted" && (
-                <Badge
-                  variant={
-                    gig.invitationStatus === "declined" || gig.invitationStatus === "needs_sub"
-                      ? "destructive"
-                      : "secondary"
-                  }
-                  className="text-[10px] sm:text-xs capitalize h-5"
-                >
-                  {gig.invitationStatus === "needs_sub" ? "Need Sub" : gig.invitationStatus}
-                </Badge>
-              )}
+              <Badge
+                variant={
+                  gig.invitationStatus === "declined" || gig.invitationStatus === "needs_sub"
+                    ? "destructive"
+                    : "secondary"
+                }
+                className="text-[10px] sm:text-xs capitalize h-5"
+              >
+                {gig.invitationStatus === "needs_sub" ? "Need Sub" : gig.invitationStatus}
+              </Badge>
             </div>
           )}
         </div>

@@ -15,7 +15,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Calendar, MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed, Music2 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Calendar, MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUser } from "@/lib/providers/user-provider";
@@ -101,65 +107,66 @@ const GigInnerContent = memo(function GigInnerContent({ gig, formattedDate }: { 
         </div>
       )}
 
-      {/* Participation Status (Musician-only) - Shortened on mobile */}
-      {gig.isPlayer && gig.invitationStatus && (
+      {/* Participation Status (Musician-only) - Only show for non-accepted statuses */}
+      {gig.isPlayer && gig.invitationStatus && gig.invitationStatus !== 'accepted' && (
         <div className="text-[10px] sm:text-xs text-muted-foreground">
           <span className="sm:hidden">
-            {gig.invitationStatus === 'accepted' ? "You're in" :
-             gig.invitationStatus === 'invited' ? 'Respond' :
+            {gig.invitationStatus === 'invited' ? 'Respond' :
              gig.invitationStatus === 'declined' ? 'Declined' : gig.invitationStatus}
           </span>
           <span className="hidden sm:inline">
             Your status: {
               gig.invitationStatus === 'pending' ? 'Awaiting your response' :
                 gig.invitationStatus === 'invited' ? 'Please respond' :
-                  gig.invitationStatus === 'accepted' ? "You're in" :
-                    gig.invitationStatus === 'declined' ? 'You declined' :
-                      gig.invitationStatus === 'tentative' ? 'Tentative' :
-                        gig.invitationStatus
+                  gig.invitationStatus === 'declined' ? 'You declined' :
+                    gig.invitationStatus === 'tentative' ? 'Tentative' :
+                      gig.invitationStatus
             }
           </span>
         </div>
       )}
 
-      {/* Role Chips & Metadata - Compact row on mobile */}
-      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
-        {/* Date */}
-        <div className="flex items-center gap-1 sm:gap-1.5 text-muted-foreground">
-          <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-          <span className="text-[10px] sm:text-sm">{formattedDate}</span>
-        </div>
+      {/* Metadata row - with role tooltip on desktop */}
+      <TooltipProvider delayDuration={300}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+              {/* Date */}
+              <div className="flex items-center gap-1 sm:gap-1.5 text-muted-foreground">
+                <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                <span className="text-[10px] sm:text-sm">{formattedDate}</span>
+              </div>
 
-        {/* Location */}
-        {gig.locationName && (
-          <div className="flex items-center gap-1 sm:gap-1.5 text-muted-foreground">
-            <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-            <span className="truncate max-w-[120px] sm:max-w-none text-[10px] sm:text-sm">{gig.locationName}</span>
-          </div>
-        )}
+              {/* Location */}
+              {gig.locationName && (
+                <div className="flex items-center gap-1 sm:gap-1.5 text-muted-foreground">
+                  <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                  <span className="truncate max-w-[120px] sm:max-w-none text-[10px] sm:text-sm">{gig.locationName}</span>
+                </div>
+              )}
 
-        {/* Player Role Badge */}
-        {gig.isPlayer && gig.playerRoleName && (
-          <Badge variant="outline" className="capitalize text-[10px] sm:text-xs h-5">
-            {gig.playerRoleName}
-          </Badge>
-        )}
-
-        {/* Invitation Status (if player and not accepted) */}
-        {gig.isPlayer && gig.invitationStatus && gig.invitationStatus !== "accepted" && (
-          <Badge
-            variant={
-              gig.invitationStatus === "declined" || gig.invitationStatus === "needs_sub"
-                ? "destructive"
-                : "secondary"
-            }
-            className="capitalize text-[10px] sm:text-xs h-5"
-          >
-            {gig.invitationStatus === "needs_sub" ? "Need Sub" : gig.invitationStatus}
-          </Badge>
-        )}
-
-      </div>
+              {/* Invitation Status (if player and not accepted) */}
+              {gig.isPlayer && gig.invitationStatus && gig.invitationStatus !== "accepted" && (
+                <Badge
+                  variant={
+                    gig.invitationStatus === "declined" || gig.invitationStatus === "needs_sub"
+                      ? "destructive"
+                      : "secondary"
+                  }
+                  className="capitalize text-[10px] sm:text-xs h-5"
+                >
+                  {gig.invitationStatus === "needs_sub" ? "Need Sub" : gig.invitationStatus}
+                </Badge>
+              )}
+            </div>
+          </TooltipTrigger>
+          {gig.isPlayer && gig.playerRoleName && (
+            <TooltipContent>
+              <span className="capitalize">Your role: {gig.playerRoleName}</span>
+            </TooltipContent>
+          )}
+        </Tooltip>
+      </TooltipProvider>
     </>
   );
 });
