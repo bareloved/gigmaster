@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { isSameDay, getDay } from "date-fns";
-import { cn } from "@/lib/utils";
 import type { DashboardGig } from "@/lib/types/shared";
 import { WeekViewHeader } from "./week-view-header";
 import { WeekViewAllDay } from "./week-view-all-day";
@@ -42,6 +41,10 @@ export function WeekViewTimeGrid({
   const scrollRef = useRef<HTMLDivElement>(null);
   const timeSlots = getTimeSlots();
 
+  // Always show all 7 days (swipe navigates full weeks)
+  const visibleDays = days;
+  const colCount = visibleDays.length;
+
   // Auto-scroll to 8 AM on mount
   useEffect(() => {
     if (scrollRef.current) {
@@ -57,7 +60,7 @@ export function WeekViewTimeGrid({
   }
 
   // Check if any day in the week is today (for the time indicator)
-  const todayIndex = days.findIndex((d) => isToday(d));
+  const todayIndex = visibleDays.findIndex((d) => isToday(d));
 
   return (
     <div
@@ -66,9 +69,9 @@ export function WeekViewTimeGrid({
     >
       {/* Sticky header — stays pinned inside the scroll container */}
       <div className="sticky top-0 z-20 bg-background">
-        <WeekViewHeader days={days} />
+        <WeekViewHeader days={visibleDays} />
         <WeekViewAllDay
-          days={days}
+          days={visibleDays}
           gigs={gigs}
           getGigColor={getGigColor}
           onEventClick={onEventClick}
@@ -78,7 +81,7 @@ export function WeekViewTimeGrid({
       {/* Time grid body */}
       <div className="flex" style={{ minHeight: GRID_HEIGHT }}>
         {/* Time gutter */}
-        <div className="w-14 flex-shrink-0 border-r border-border">
+        <div className="w-10 sm:w-14 flex-shrink-0 border-r border-border">
           {timeSlots.map((slot, i) => (
             <div
               key={i}
@@ -95,8 +98,8 @@ export function WeekViewTimeGrid({
         </div>
 
         {/* Day columns */}
-        <div className="flex-1 grid grid-cols-7 relative">
-          {days.map((day, i) => (
+        <div className="flex-1 grid relative" style={{ gridTemplateColumns: `repeat(${colCount}, 1fr)` }}>
+          {visibleDays.map((day, i) => (
             <div
               key={day.toISOString()}
               className="relative border-r border-border last:border-r-0"

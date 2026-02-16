@@ -64,6 +64,9 @@ export function WeekViewColumn({
     startY: number;
     currentY: number;
     isDragging: boolean;
+    /** Touch-only: track horizontal start to detect swipe gestures */
+    startX?: number;
+    currentX?: number;
   } | null>(null);
 
   // Split gigs into timed and all-day
@@ -219,19 +222,27 @@ export function WeekViewColumn({
       if (e.touches.length !== 1) return;
 
       const y = clientYToColumnY(e.touches[0].clientY);
-      dragRef.current = { startY: y, currentY: y, isDragging: false };
+      dragRef.current = {
+        startY: y,
+        currentY: y,
+        isDragging: false,
+        startX: e.touches[0].clientX,
+        currentX: e.touches[0].clientX,
+      };
       setDragState({ startY: y, currentY: y });
     },
     [clientYToColumnY]
   );
 
-  const handleTouchMove = useCallback(
-    (e: React.TouchEvent<HTMLDivElement>) => {
+  // Native touchmove handler (non-passive) so preventDefault() works
+  const touchMoveHandler = useCallback(
+    (e: TouchEvent) => {
       if (!dragRef.current) return;
       if (e.touches.length !== 1) return;
 
       const newY = clientYToColumnY(e.touches[0].clientY);
       dragRef.current.currentY = newY;
+      dragRef.current.currentX = e.touches[0].clientX;
 
       if (
         !dragRef.current.isDragging &&
@@ -241,7 +252,6 @@ export function WeekViewColumn({
       }
 
       if (dragRef.current.isDragging) {
-        // Prevent scroll while dragging
         e.preventDefault();
       }
 
@@ -253,10 +263,29 @@ export function WeekViewColumn({
     [clientYToColumnY]
   );
 
+  // Register native touchmove with { passive: false } so preventDefault works
+  useEffect(() => {
+    const el = columnRef.current;
+    if (!el) return;
+    el.addEventListener("touchmove", touchMoveHandler, { passive: false });
+    return () => el.removeEventListener("touchmove", touchMoveHandler);
+  }, [touchMoveHandler]);
+
   const handleTouchEnd = useCallback(
     (_e: React.TouchEvent<HTMLDivElement>) => {
       const drag = dragRef.current;
       if (!drag) return;
+
+      // If the touch moved mostly horizontally, it's a swipe — don't create an event
+      const dx = Math.abs((drag.currentX ?? drag.startX ?? 0) - (drag.startX ?? 0));
+      const dy = Math.abs(drag.currentY - drag.startY);
+      const isHorizontalSwipe = dx > 30 && dx > dy;
+
+      if (isHorizontalSwipe) {
+        dragRef.current = null;
+        setDragState(null);
+        return;
+      }
 
       if (!drag.isDragging) {
         // Treat as a tap
@@ -362,7 +391,6 @@ export function WeekViewColumn({
       style={{ height: GRID_HEIGHT }}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       {/* Half-hour grid lines */}

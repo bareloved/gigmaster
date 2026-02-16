@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { addWeeks, subWeeks, addMonths, subMonths, addDays, subDays } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarToolbar, type CalendarViewType } from "./calendar-toolbar";
+import { useSwipe } from "@/hooks/use-swipe";
 import { CalendarSidebar } from "./calendar-sidebar";
 import { CalendarSidebarSheet } from "./calendar-sidebar-sheet";
 import { WeekView } from "./week-view";
@@ -28,7 +30,9 @@ export function CalendarView() {
 
   // View state
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewType, setViewType] = useState<CalendarViewType>("week");
+  const [viewType, setViewType] = useState<CalendarViewType>(() =>
+    typeof window !== "undefined" && window.innerWidth < 768 ? "3day" : "week"
+  );
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [importSheetOpen, setImportSheetOpen] = useState(false);
 
@@ -63,6 +67,26 @@ export function CalendarView() {
     isPersonalHidden,
     filterGigs,
   } = useCalendarFilters();
+
+  // Swipe navigation (mobile)
+  const swipeHandlers = useSwipe({
+    onSwipeLeft: () =>
+      setCurrentDate((d) =>
+        viewType === "3day"
+          ? addDays(d, 3)
+          : viewType === "week"
+            ? addWeeks(d, 1)
+            : addMonths(d, 1)
+      ),
+    onSwipeRight: () =>
+      setCurrentDate((d) =>
+        viewType === "3day"
+          ? subDays(d, 3)
+          : viewType === "week"
+            ? subWeeks(d, 1)
+            : subMonths(d, 1)
+      ),
+  });
 
   // Filtered gigs
   const filteredGigs = useMemo(
@@ -179,6 +203,9 @@ export function CalendarView() {
           <CalendarSidebarSheet
             open={sidebarOpen}
             onOpenChange={setSidebarOpen}
+            viewType={viewType}
+            onViewChange={setViewType}
+            onImport={() => setImportSheetOpen(true)}
             {...sidebarProps}
           />
         )}
@@ -196,10 +223,15 @@ export function CalendarView() {
             onImport={() => setImportSheetOpen(true)}
           />
 
-          <div className="flex-1 min-h-0">
-            {viewType === "week" ? (
+          <div
+            className="flex-1 min-h-0"
+            onTouchStart={swipeHandlers.onTouchStart}
+            onTouchEnd={swipeHandlers.onTouchEnd}
+          >
+            {viewType === "week" || viewType === "3day" ? (
             <WeekView
               currentDate={currentDate}
+              viewType={viewType}
               gigs={filteredGigs}
               getGigColor={getGigColor}
               selectedGigId={selectedGig?.gig.gigId ?? null}

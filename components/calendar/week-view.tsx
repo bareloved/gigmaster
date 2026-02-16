@@ -2,12 +2,14 @@
 
 import { useMemo } from "react";
 import type { DashboardGig } from "@/lib/types/shared";
-import { getWeekDays } from "@/lib/utils/calendar-helpers";
+import { getWeekDays, getThreeDays } from "@/lib/utils/calendar-helpers";
 import { WeekViewTimeGrid } from "./week-view-time-grid";
 import type { CalendarPlaceholder } from "./calendar-view";
+import type { CalendarViewType } from "./calendar-toolbar";
 
 interface WeekViewProps {
   currentDate: Date;
+  viewType?: CalendarViewType;
   gigs: DashboardGig[];
   getGigColor: (bandId: string | null | undefined) => string;
   selectedGigId: string | null;
@@ -20,6 +22,7 @@ interface WeekViewProps {
 
 export function WeekView({
   currentDate,
+  viewType = "week",
   gigs,
   getGigColor,
   selectedGigId,
@@ -29,7 +32,10 @@ export function WeekView({
   placeholder,
   onPlaceholderRect,
 }: WeekViewProps) {
-  const days = useMemo(() => getWeekDays(currentDate), [currentDate]);
+  const days = useMemo(
+    () => viewType === "3day" ? getThreeDays(currentDate) : getWeekDays(currentDate),
+    [currentDate, viewType]
+  );
 
   return (
     <div className="h-full min-h-0 border border-border rounded-lg overflow-hidden bg-background">
