@@ -91,19 +91,33 @@ export async function fetchUserCalendarList(userId: string): Promise<{
 
   if (expiresAt <= new Date()) {
     const googleClient = new GoogleCalendarClient();
-    const newTokens = await googleClient.refreshAccessToken(refreshToken);
+    try {
+      const newTokens = await googleClient.refreshAccessToken(refreshToken);
 
-    await supabase
-      .from("calendar_connections")
-      .update({
-        access_token: newTokens.access_token,
-        token_expires_at: new Date(newTokens.expiry_date).toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", userId)
-      .eq("provider", "google");
+      await supabase
+        .from("calendar_connections")
+        .update({
+          access_token: newTokens.access_token,
+          token_expires_at: new Date(newTokens.expiry_date).toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", userId)
+        .eq("provider", "google");
 
-    accessToken = newTokens.access_token;
+      accessToken = newTokens.access_token;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "";
+      // Token was revoked or expired permanently — clean up the dead connection
+      if (msg.includes("invalid_grant")) {
+        await supabase
+          .from("calendar_connections")
+          .delete()
+          .eq("user_id", userId)
+          .eq("provider", "google");
+        throw new Error("token_revoked");
+      }
+      throw err;
+    }
   }
 
   const googleClient = new GoogleCalendarClient();

@@ -13,19 +13,19 @@ export default function AppLayout({
 }) {
   return (
     <AuthLoadingGate>
-      <div className="flex min-h-screen flex-col bg-background">
+      <div className="flex min-h-screen flex-col bg-background overflow-x-hidden">
         {/* TopNav is a Client Component for interactivity */}
         <TopNav />
 
         {/* Main Content Area */}
         {/* Responsive padding: tighter on mobile, normal on desktop */}
         {/* pb-20 on mobile for bottom nav clearance */}
-        <main className="flex-1 px-4 py-4 pb-20 sm:px-5 sm:py-5 lg:container lg:mx-auto lg:px-6 lg:py-6 lg:pb-6 lg:max-w-7xl">
+        <main className="flex-1 px-4 py-4 pb-6 sm:px-5 sm:py-5 lg:container lg:mx-auto lg:px-6 lg:py-6 lg:pb-6 lg:max-w-7xl">
           {children}
         </main>
 
-        {/* Footer - hidden on mobile where bottom nav is shown */}
-        <div className="hidden lg:block mt-12">
+        {/* Footer */}
+        <div className="sm:mt-12">
           <AppFooter />
         </div>
 

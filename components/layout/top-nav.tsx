@@ -39,7 +39,7 @@ export function TopNav() {
             width={170}
             height={134}
             className={cn(
-              "object-contain w-[75px] sm:w-[92px] lg:w-[112px] h-auto mt-8 transition-opacity duration-300",
+              "object-contain w-[75px] sm:w-[92px] lg:w-[112px] h-auto mt-4 sm:mt-8 transition-opacity duration-300",
               scrolled ? "opacity-0 pointer-events-none" : "opacity-100"
             )}
             priority

@@ -19,7 +19,16 @@ import {
   Trash2,
   Download,
   Mail,
+  MoreVertical,
+  Check,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import Link from "next/link";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
@@ -343,18 +352,102 @@ export default function AllGigsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-5 lg:space-y-6">
-      {/* Header + Toggle */}
-      <div className="flex items-center gap-3 sm:gap-4">
+      {/* ===== MOBILE Header (below sm) ===== */}
+      <div className="sm:hidden relative flex items-center justify-between">
+        <h2 className="text-xl font-bold tracking-tight whitespace-nowrap">All Gigs</h2>
+        <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 border rounded-md p-0.5">
+          <Button
+            variant={timeFilter === "previous" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setTimeFilter("previous")}
+            className="gap-1.5 h-7 px-1.5 text-xs text-muted-foreground"
+          >
+            <History className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant={timeFilter === "upcoming" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => setTimeFilter("upcoming")}
+            className="gap-1.5 h-7 px-1.5 text-xs"
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+        <Button onClick={handleCreateGig} className="gap-2 h-9 text-sm shrink-0">
+          <Plus className="h-4 w-4" />
+          <span className="hidden xs:inline">Create Gig</span>
+          <span className="xs:hidden sr-only">New gig</span>
+        </Button>
+      </div>
+      {/* Mobile Search + More menu */}
+      <div className="sm:hidden flex items-center gap-2">
+        <div className="relative flex-1 min-w-0">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 pr-8 h-9 text-sm rounded-full border-border bg-card"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-9 w-9 p-0 shrink-0">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => { setViewMode("list"); localStorage.setItem("gigs-view-mode", "list"); }}>
+              <List className="h-4 w-4 mr-2" />
+              List view
+              {viewMode === "list" && <Check className="h-4 w-4 ml-auto" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setViewMode("grid"); localStorage.setItem("gigs-view-mode", "grid"); }}>
+              <Grid3x3 className="h-4 w-4 mr-2" />
+              Grid view
+              {viewMode === "grid" && <Check className="h-4 w-4 ml-auto" />}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setIsImportSheetOpen(true)}>
+              <Download className="h-4 w-4 mr-2" />
+              Import gigs
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/invitations">
+                <Mail className="h-4 w-4 mr-2" />
+                Invitations
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/gigs/trash">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Trash
+              </Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* ===== DESKTOP Header (sm and above) ===== */}
+      <div className="hidden sm:flex items-center gap-4">
         <div className="flex-1">
-          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">All Gigs</h2>
-          <p className="text-xs sm:text-sm text-muted-foreground">
+          <h2 className="text-2xl lg:text-3xl font-bold tracking-tight">All Gigs</h2>
+          <p className="text-sm text-muted-foreground">
             Manage all your gigs in one place
           </p>
         </div>
-        {/* Upcoming / Previous / Trash Toggle - centered */}
-        <div className="flex items-center gap-1 border rounded-md p-0.5 sm:p-1">
+        <div className="flex items-center gap-1 border rounded-md p-1">
           <Link href="/gigs/trash">
-            <Button variant="ghost" size="sm" className="h-7 sm:h-8 px-2 sm:px-2.5 text-muted-foreground">
+            <Button variant="ghost" size="sm" className="h-8 px-2.5 text-muted-foreground">
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
           </Link>
@@ -363,7 +456,7 @@ export default function AllGigsPage() {
             variant={timeFilter === "previous" ? "secondary" : "ghost"}
             size="sm"
             onClick={() => setTimeFilter("previous")}
-            className="gap-1.5 h-7 sm:h-8 px-2.5 sm:px-3 text-xs sm:text-sm text-muted-foreground"
+            className="gap-1.5 h-8 px-3 text-sm text-muted-foreground"
           >
             <History className="h-3.5 w-3.5" />
             Previous
@@ -372,7 +465,7 @@ export default function AllGigsPage() {
             variant={timeFilter === "upcoming" ? "secondary" : "ghost"}
             size="sm"
             onClick={() => setTimeFilter("upcoming")}
-            className="gap-1.5 h-7 sm:h-8 px-2.5 sm:px-3 text-xs sm:text-sm"
+            className="gap-1.5 h-8 px-3 text-sm"
           >
             <CalendarDays className="h-3.5 w-3.5" />
             Upcoming
@@ -383,51 +476,46 @@ export default function AllGigsPage() {
             variant="outline"
             size="sm"
             onClick={() => setIsImportSheetOpen(true)}
-            className="gap-1.5 h-9 sm:h-10 text-sm"
+            className="gap-1.5 h-10 text-sm"
           >
             <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Import</span>
+            Import
           </Button>
-          <Button onClick={handleCreateGig} className="gap-2 h-9 sm:h-10 text-sm">
+          <Button onClick={handleCreateGig} className="gap-2 h-10 text-sm">
             <Plus className="h-4 w-4" />
-            <span className="hidden xs:inline">Create Gig</span>
-            <span className="xs:hidden">New</span>
+            Create Gig
           </Button>
         </div>
       </div>
-
-      {/* View Toggle + Search */}
-      <div className="flex items-center justify-between">
-        {/* View Mode Toggle */}
-        <div className="flex items-center gap-1 border rounded-md p-0.5 sm:p-1">
-        <Button
-          variant={viewMode === "list" ? "secondary" : "ghost"}
-          size="sm"
-          onClick={() => { setViewMode("list"); localStorage.setItem("gigs-view-mode", "list"); }}
-          className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-        >
-          <List className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={viewMode === "grid" ? "secondary" : "ghost"}
-          size="sm"
-          onClick={() => { setViewMode("grid"); localStorage.setItem("gigs-view-mode", "grid"); }}
-          className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-        >
-          <Grid3x3 className="h-4 w-4" />
-        </Button>
+      {/* Desktop View Toggle + Search + Invitations */}
+      <div className="hidden sm:flex items-center justify-between">
+        <div className="flex items-center gap-1 border rounded-md p-1">
+          <Button
+            variant={viewMode === "list" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => { setViewMode("list"); localStorage.setItem("gigs-view-mode", "list"); }}
+            className="h-8 w-8 p-0"
+          >
+            <List className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === "grid" ? "secondary" : "ghost"}
+            size="sm"
+            onClick={() => { setViewMode("grid"); localStorage.setItem("gigs-view-mode", "grid"); }}
+            className="h-8 w-8 p-0"
+          >
+            <Grid3x3 className="h-4 w-4" />
+          </Button>
         </div>
-
-        {/* Search + Invitations */}
         <div className="flex items-center gap-2">
-          <div className="relative w-48 sm:w-56">
+          <div className="relative w-56">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-8 h-9 sm:h-10 text-sm rounded-full border-border bg-card"
+              className="pl-9 pr-8 h-10 text-sm rounded-full border-border bg-card"
             />
             {searchQuery && (
               <button
@@ -439,9 +527,9 @@ export default function AllGigsPage() {
             )}
           </div>
           <Link href="/invitations">
-            <Button variant="outline" size="sm" className="gap-1.5 h-9 sm:h-10 text-sm">
+            <Button variant="outline" size="sm" className="gap-1.5 h-10 text-sm">
               <Mail className="h-4 w-4" />
-              <span className="hidden sm:inline">Invitations</span>
+              Invitations
             </Button>
           </Link>
         </div>

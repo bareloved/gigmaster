@@ -155,7 +155,7 @@ export function NotificationsDropdown() {
           )}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-96 p-0">
+      <DropdownMenuContent align="end" className="w-96 max-w-[calc(100vw-2rem)] p-0">
         {/* Header */}
         <div className="flex items-center justify-between px-4 pt-4 pb-2">
           <h3 className="text-lg font-bold">Notifications</h3>

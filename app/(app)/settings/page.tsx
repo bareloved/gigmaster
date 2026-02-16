@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useUser } from "@/lib/providers/user-provider";
+import { createClient } from "@/lib/supabase/client";
 import { ProfileTab } from "@/components/settings/profile-tab";
 import { GeneralTab } from "@/components/settings/general-tab";
 import { CalendarTab } from "@/components/settings/calendar-tab";
 import { AccountTab } from "@/components/settings/account-tab";
+import { MobileSettingsList } from "@/components/settings/mobile-settings-list";
+import { MobileSettingsDetail } from "@/components/settings/mobile-settings-detail";
 import { Button } from "@/components/ui/button";
 import { UserRound, Globe, CalendarDays, Shield, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
 
 const NAV_ITEMS = [
   { id: "profile", label: "Profile", icon: UserRound },
@@ -30,16 +34,53 @@ const TAB_CONTENT: Record<TabId, React.FC> = {
   account: AccountTab,
 };
 
+type MobileTabId = "profile" | "calendar" | "account";
+
 export default function SettingsPage() {
   useDocumentTitle("Settings");
   const searchParams = useSearchParams();
   const router = useRouter();
+  const isMobile = useIsMobile();
+  const { user } = useUser();
+
   const tabParam = searchParams.get("tab");
   const initialTab = VALID_TABS.includes(tabParam as TabId)
     ? (tabParam as TabId)
     : "profile";
 
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
+  // Mobile: controls whether we show the list or the detail view
+  const [mobileShowList, setMobileShowList] = useState(!tabParam);
+  const [calendarConnected, setCalendarConnected] = useState(false);
+
+  const handleMobileSelectTab = useCallback((tab: MobileTabId) => {
+    setActiveTab(tab);
+    setMobileShowList(false);
+  }, []);
+
+  const handleMobileBack = useCallback(() => {
+    setMobileShowList(true);
+  }, []);
+
+  // Check Google Calendar connection for mobile list status badge
+  useEffect(() => {
+    async function checkCalendar() {
+      if (!user) return;
+      try {
+        const supabase = createClient();
+        const { data } = await supabase
+          .from("calendar_connections")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("provider", "google")
+          .single();
+        setCalendarConnected(!!data);
+      } catch {
+        // No connection
+      }
+    }
+    checkCalendar();
+  }, [user]);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -48,6 +89,31 @@ export default function SettingsPage() {
     router.refresh();
   };
 
+  // ─── Mobile Layout ───
+  if (isMobile) {
+    if (mobileShowList) {
+      return (
+        <div className="py-4">
+          <h1 className="text-2xl font-bold px-4 mb-4">Settings</h1>
+          <MobileSettingsList
+            onSelectTab={handleMobileSelectTab}
+            calendarConnected={calendarConnected}
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="py-4 px-2">
+        <MobileSettingsDetail
+          tab={activeTab as MobileTabId}
+          onBack={handleMobileBack}
+        />
+      </div>
+    );
+  }
+
+  // ─── Desktop Layout (unchanged) ───
   const ActiveContent = TAB_CONTENT[activeTab];
 
   return (
@@ -57,29 +123,6 @@ export default function SettingsPage() {
         <nav className="md:w-56 shrink-0">
           <h1 className="text-2xl font-bold mb-6 hidden md:block">Settings</h1>
 
-          {/* Mobile: horizontal scroll */}
-          <div className="flex md:hidden gap-1 overflow-x-auto pb-2 -mx-1 px-1">
-            {NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={cn(
-                    "flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors",
-                    activeTab === item.id
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Desktop: vertical list */}
           <ul className="hidden md:flex flex-col">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
@@ -102,7 +145,7 @@ export default function SettingsPage() {
             })}
           </ul>
 
-          {/* Sign out at bottom of sidebar */}
+          {/* Sign out */}
           <div className="hidden md:block mt-8">
             <Button
               variant="outline"

@@ -13,8 +13,8 @@ const productLinks = [
 const companyLinks = [
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
-  { label: "Privacy Policy", href: "/privacy" },
-  { label: "Terms of Service", href: "/terms" },
+  { label: "Privacy", href: "/privacy" },
+  { label: "Terms", href: "/terms" },
 ];
 
 export function AppFooter() {
@@ -22,8 +22,49 @@ export function AppFooter() {
 
   return (
     <footer className="border-t bg-background">
-      <div className="container mx-auto max-w-7xl px-6 pt-12 pb-8">
-        {/* 3-column grid */}
+      {/* ── Mobile: compact single-column ── */}
+      <div className="sm:hidden px-6 py-6 pb-24 space-y-4">
+        {/* Logo + socials */}
+        <div className="flex items-center justify-between">
+          <Image
+            src="/logos/textlogo.png"
+            alt="GigMaster"
+            width={110}
+            height={26}
+            className="dark:invert"
+          />
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <span aria-label="Instagram"><FaInstagram className="h-3.5 w-3.5" /></span>
+            <span aria-label="Facebook"><FaFacebookF className="h-3.5 w-3.5" /></span>
+            <span aria-label="X"><FaXTwitter className="h-3.5 w-3.5" /></span>
+            <span aria-label="YouTube"><FaYoutube className="h-3.5 w-3.5" /></span>
+          </div>
+        </div>
+
+        {/* Links */}
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          {productLinks.map((link) => (
+            <Link key={link.href} href={link.href} className="hover:text-primary transition-colors">
+              {link.label}
+            </Link>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          {companyLinks.map((link) => (
+            <Link key={link.href} href={link.href} className="hover:text-primary transition-colors">
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        {/* Copyright */}
+        <p className="text-xs text-muted-foreground">
+          &copy; {currentYear} GigMaster
+        </p>
+      </div>
+
+      {/* ── Desktop: full 3-column layout ── */}
+      <div className="hidden sm:block container mx-auto max-w-7xl px-6 pt-12 pb-8">
         <div className="grid grid-cols-3 gap-8">
           {/* Branding */}
           <div>
