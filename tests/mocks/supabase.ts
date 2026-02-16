@@ -23,6 +23,7 @@ export function createChainableMock(result: { data: unknown; error: unknown }) {
     lt: vi.fn().mockReturnThis(),
     like: vi.fn().mockReturnThis(),
     ilike: vi.fn().mockReturnThis(),
+    or: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
     range: vi.fn().mockReturnThis(),
