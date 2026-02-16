@@ -13,10 +13,10 @@ export function WeekViewHeader({ days }: WeekViewHeaderProps) {
   return (
     <div className="flex border-b border-border">
       {/* Spacer matching the time gutter width */}
-      <div className="w-14 flex-shrink-0 border-r border-border" />
+      <div className="w-10 sm:w-14 flex-shrink-0 border-r border-border" />
 
       {/* Day columns */}
-      <div className="flex-1 grid grid-cols-7">
+      <div className="flex-1 grid" style={{ gridTemplateColumns: `repeat(${days.length}, 1fr)` }}>
         {days.map((day) => {
           const dayIsToday = isSameDay(day, today);
           const dow = getDay(day);
@@ -42,10 +42,10 @@ export function WeekViewHeader({ days }: WeekViewHeaderProps) {
               </p>
               <p
                 className={cn(
-                  "text-2xl font-light mt-0.5",
+                  "text-lg sm:text-2xl font-light mt-0.5",
                   dayIsWeekend && !dayIsToday && "text-red-400 dark:text-red-500",
                   dayIsToday &&
-                    "bg-primary text-primary-foreground rounded-full w-9 h-9 flex items-center justify-center mx-auto text-base font-medium"
+                    "bg-primary text-primary-foreground rounded-full w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center mx-auto text-sm sm:text-base font-medium"
                 )}
               >
                 {format(day, "d")}

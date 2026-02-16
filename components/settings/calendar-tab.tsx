@@ -12,7 +12,6 @@ import {
   Link as LinkIcon,
   Unlink,
   CalendarDays,
-  ShieldCheck,
   ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -39,11 +38,11 @@ export function CalendarTab() {
     const error = searchParams.get("error");
 
     if (success === "connected") {
-      toast.success("Google Calendar connected (read-only)");
+      toast.success("Google Calendar connected!");
       setGoogleConnected(true);
       window.history.replaceState({}, "", "/settings?tab=calendar");
     } else if (success === "connected_write") {
-      toast.success("Google Calendar connected with full access!");
+      toast.success("Google Calendar connected!");
       setGoogleConnected(true);
       setHasWriteAccess(true);
       window.history.replaceState({}, "", "/settings?tab=calendar");
@@ -89,7 +88,8 @@ export function CalendarTab() {
   const handleConnectGoogle = async () => {
     try {
       setIsConnecting(true);
-      const response = await fetch("/api/calendar/connect");
+      // Always request full access (read + write) so users don't need two connections
+      const response = await fetch("/api/calendar/connect?writeAccess=true");
       const data = await response.json();
 
       if (data.url) {
@@ -305,9 +305,9 @@ export function CalendarTab() {
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
-                  <ShieldCheck className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                  <ArrowUpRight className="h-4 w-4 mt-0.5 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
-                    Read-only access — we never modify your calendar
+                    Send Google Calendar invites to your lineup
                   </p>
                 </div>
               </div>

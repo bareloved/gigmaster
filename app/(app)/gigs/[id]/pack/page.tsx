@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDocumentTitle } from "@/hooks/use-document-title";
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'next/navigation';
-import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, ArrowLeft, Edit, Share2, RefreshCw, ExternalLink, CalendarSync, Check } from 'lucide-react';
+import { GigPackSkeleton } from '@/components/gigpack/gigpack-skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { getGigPackFull } from '@/lib/api/gig-pack';
@@ -219,21 +219,7 @@ export default function GigPackPage() {
   }
 
   if (isLoading) {
-    return (
-      <div className="mx-auto max-w-6xl space-y-4 p-4">
-        <Skeleton className="h-[400px] w-full rounded-lg" />
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <Skeleton className="h-48 w-full" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-          <div className="space-y-6">
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-64 w-full" />
-          </div>
-        </div>
-      </div>
-    );
+    return <GigPackSkeleton />;
   }
 
   if (error || !gigPack) {

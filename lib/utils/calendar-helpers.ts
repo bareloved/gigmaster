@@ -10,6 +10,7 @@ import {
   isSameDay,
   format,
   addMinutes,
+  addDays,
 } from "date-fns";
 
 // ============================================================================
@@ -135,6 +136,13 @@ export function getWeekDays(date: Date): Date[] {
 }
 
 /**
+ * Get 3 consecutive days starting from `date`.
+ */
+export function getThreeDays(date: Date): Date[] {
+  return eachDayOfInterval({ start: date, end: addDays(date, 2) });
+}
+
+/**
  * Get all dates in the month grid (includes leading/trailing days from adjacent months
  * to fill complete weeks). Returns 35 or 42 cells.
  */
@@ -179,12 +187,15 @@ export interface LayoutSlot {
 
 /**
  * Given a list of events with start/end minutes, compute their column placement
- * so overlapping events share horizontal space. Simple greedy approach.
+ * so overlapping events share horizontal space. Events that don't overlap get
+ * full width; only events in the same overlap cluster share columns.
  */
 export function computeOverlapLayout(
   events: { startMinutes: number; endMinutes: number }[]
 ): LayoutSlot[] {
   if (events.length === 0) return [];
+
+  const result: LayoutSlot[] = new Array(events.length);
 
   // Sort by start time, then by longer duration first
   const indexed = events.map((e, i) => ({ ...e, index: i }));
@@ -193,32 +204,53 @@ export function computeOverlapLayout(
     return (b.endMinutes - b.startMinutes) - (a.endMinutes - a.startMinutes);
   });
 
-  // Greedy column assignment
-  const columns: number[] = new Array(events.length).fill(0);
-  const columnEnds: number[] = []; // End time of each column
+  // Group into overlap clusters — events connected through overlaps
+  const clusters: (typeof indexed)[] = [];
+  let currentCluster: typeof indexed = [];
+  let clusterEnd = -1;
 
   for (const event of indexed) {
-    // Find first column where the event fits
-    let placed = false;
-    for (let col = 0; col < columnEnds.length; col++) {
-      if (event.startMinutes >= columnEnds[col]) {
-        columns[event.index] = col;
-        columnEnds[col] = event.endMinutes;
-        placed = true;
-        break;
+    if (currentCluster.length === 0 || event.startMinutes < clusterEnd) {
+      // Overlaps with current cluster
+      currentCluster.push(event);
+      clusterEnd = Math.max(clusterEnd, event.endMinutes);
+    } else {
+      // No overlap — start a new cluster
+      clusters.push(currentCluster);
+      currentCluster = [event];
+      clusterEnd = event.endMinutes;
+    }
+  }
+  if (currentCluster.length > 0) clusters.push(currentCluster);
+
+  // For each cluster, do greedy column assignment
+  for (const cluster of clusters) {
+    const columnEnds: number[] = [];
+
+    for (const event of cluster) {
+      let placed = false;
+      for (let col = 0; col < columnEnds.length; col++) {
+        if (event.startMinutes >= columnEnds[col]) {
+          result[event.index] = { column: col, totalColumns: 0 };
+          columnEnds[col] = event.endMinutes;
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) {
+        result[event.index] = { column: columnEnds.length, totalColumns: 0 };
+        columnEnds.push(event.endMinutes);
       }
     }
-    if (!placed) {
-      columns[event.index] = columnEnds.length;
-      columnEnds.push(event.endMinutes);
+
+    // Set totalColumns for all events in this cluster
+    const total = columnEnds.length;
+    for (const event of cluster) {
+      result[event.index].totalColumns = total;
     }
   }
 
-  const totalColumns = columnEnds.length;
-  return events.map((_, i) => ({
-    column: columns[i],
-    totalColumns,
-  }));
+  return result;
 }
 
 /**

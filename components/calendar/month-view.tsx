@@ -1,11 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import type { DashboardGig } from "@/lib/types/shared";
 import { getMonthGridDates } from "@/lib/utils/calendar-helpers";
 import { MonthViewDayCell } from "./month-view-day-cell";
+import { MonthViewDaySheet } from "./month-view-day-sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAY_LABELS_FULL = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAY_LABELS_SHORT = ["S", "M", "T", "W", "T", "F", "S"];
 
 interface MonthViewProps {
   currentDate: Date;
@@ -22,21 +25,36 @@ export function MonthView({
   onEventClick,
   onDayClick,
 }: MonthViewProps) {
+  const isMobile = useIsMobile();
+  const [sheetDay, setSheetDay] = useState<Date | null>(null);
+
   const gridDates = useMemo(
     () => getMonthGridDates(currentDate),
     [currentDate]
+  );
+
+  const handleDayClick = useCallback(
+    (date: Date) => {
+      if (isMobile) {
+        setSheetDay(date);
+      } else {
+        onDayClick(date);
+      }
+    },
+    [isMobile, onDayClick]
   );
 
   return (
     <div className="h-full flex flex-col border border-border rounded-lg overflow-hidden bg-background">
       {/* Weekday header */}
       <div className="grid grid-cols-7 border-b border-border flex-shrink-0">
-        {WEEKDAY_LABELS.map((label) => (
+        {WEEKDAY_LABELS_FULL.map((label, i) => (
           <div
-            key={label}
-            className="py-2 text-center text-sm font-medium text-muted-foreground uppercase border-r border-border last:border-r-0"
+            key={label + i}
+            className="py-1.5 sm:py-2 text-center text-xs sm:text-sm font-medium text-muted-foreground uppercase border-r border-border last:border-r-0"
           >
-            {label}
+            <span className="sm:hidden">{WEEKDAY_LABELS_SHORT[i]}</span>
+            <span className="hidden sm:inline">{label}</span>
           </div>
         ))}
       </div>
@@ -54,10 +72,19 @@ export function MonthView({
             gigs={gigs}
             getGigColor={getGigColor}
             onEventClick={onEventClick}
-            onDayClick={onDayClick}
+            onDayClick={handleDayClick}
           />
         ))}
       </div>
+
+      {/* Mobile day detail sheet */}
+      <MonthViewDaySheet
+        day={sheetDay}
+        gigs={gigs}
+        getGigColor={getGigColor}
+        onEventClick={onEventClick}
+        onClose={() => setSheetDay(null)}
+      />
     </div>
   );
 }

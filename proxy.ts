@@ -53,7 +53,7 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith(route)
   )
 
-  // Define auth routes that should redirect to dashboard if already authenticated
+  // Define auth routes that should redirect to gigs if already authenticated
   const authRoutes = [
     '/auth/sign-in',
     '/auth/sign-up'
@@ -72,7 +72,7 @@ export async function proxy(request: NextRequest) {
 
   // Redirect authenticated users away from auth routes
   if (user && isAuthRoute) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    return NextResponse.redirect(new URL('/gigs', request.url))
   }
 
   // IMPORTANT: You *must* return the supabase response object as it is. If you're

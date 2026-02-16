@@ -135,13 +135,16 @@ describe("refreshExternalGig", () => {
     // Parse what times the mock parseGoogleDateTime would return
     const startParsed = new Date("2024-12-15T20:00:00+02:00").toTimeString().slice(0, 5);
     const endParsed = new Date("2024-12-15T23:00:00+02:00").toTimeString().slice(0, 5);
+    const dateParsed = new Date("2024-12-15T20:00:00+02:00").toISOString().split("T")[0];
 
     // Use matching gig data for this test
+    // call_time is also compared (against startParsed), so include it
     const matchingGig = {
       ...mockGig,
-      date: "2024-12-15",
+      date: dateParsed,
       start_time: startParsed,
       end_time: endParsed,
+      call_time: startParsed,
       notes: "Some notes",
       schedule: "18:00 Soundcheck",
     };

@@ -9,11 +9,9 @@ import { UserMenu } from "@/components/layout/user-menu";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { title: "Dashboard", href: "/dashboard", disabled: true },
   { title: "Gigs", href: "/gigs" },
   { title: "Calendar", href: "/calendar" },
   { title: "Bands", href: "/bands" },
-  { title: "Invitations", href: "/invitations" },
 ] as const;
 
 export function TopNav() {
@@ -41,7 +39,7 @@ export function TopNav() {
             width={170}
             height={134}
             className={cn(
-              "object-contain w-[75px] sm:w-[92px] lg:w-[112px] h-auto mt-8 transition-opacity duration-300",
+              "object-contain w-[75px] sm:w-[92px] lg:w-[112px] h-auto mt-4 sm:mt-8 transition-opacity duration-300",
               scrolled ? "opacity-0 pointer-events-none" : "opacity-100"
             )}
             priority
@@ -52,6 +50,7 @@ export function TopNav() {
             alt="GigMaster"
             width={400}
             height={120}
+            style={{ width: "auto", height: "auto" }}
             className={cn(
               "absolute left-0 top-1/2 -translate-y-1/2 object-contain w-[160px] sm:w-[190px] lg:w-[220px] h-auto transition-opacity duration-300",
               scrolled ? "opacity-100" : "opacity-0 pointer-events-none"

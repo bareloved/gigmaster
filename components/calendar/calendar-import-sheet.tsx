@@ -199,10 +199,12 @@ export function CalendarImportSheet({
         }
       } catch (err) {
         const msg = err instanceof Error ? err.message : "Failed to load calendars";
-        if (msg.includes("not connected") || msg.includes("expired")) {
+        if (msg.includes("not connected") || msg.includes("disconnected") || msg.includes("reconnect")) {
           setIsConnected(false);
+          toast.error("Google Calendar disconnected. Please reconnect.");
+        } else {
+          toast.error(msg);
         }
-        toast.error(msg);
       } finally {
         setIsLoadingCalendars(false);
       }

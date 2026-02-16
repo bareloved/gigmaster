@@ -25,9 +25,18 @@ export async function GET() {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Error fetching calendar list:", error);
     const message =
       error instanceof Error ? error.message : "Failed to fetch calendars";
+
+    // Token was revoked — connection already cleaned up, tell client to reconnect
+    if (message === "token_revoked") {
+      return NextResponse.json(
+        { error: "Calendar disconnected. Please reconnect your Google account." },
+        { status: 401 }
+      );
+    }
+
+    console.error("Error fetching calendar list:", error);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

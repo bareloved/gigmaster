@@ -21,7 +21,7 @@ type Mode = "idle" | "magic-link-sent" | "otp-sent" | "verifying";
 
 export function PasswordlessOptions({
   email,
-  redirectTo = "/dashboard",
+  redirectTo = "/gigs",
 }: PasswordlessOptionsProps) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("idle");

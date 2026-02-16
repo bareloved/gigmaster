@@ -31,10 +31,10 @@ export function WeekViewAllDay({
   return (
     <div className="flex border-b border-border min-h-[28px]">
       {/* Spacer matching the time gutter width */}
-      <div className="w-14 flex-shrink-0 border-r border-border" />
+      <div className="w-10 sm:w-14 flex-shrink-0 border-r border-border" />
 
       {/* Day columns */}
-      <div className="flex-1 grid grid-cols-7">
+      <div className="flex-1 grid" style={{ gridTemplateColumns: `repeat(${days.length}, 1fr)` }}>
         {days.map((day) => {
           const dayGigs = allDayGigs.filter((g) =>
             isSameDay(new Date(g.date + "T00:00:00"), day)

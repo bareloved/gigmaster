@@ -13,10 +13,11 @@ import {
   subDays,
 } from "date-fns";
 
-type CalendarViewType = "week" | "month";
+type CalendarViewType = "week" | "3day" | "month";
 
 /**
  * Fetch gigs for the calendar within a smart date range.
+ * 3-day view: currentDate +/- 7 days buffer
  * Week view: current week +/- 7 days buffer
  * Month view: current month +/- 7 days buffer
  */
@@ -24,6 +25,12 @@ export function useCalendarGigs(currentDate: Date, viewType: CalendarViewType) {
   const { user } = useUser();
 
   const { from, to } = useMemo(() => {
+    if (viewType === "3day") {
+      return {
+        from: subDays(currentDate, 7),
+        to: addDays(currentDate, 10),
+      };
+    }
     if (viewType === "week") {
       const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 });
       const weekEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
