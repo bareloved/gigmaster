@@ -10,10 +10,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Check, MessageCircle, Share, Mail, ExternalLink } from "lucide-react";
+import { Copy, Check, MessageCircle, Share, Mail, ExternalLink, ChevronRight } from "lucide-react";
 import { GigPackQr } from "@/components/gigpack/gigpack-qr";
 import { formatDate } from "@/lib/gigpack/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -105,91 +110,82 @@ export function GigPackShareDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn(
-        "max-w-2xl max-h-[90vh] overflow-y-auto",
+        "max-w-md max-h-[90vh] overflow-y-auto",
         isRtl && "[&>button]:right-auto [&>button]:left-4"
       )}>
         <DialogHeader className={cn(
           "flex flex-col space-y-1.5",
           isRtl ? "text-right" : "text-center sm:text-left"
         )}>
-          <DialogTitle className="text-2xl">{t("title")}</DialogTitle>
+          <DialogTitle className="text-lg">{t("title")}</DialogTitle>
           <DialogDescription className="text-base">
             {t("description")}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 mt-4">
-          {/* Quick Actions Section */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">
-              {t("quickActions")}
-            </Label>
-            <div className="grid grid-cols-2 gap-2">
-              {/* WhatsApp */}
-              <Button
-                variant="outline"
-                className="flex items-center justify-start gap-2 h-auto p-3"
-                onClick={() => {
-                  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message1)}`;
-                  window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-                }}
-              >
-                <MessageCircle className="h-4 w-4 flex-shrink-0" />
-                <span className="text-sm">{t("whatsapp")}</span>
-              </Button>
-
-              {/* Native Share (Web Share API) */}
-              <Button
-                variant="outline"
-                className="flex items-center justify-start gap-2 h-auto p-3"
-                onClick={async () => {
-                  if (navigator.share) {
-                    try {
-                      await navigator.share({
-                        title: gigPack.title,
-                        text: t("shareText", { title: gigPack.title }),
-                        url: publicUrl,
-                      });
-                    } catch {
-                      // User cancelled or error occurred
-                    }
-                  } else {
-                    // Fallback: copy link
-                    copyToClipboard(publicUrl, setCopiedLink, t("linkCopied"));
+        <div className="space-y-4 mt-4">
+          {/* Quick Actions */}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              aria-label={t("whatsapp")}
+              title={t("whatsapp")}
+              className="flex-1 h-10"
+              onClick={() => {
+                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message1)}`;
+                window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+              }}
+            >
+              <MessageCircle className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              aria-label={t("shareNative")}
+              title={t("shareNative")}
+              className="flex-1 h-10"
+              onClick={async () => {
+                if (navigator.share) {
+                  try {
+                    await navigator.share({
+                      title: gigPack.title,
+                      text: t("shareText", { title: gigPack.title }),
+                      url: publicUrl,
+                    });
+                  } catch {
+                    // User cancelled
                   }
-                }}
-              >
-                <Share className="h-4 w-4 flex-shrink-0" />
-                <span className="text-sm">{t("shareNative")}</span>
-              </Button>
-
-              {/* Email */}
-              <Button
-                variant="outline"
-                className="flex items-center justify-start gap-2 h-auto p-3"
-                onClick={() => {
-                  const subject = t("emailSubject", { title: gigPack.title });
-                  const body = encodeURIComponent(message2);
-                  const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${body}`;
-                  window.open(mailtoUrl, '_blank', 'noopener,noreferrer');
-                }}
-              >
-                <Mail className="h-4 w-4 flex-shrink-0" />
-                <span className="text-sm">{t("email")}</span>
-              </Button>
-
-              {/* Open Link */}
-              <Button
-                variant="outline"
-                className="flex items-center justify-start gap-2 h-auto p-3"
-                onClick={() => {
-                  window.open(publicUrl, '_blank', 'noopener,noreferrer');
-                }}
-              >
-                <ExternalLink className="h-4 w-4 flex-shrink-0" />
-                <span className="text-sm">{t("openLink")}</span>
-              </Button>
-            </div>
+                } else {
+                  copyToClipboard(publicUrl, setCopiedLink, t("linkCopied"));
+                }
+              }}
+            >
+              <Share className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              aria-label={t("email")}
+              title={t("email")}
+              className="flex-1 h-10"
+              onClick={() => {
+                const subject = t("emailSubject", { title: gigPack.title });
+                const body = encodeURIComponent(message2);
+                const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${body}`;
+                window.open(mailtoUrl, '_blank', 'noopener,noreferrer');
+              }}
+            >
+              <Mail className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              aria-label={t("openLink")}
+              title={t("openLink")}
+              className="flex-1 h-10"
+              onClick={() => {
+                window.open(publicUrl, '_blank', 'noopener,noreferrer');
+              }}
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Button>
           </div>
 
           {/* Public Link Section */}
@@ -221,89 +217,84 @@ export function GigPackShareDialog({
             </div>
           </div>
 
-          {/* QR Code Section */}
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">{t("qrCode")}</Label>
-            <p className="text-sm text-muted-foreground">{t("qrCodeHint")}</p>
-            <div className="flex justify-center">
-              <GigPackQr url={publicUrl} size={200} />
-            </div>
-          </div>
+          {/* QR Code & Messages (collapsible) */}
+          <Collapsible>
+            <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full py-1 [&[data-state=open]>svg]:rotate-90">
+              <ChevronRight className="h-4 w-4 transition-transform" />
+              {t("qrCode")} & {t("prewrittenMessages")}
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-3">
+              {/* QR Code */}
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">{t("qrCodeHint")}</p>
+                <div className="flex justify-center">
+                  <GigPackQr url={publicUrl} size={150} />
+                </div>
+              </div>
 
-          {/* Prewritten Messages Section */}
-          <div className="space-y-4">
-            <div>
-              <Label className="text-base font-semibold">
-                {t("prewrittenMessages")}
-              </Label>
-              <p className="text-sm text-muted-foreground mt-1">
-                {t("prewrittenMessagesHint")}
-              </p>
-            </div>
+              {/* Message 1 - Band Chat Style */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">
+                    {t("message1Label")}
+                  </Label>
+                  <Button
+                    onClick={() =>
+                      copyToClipboard(
+                        message1,
+                        setCopiedMessage1,
+                        t("messageCopied")
+                      )
+                    }
+                    variant="ghost"
+                    size="sm"
+                  >
+                    {copiedMessage1 ? (
+                      <Check className={cn("h-3.5 w-3.5", isRtl ? "ml-1.5" : "mr-1.5")} />
+                    ) : (
+                      <Copy className={cn("h-3.5 w-3.5", isRtl ? "ml-1.5" : "mr-1.5")} />
+                    )}
+                    {copiedMessage1 ? t("copiedButton") : t("copyMessage")}
+                  </Button>
+                </div>
+                <div className="bg-muted p-3 rounded-lg border text-sm whitespace-pre-wrap select-all">
+                  {message1}
+                </div>
+              </div>
 
-            {/* Message 1 - Band Chat Style */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">
-                  {t("message1Label")}
-                </Label>
-                <Button
-                  onClick={() =>
-                    copyToClipboard(
-                      message1,
-                      setCopiedMessage1,
-                      t("messageCopied")
-                    )
-                  }
-                  variant="ghost"
-                  size="sm"
-                >
-                  {copiedMessage1 ? (
-                    <Check className={cn("h-3.5 w-3.5", isRtl ? "ml-1.5" : "mr-1.5")} />
-                  ) : (
-                    <Copy className={cn("h-3.5 w-3.5", isRtl ? "ml-1.5" : "mr-1.5")} />
-                  )}
-                  {copiedMessage1 ? t("copiedButton") : t("copyMessage")}
-                </Button>
+              {/* Message 2 - Email Style */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">
+                    {t("message2Label")}
+                  </Label>
+                  <Button
+                    onClick={() =>
+                      copyToClipboard(
+                        message2,
+                        setCopiedMessage2,
+                        t("messageCopied")
+                      )
+                    }
+                    variant="ghost"
+                    size="sm"
+                  >
+                    {copiedMessage2 ? (
+                      <Check className={cn("h-3.5 w-3.5", isRtl ? "ml-1.5" : "mr-1.5")} />
+                    ) : (
+                      <Copy className={cn("h-3.5 w-3.5", isRtl ? "ml-1.5" : "mr-1.5")} />
+                    )}
+                    {copiedMessage2 ? t("copiedButton") : t("copyMessage")}
+                  </Button>
+                </div>
+                <div className="bg-muted p-3 rounded-lg border text-sm whitespace-pre-wrap select-all">
+                  {message2}
+                </div>
               </div>
-              <div className="bg-muted p-4 rounded-lg border text-sm whitespace-pre-wrap select-all">
-                {message1}
-              </div>
-            </div>
-
-            {/* Message 2 - Email Style */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">
-                  {t("message2Label")}
-                </Label>
-                <Button
-                  onClick={() =>
-                    copyToClipboard(
-                      message2,
-                      setCopiedMessage2,
-                      t("messageCopied")
-                    )
-                  }
-                  variant="ghost"
-                  size="sm"
-                >
-                  {copiedMessage2 ? (
-                    <Check className={cn("h-3.5 w-3.5", isRtl ? "ml-1.5" : "mr-1.5")} />
-                  ) : (
-                    <Copy className={cn("h-3.5 w-3.5", isRtl ? "ml-1.5" : "mr-1.5")} />
-                  )}
-                  {copiedMessage2 ? t("copiedButton") : t("copyMessage")}
-                </Button>
-              </div>
-              <div className="bg-muted p-4 rounded-lg border text-sm whitespace-pre-wrap select-all">
-                {message2}
-              </div>
-            </div>
-          </div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       </DialogContent>
     </Dialog>
   );
 }
-
