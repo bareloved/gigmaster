@@ -198,7 +198,7 @@ interface DashboardGigItemGridProps {
 export function DashboardGigItemGrid({
   gig,
   isPastGig = false,
-  returnUrl = "/dashboard",
+  returnUrl = "/gigs",
   onClick,
   index
 }: DashboardGigItemGridProps) {

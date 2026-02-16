@@ -18,7 +18,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Check, MessageCircle, Share, Mail, ExternalLink, ChevronRight } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Copy, Check, Share, Mail, ExternalLink, ChevronRight } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 import { GigPackQr } from "@/components/gigpack/gigpack-qr";
 import { formatDate } from "@/lib/gigpack/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -125,68 +132,89 @@ export function GigPackShareDialog({
 
         <div className="space-y-4 mt-4">
           {/* Quick Actions */}
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              aria-label={t("whatsapp")}
-              title={t("whatsapp")}
-              className="flex-1 h-10"
-              onClick={() => {
-                const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message1)}`;
-                window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-              }}
-            >
-              <MessageCircle className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              aria-label={t("shareNative")}
-              title={t("shareNative")}
-              className="flex-1 h-10"
-              onClick={async () => {
-                if (navigator.share) {
-                  try {
-                    await navigator.share({
-                      title: gigPack.title,
-                      text: t("shareText", { title: gigPack.title }),
-                      url: publicUrl,
-                    });
-                  } catch {
-                    // User cancelled
-                  }
-                } else {
-                  copyToClipboard(publicUrl, setCopiedLink, t("linkCopied"));
-                }
-              }}
-            >
-              <Share className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              aria-label={t("email")}
-              title={t("email")}
-              className="flex-1 h-10"
-              onClick={() => {
-                const subject = t("emailSubject", { title: gigPack.title });
-                const body = encodeURIComponent(message2);
-                const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${body}`;
-                window.open(mailtoUrl, '_blank', 'noopener,noreferrer');
-              }}
-            >
-              <Mail className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              aria-label={t("openLink")}
-              title={t("openLink")}
-              className="flex-1 h-10"
-              onClick={() => {
-                window.open(publicUrl, '_blank', 'noopener,noreferrer');
-              }}
-            >
-              <ExternalLink className="h-4 w-4" />
-            </Button>
-          </div>
+          <TooltipProvider delayDuration={400}>
+            <div className="flex gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    aria-label={t("whatsapp")}
+                    className="flex-1 h-10"
+                    onClick={() => {
+                      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message1)}`;
+                      window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                  >
+                    <FaWhatsapp className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{t("whatsapp")}</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    aria-label={t("shareNative")}
+                    className="flex-1 h-10"
+                    onClick={async () => {
+                      if (navigator.share) {
+                        try {
+                          await navigator.share({
+                            title: gigPack.title,
+                            text: t("shareText", { title: gigPack.title }),
+                            url: publicUrl,
+                          });
+                        } catch {
+                          // User cancelled
+                        }
+                      } else {
+                        copyToClipboard(publicUrl, setCopiedLink, t("linkCopied"));
+                      }
+                    }}
+                  >
+                    <Share className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{t("shareNative")}</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    aria-label={t("email")}
+                    className="flex-1 h-10"
+                    onClick={() => {
+                      const subject = t("emailSubject", { title: gigPack.title });
+                      const body = encodeURIComponent(message2);
+                      const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${body}`;
+                      window.open(mailtoUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                  >
+                    <Mail className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{t("email")}</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    aria-label={t("openLink")}
+                    className="flex-1 h-10"
+                    onClick={() => {
+                      window.open(publicUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{t("openLink")}</TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
 
           {/* Public Link Section */}
           <div className="space-y-3">

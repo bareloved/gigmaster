@@ -174,7 +174,7 @@ interface DashboardGigItemProps {
 export function DashboardGigItem({
   gig,
   isPastGig = false,
-  returnUrl = "/dashboard",
+  returnUrl = "/gigs",
   onClick
 }: DashboardGigItemProps) {
   const { user } = useUser();

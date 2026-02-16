@@ -757,7 +757,7 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
         </div>{/* end main+sidebar grid */}
 
         {/* Footer */}
-        <div className="mt-8 pb-8 text-center text-xs text-muted-foreground/60 space-y-1">
+        <div className="mt-2 pb-6 text-center text-xs text-muted-foreground/60 space-y-1">
           <p className="flex items-center justify-center gap-1.5">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500" />
             Live • Updated {new Date(gigPack.updated_at).toLocaleTimeString('en-US', {

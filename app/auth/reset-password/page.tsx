@@ -78,7 +78,7 @@ export default function ResetPasswordPage() {
     } else {
       setSuccess(true);
       setLoading(false);
-      // Redirect to dashboard after a short delay
+      // Redirect to gigs after a short delay
       setTimeout(() => {
         router.push("/gigs");
       }, 2000);
@@ -254,7 +254,7 @@ export default function ResetPasswordPage() {
                     Password updated!
                   </p>
                   <p className="text-sm text-green-400/80">
-                    Redirecting you to the dashboard...
+                    Redirecting you to your gigs...
                   </p>
                 </div>
               </div>
