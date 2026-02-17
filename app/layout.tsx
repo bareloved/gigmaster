@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { helveticaNow, notoSansHebrew } from "@/lib/fonts";
+import { helveticaNow, ploni } from "@/lib/fonts";
 import "./globals.css";
 import { QueryProvider } from "@/lib/providers/query-provider";
 import { ThemeProvider } from "@/lib/providers/theme-provider";
@@ -54,7 +54,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${helveticaNow.className} ${helveticaNow.variable} ${notoSansHebrew.variable}`}
+        className={`font-sans ${helveticaNow.variable} ${ploni.variable}`}
         suppressHydrationWarning
       >
         <ThemeProvider>

@@ -224,7 +224,7 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
                               title="Copy call time"
                             >
                               <span className="text-muted-foreground">{t("callLabel")}</span>{" "}
-                              <span dir="ltr" className="font-semibold">{gigPack.call_time}</span>
+                              <span dir="ltr" className="font-semibold">{gigPack.call_time?.slice(0, 5)}</span>
                             </button>
                           )}
                           {gigPack.call_time && gigPack.on_stage_time && (
@@ -237,7 +237,7 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
                               title="Copy stage time"
                             >
                               <span className="text-muted-foreground">{t("stageLabel")}</span>{" "}
-                              <span dir="ltr" className="font-semibold">{gigPack.on_stage_time}</span>
+                              <span dir="ltr" className="font-semibold">{gigPack.on_stage_time?.slice(0, 5)}</span>
                             </button>
                           )}
                         </div>
@@ -259,7 +259,7 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
                           <span className="font-medium">{gigPack.venue_name}</span>
                         )}
                         {gigPack.venue_address && (
-                          <p className="text-sm text-muted-foreground mt-0.5">{gigPack.venue_address}</p>
+                          <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1 sm:line-clamp-none">{gigPack.venue_address}</p>
                         )}
                       </div>
                       {gigPack.venue_maps_url && (
@@ -425,21 +425,21 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
                     </div>
 
                     {/* Mobile — compact avatar stack with "show all" popover */}
-                    <div className="lg:hidden mt-5 pt-5 border-t border-border/50">
+                    <div className="lg:hidden mt-3 pt-3 border-t border-border/50">
                       <Popover>
                         <PopoverTrigger asChild>
-                          <button className="flex items-center gap-3 w-full">
-                            <div className="flex -space-x-2.5">
+                          <button className="flex items-center gap-2.5 w-full">
+                            <div className="flex -space-x-2">
                               {visibleMembers.slice(0, 5).map((m, i) => (
-                                <Avatar key={i} className="h-9 w-9 border-2 border-card ring-1 ring-border/20">
+                                <Avatar key={i} className="h-7 w-7 border-2 border-card ring-1 ring-border/20">
                                   <AvatarImage src={m.avatarUrl || undefined} />
-                                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                                  <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
                                     {getInitials(m.name!)}
                                   </AvatarFallback>
                                 </Avatar>
                               ))}
                               {visibleMembers.length > 5 && (
-                                <div className="h-9 w-9 rounded-full border-2 border-card ring-1 ring-border/20 bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
+                                <div className="h-7 w-7 rounded-full border-2 border-card ring-1 ring-border/20 bg-muted flex items-center justify-center text-[10px] font-medium text-muted-foreground">
                                   +{visibleMembers.length - 5}
                                 </div>
                               )}

@@ -22,11 +22,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Clock, Users, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed } from "lucide-react";
+import { MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Clock, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUser } from "@/lib/providers/user-provider";
 import type { DashboardGig } from "@/lib/types/shared";
+import { StackedAvatars } from "@/components/shared/stacked-avatars";
 // PERFORMANCE: Use optimistic update hooks for instant UI feedback
 import {
   useAcceptInvitation,
@@ -65,7 +66,7 @@ const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, he
   return (
     <>
       {/* Hero Image - always show with fallback */}
-      <div className="relative w-full h-32 overflow-hidden">
+      <div className="relative w-full h-24 sm:h-32 overflow-hidden">
         <Image
           src={heroImage}
           alt={gig.gigTitle}
@@ -93,57 +94,58 @@ const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, he
             </Badge>
           )}
           {gig.isManager ? (
-            <Badge variant="outline" className="gap-1 text-xs px-2 py-0.5 border font-semibold bg-orange-50/90 border-orange-200 text-orange-700 dark:bg-orange-950/90 dark:border-orange-800 dark:text-orange-300 backdrop-blur-sm">
-              <Crown className="h-3 w-3" />
+            <Badge variant="outline" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0 sm:py-0.5 border font-semibold bg-orange-50/90 border-orange-200 text-orange-700 dark:bg-orange-950/90 dark:border-orange-800 dark:text-orange-300 backdrop-blur-sm">
+              <Crown className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
               You
             </Badge>
           ) : gig.hostName && !gig.isExternal ? (
-            <Badge variant="outline" className="gap-1 text-xs px-2 py-0.5 border font-semibold bg-blue-50/90 border-blue-200 text-blue-700 dark:bg-blue-950/90 dark:border-blue-800 dark:text-blue-300 backdrop-blur-sm">
-              <Mail className="h-3 w-3" />
+            <Badge variant="outline" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0 sm:py-0.5 border font-semibold bg-blue-50/90 border-blue-200 text-blue-700 dark:bg-blue-950/90 dark:border-blue-800 dark:text-blue-300 backdrop-blur-sm">
+              <Mail className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
               {gig.hostName}
             </Badge>
           ) : null}
           {gig.status && (
-            <GigStatusBadge status={gig.status} className="text-xs px-2 py-0.5 border font-semibold backdrop-blur-sm !bg-background/90" />
+            <GigStatusBadge status={gig.status} className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0 sm:py-0.5 border font-semibold backdrop-blur-sm !bg-background/90" />
           )}
         </div>
       </div>
 
-      <div className="p-2.5 sm:p-3 flex-1 flex flex-col">
-        <div className="flex-1 flex flex-col space-y-1 sm:space-y-1.5">
-          {/* Title row with soundcheck time */}
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm sm:text-base line-clamp-2">{gig.gigTitle}</h3>
-              {gig.bandName && (
-                <p className="text-[10px] sm:text-xs text-muted-foreground truncate mt-0.5">{gig.bandName}</p>
-              )}
-            </div>
-            {gig.callTime && (
-              <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">
-                <Clock className="h-3 w-3" />
-                <span>{gig.callTime.slice(0, 5)}</span>
-              </div>
+      <div className="px-2.5 sm:px-3 pt-2.5 sm:pt-3 pb-2.5 sm:pb-3 flex-1 flex flex-col">
+        <div className="flex flex-col space-y-1 sm:space-y-1.5">
+          {/* Title row */}
+          <div>
+            <h3 className="font-semibold text-base sm:text-lg line-clamp-2">{gig.gigTitle}</h3>
+            {gig.bandName && (
+              <p className="text-xs sm:text-sm text-muted-foreground truncate mt-0.5">{gig.bandName}</p>
             )}
           </div>
 
-          {/* Location row with accepted musicians count — role tooltip on desktop */}
+          {/* Location + Time rows with avatars — role tooltip on desktop */}
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex items-center justify-between gap-2">
-                  {gig.locationName ? (
-                    <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-muted-foreground flex-1 min-w-0">
-                      <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
-                      <span className="truncate">{gig.locationName}</span>
-                    </div>
-                  ) : (
-                    <div className="flex-1" />
-                  )}
-                  {gig.roleStats && gig.roleStats.accepted > 0 && (
-                    <div className="flex items-center gap-1 text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">
-                      <Users className="h-3 w-3" />
-                      <span>{gig.roleStats.accepted}</span>
+                <div className="space-y-0.5">
+                  <div className="flex items-center justify-between gap-2">
+                    {gig.locationName ? (
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground flex-1 min-w-0">
+                        <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="truncate">{gig.locationName}</span>
+                      </div>
+                    ) : (
+                      <div className="flex-1" />
+                    )}
+                    {gig.acceptedMusicians && gig.acceptedMusicians.length > 0 && (
+                      <div className="flex-shrink-0">
+                        <StackedAvatars musicians={gig.acceptedMusicians} max={3} />
+                      </div>
+                    )}
+                  </div>
+                  {gig.startTime && (
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span>
+                        {gig.startTime.slice(0, 5)}{gig.endTime ? ` – ${gig.endTime.slice(0, 5)}` : ''}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -156,9 +158,9 @@ const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, he
             </Tooltip>
           </TooltipProvider>
 
-          {/* Invitation Summary (Host-only meta) - Compact on mobile */}
-          {gig.isManager && gig.roleStats && gig.roleStats.total > 0 && (
-            <div className="text-[10px] sm:text-xs text-muted-foreground">
+          {/* Role Stats Fallback (only if no avatars shown above) */}
+          {!(gig.acceptedMusicians && gig.acceptedMusicians.length > 0) && gig.isManager && gig.roleStats && gig.roleStats.total > 0 && (
+            <div className="text-xs text-muted-foreground">
               {gig.roleStats.total} role{gig.roleStats.total !== 1 ? 's' : ''}
               <span className="hidden xs:inline">
                 {gig.roleStats.accepted > 0 && ` · ${gig.roleStats.accepted} accepted`}
@@ -168,7 +170,7 @@ const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, he
 
           {/* Participation Status (Musician-only) - Only show for non-accepted statuses */}
           {gig.isPlayer && gig.invitationStatus && gig.invitationStatus !== 'accepted' && (
-            <div className="text-[10px] sm:text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground">
               {gig.invitationStatus === 'invited' ? 'Respond' :
                gig.invitationStatus === 'declined' ? 'Declined' : gig.invitationStatus}
             </div>
@@ -183,7 +185,7 @@ const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, he
                     ? "destructive"
                     : "secondary"
                 }
-                className="text-[10px] sm:text-xs capitalize h-5"
+                className="text-xs capitalize h-5"
               >
                 {gig.invitationStatus === "needs_sub" ? "Need Sub" : gig.invitationStatus}
               </Badge>
@@ -361,16 +363,18 @@ export function DashboardGigItemGrid({
           </Link>
         )}
 
+        {/* Extra breathing room for player-only cards (no buttons below) */}
+        {isPlayerOnly && <div className="pb-3" />}
+
         {/* Action Buttons - only full row for manager gigs */}
         {!isPlayerOnly && (
-        <div className="p-2.5 sm:p-3 pt-0 mt-auto flex gap-1.5 sm:gap-2">
+        <div className="px-2 sm:px-3 pb-2 sm:pb-3 pt-0 mt-auto flex gap-1 sm:gap-2">
           {/* Gig Pack Button (only for hosts - players click card to go to pack) */}
           {gig.isManager && (
             <Link href={`/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`} onClick={(e) => e.stopPropagation()} className="flex-1">
-              <Button variant="outline" size="sm" className="w-full gap-1.5 sm:gap-2 text-[10px] sm:text-xs h-8">
-                <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                <span className="hidden xs:inline">Gig Pack</span>
-                <span className="xs:hidden">Pack</span>
+              <Button variant="outline" size="sm" className="w-full gap-1 sm:gap-2 text-xs h-7 sm:h-8">
+                <Package className="h-3 w-3 sm:h-4 sm:w-4" />
+                Gig Pack
               </Button>
             </Link>
           )}
@@ -380,12 +384,12 @@ export function DashboardGigItemGrid({
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5 sm:gap-2 text-[10px] sm:text-xs h-8"
+              className="gap-1 sm:gap-2 text-xs h-7 sm:h-8"
               onClick={handleShare}
               disabled={isLoadingShare}
             >
-              <Share2 className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isLoadingShare ? 'animate-pulse' : ''}`} />
-              <span className="hidden xs:inline">Share</span>
+              <Share2 className={`h-3 w-3 sm:h-4 sm:w-4 ${isLoadingShare ? 'animate-pulse' : ''}`} />
+              Share
             </Button>
           )}
 

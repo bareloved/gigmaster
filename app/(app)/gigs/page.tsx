@@ -43,6 +43,7 @@ import { getGig } from "./actions";
 interface GigRoleRow {
   id: string;
   musician_id: string | null;
+  musician_name: string | null;
   invitation_status: string | null;
   payment_status: string | null;
   role_name: string | null;
@@ -191,6 +192,7 @@ export default function AllGigsPage() {
           gig_roles (
             id,
             musician_id,
+            musician_name,
             role_name,
             invitation_status,
             agreed_fee,
@@ -248,6 +250,10 @@ export default function AllGigsPage() {
             paymentStatus = playerRole.payment_status === 'paid' ? "paid" : "unpaid";
           }
 
+          const acceptedMusicians = roles
+            .filter(r => r?.invitation_status === 'accepted' && r?.musician_name)
+            .map(r => ({ name: r.musician_name! }));
+
           const ownerData = Array.isArray(gig.owner) ? gig.owner[0] : gig.owner;
           const hostName = ownerData?.name || null;
           const bandData = Array.isArray(gig.band) ? gig.band[0] : gig.band;
@@ -273,6 +279,7 @@ export default function AllGigsPage() {
             heroImageUrl: gig.hero_image_url || null,
             gigType: gig.gig_type || null,
             playerGigRoleId: playerRole?.id || null,
+            acceptedMusicians,
           };
         });
 
@@ -489,20 +496,20 @@ export default function AllGigsPage() {
       </div>
       {/* Desktop View Toggle + Search + Invitations */}
       <div className="hidden sm:flex items-center justify-between">
-        <div className="flex items-center gap-1 border rounded-md p-1">
+        <div className="flex items-center gap-1 border border-border/60 bg-muted/40 rounded-lg p-1">
           <Button
-            variant={viewMode === "list" ? "secondary" : "ghost"}
+            variant="ghost"
             size="sm"
             onClick={() => { setViewMode("list"); localStorage.setItem("gigs-view-mode", "list"); }}
-            className="h-8 w-8 p-0"
+            className={`h-8 w-8 p-0 ${viewMode === "list" ? "bg-white dark:bg-zinc-800 shadow-sm border border-border/50" : "hover:bg-background/60"}`}
           >
             <List className="h-4 w-4" />
           </Button>
           <Button
-            variant={viewMode === "grid" ? "secondary" : "ghost"}
+            variant="ghost"
             size="sm"
             onClick={() => { setViewMode("grid"); localStorage.setItem("gigs-view-mode", "grid"); }}
-            className="h-8 w-8 p-0"
+            className={`h-8 w-8 p-0 ${viewMode === "grid" ? "bg-white dark:bg-zinc-800 shadow-sm border border-border/50" : "hover:bg-background/60"}`}
           >
             <Grid3x3 className="h-4 w-4" />
           </Button>
