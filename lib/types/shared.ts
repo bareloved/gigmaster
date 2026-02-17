@@ -357,6 +357,8 @@ export interface DashboardGig {
     declined: number;
     pending: number;
   } | null;
+  // Accepted musicians for avatar display
+  acceptedMusicians?: Array<{ name: string }>;
 }
 
 /**

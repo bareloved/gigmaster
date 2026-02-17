@@ -117,29 +117,29 @@ export function GigPackShareDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn(
-        "max-w-md max-h-[90vh] overflow-y-auto",
+        "max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6",
         isRtl && "[&>button]:right-auto [&>button]:left-4"
       )}>
         <DialogHeader className={cn(
           "flex flex-col space-y-1.5",
           isRtl ? "text-right" : "text-center sm:text-left"
         )}>
-          <DialogTitle className="text-lg">{t("title")}</DialogTitle>
-          <DialogDescription className="text-base">
+          <DialogTitle className="text-base sm:text-lg">{t("title")}</DialogTitle>
+          <DialogDescription className="text-sm sm:text-base">
             {t("description")}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 mt-4">
+        <div className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
           {/* Quick Actions */}
           <TooltipProvider delayDuration={400}>
-            <div className="flex gap-2">
+            <div className="flex gap-1.5 sm:gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
                     aria-label={t("whatsapp")}
-                    className="flex-1 h-10"
+                    className="flex-1 h-9 sm:h-10"
                     onClick={() => {
                       const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message1)}`;
                       window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
@@ -156,7 +156,7 @@ export function GigPackShareDialog({
                   <Button
                     variant="outline"
                     aria-label={t("shareNative")}
-                    className="flex-1 h-10"
+                    className="flex-1 h-9 sm:h-10"
                     onClick={async () => {
                       if (navigator.share) {
                         try {
@@ -184,7 +184,7 @@ export function GigPackShareDialog({
                   <Button
                     variant="outline"
                     aria-label={t("email")}
-                    className="flex-1 h-10"
+                    className="flex-1 h-9 sm:h-10"
                     onClick={() => {
                       const subject = t("emailSubject", { title: gigPack.title });
                       const body = encodeURIComponent(message2);
@@ -203,7 +203,7 @@ export function GigPackShareDialog({
                   <Button
                     variant="outline"
                     aria-label={t("openLink")}
-                    className="flex-1 h-10"
+                    className="flex-1 h-9 sm:h-10"
                     onClick={() => {
                       window.open(publicUrl, '_blank', 'noopener,noreferrer');
                     }}
@@ -218,7 +218,7 @@ export function GigPackShareDialog({
 
           {/* Public Link Section */}
           <div className="space-y-3">
-            <Label htmlFor="public-link" className="text-base font-semibold">
+            <Label htmlFor="public-link" className="text-sm sm:text-base font-semibold">
               {t("publicLink")}
             </Label>
             <div className="flex gap-2">
@@ -256,7 +256,7 @@ export function GigPackShareDialog({
               <div className="space-y-2">
                 <p className="text-sm text-muted-foreground">{t("qrCodeHint")}</p>
                 <div className="flex justify-center">
-                  <GigPackQr url={publicUrl} size={150} />
+                  <GigPackQr url={publicUrl} size={120} />
                 </div>
               </div>
 

@@ -21,11 +21,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Calendar, MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed } from "lucide-react";
+import { MapPin, Clock, Package, MoreVertical, Check, X, Crown, Mail, Share2, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUser } from "@/lib/providers/user-provider";
 import type { DashboardGig } from "@/lib/types/shared";
+import { StackedAvatars } from "@/components/shared/stacked-avatars";
 // PERFORMANCE: Use optimistic update hooks for instant UI feedback
 import {
   useAcceptInvitation,
@@ -51,70 +52,90 @@ const DeleteGigDialog = dynamic(
 );
 
 // PERFORMANCE: Memoize inner content to prevent re-renders when parent state changes
-const GigInnerContent = memo(function GigInnerContent({ gig, formattedDate }: { gig: DashboardGig; formattedDate: string }) {
+const GigInnerContent = memo(function GigInnerContent({ gig }: { gig: DashboardGig }) {
   return (
     <>
-      <div className="flex items-start justify-between gap-2">
-        <div className="space-y-0.5 sm:space-y-1 flex-1 min-w-0">
-          <h3 className="font-semibold text-sm sm:text-base truncate">{gig.gigTitle}</h3>
-          {gig.bandName && (
-            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{gig.bandName}</p>
-          )}
-        </div>
-        <div className="flex flex-col gap-1 sm:gap-2 items-end flex-shrink-0">
-          {/* External Gig Badge */}
-          {gig.isExternal && (
-            <Badge variant="outline" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs bg-violet-50 border-violet-200 text-violet-700 dark:bg-violet-950 dark:border-violet-800 dark:text-violet-300">
-              <CalendarSync className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-              <span className="hidden sm:inline">External</span>
-            </Badge>
-          )}
-          {/* Host Badge - Hide text on mobile */}
-          {gig.isManager ? (
-            <Badge variant="outline" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-950 dark:border-orange-800 dark:text-orange-300">
-              <Crown className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-              <span className="hidden sm:inline">You</span>
-            </Badge>
-          ) : gig.hostName && !gig.isExternal ? (
-            <Badge variant="outline" className="gap-0.5 sm:gap-1 text-[10px] sm:text-xs bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300">
-              <Mail className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-              <span className="hidden sm:inline">{gig.hostName}</span>
-            </Badge>
-          ) : null}
-          {/* Gig Status - Show dot on mobile, full badge on desktop */}
-          {gig.status && (
-            <>
-              <span className={`sm:hidden inline-block w-2 h-2 rounded-full ${
+      {/* ===== MOBILE layout ===== */}
+      <div className="sm:hidden space-y-1.5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-base leading-tight line-clamp-2">{gig.gigTitle}</h3>
+            {gig.bandName && (
+              <p className="text-xs text-muted-foreground truncate mt-0.5">{gig.bandName}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-1.5 flex-shrink-0 pt-0.5">
+            {gig.status && (
+              <span className={`w-2.5 h-2.5 rounded-full ${
                 gig.status === 'confirmed' ? 'bg-green-500' :
                 gig.status === 'cancelled' ? 'bg-red-500' :
                 gig.status === 'tentative' ? 'bg-amber-500' :
                 'bg-yellow-500'
               }`} />
-              <div className="hidden sm:block">
-                <GigStatusBadge status={gig.status} />
-              </div>
-            </>
-          )}
+            )}
+            {gig.isManager ? (
+              <Crown className="h-3.5 w-3.5 text-orange-500/70" />
+            ) : gig.hostName && !gig.isExternal ? (
+              <Mail className="h-3.5 w-3.5 text-blue-500/70" />
+            ) : null}
+          </div>
         </div>
+        {gig.locationName && (
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="text-sm truncate">{gig.locationName}</span>
+          </div>
+        )}
+        {gig.startTime && (
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Clock className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="text-sm">{gig.startTime.slice(0, 5)}</span>
+          </div>
+        )}
+        {gig.isPlayer && gig.isManager && gig.playerRoleName && (
+          <span className="capitalize text-sm font-medium text-foreground/70">{gig.playerRoleName}</span>
+        )}
       </div>
 
-      {/* Invitation Summary (Host-only meta) - Compact on mobile */}
-      {gig.isManager && gig.roleStats && gig.roleStats.total > 0 && (
-        <div className="text-[10px] sm:text-xs text-muted-foreground">
-          {gig.roleStats.total} role{gig.roleStats.total !== 1 ? 's' : ''}
-          {gig.roleStats.accepted > 0 && <span className="hidden xs:inline"> · {gig.roleStats.accepted} accepted</span>}
-          {gig.roleStats.invited > 0 && <span className="hidden xs:inline"> · {gig.roleStats.invited} invited</span>}
-        </div>
-      )}
+      {/* ===== DESKTOP layout ===== */}
+      <div className="hidden sm:block space-y-1">
+        <h3 className="font-semibold text-xl leading-tight line-clamp-2">{gig.gigTitle}</h3>
+        {gig.bandName && (
+          <p className="text-base text-muted-foreground truncate mt-0.5">{gig.bandName}</p>
+        )}
 
-      {/* Participation Status (Musician-only) - Only show for non-accepted statuses */}
-      {gig.isPlayer && gig.invitationStatus && gig.invitationStatus !== 'accepted' && (
-        <div className="text-[10px] sm:text-xs text-muted-foreground">
-          <span className="sm:hidden">
-            {gig.invitationStatus === 'invited' ? 'Respond' :
-             gig.invitationStatus === 'declined' ? 'Declined' : gig.invitationStatus}
-          </span>
-          <span className="hidden sm:inline">
+        {/* Location and Time on separate lines */}
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="space-y-0.5">
+                {gig.locationName && (
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <MapPin className="h-4 w-4 flex-shrink-0" />
+                    <span className="text-sm truncate">{gig.locationName}</span>
+                  </div>
+                )}
+                {gig.startTime && (
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <Clock className="h-4 w-4 flex-shrink-0" />
+                    <span className="text-sm">
+                      {gig.startTime.slice(0, 5)}{gig.endTime ? ` – ${gig.endTime.slice(0, 5)}` : ''}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </TooltipTrigger>
+            {gig.isPlayer && gig.playerRoleName && (
+              <TooltipContent>
+                <span className="capitalize">Your role: {gig.playerRoleName}</span>
+              </TooltipContent>
+            )}
+          </Tooltip>
+        </TooltipProvider>
+
+        {/* Participation Status (Musician-only) */}
+        {gig.isPlayer && gig.invitationStatus && gig.invitationStatus !== 'accepted' && (
+          <div className="text-sm text-muted-foreground">
             Your status: {
               gig.invitationStatus === 'pending' ? 'Awaiting your response' :
                 gig.invitationStatus === 'invited' ? 'Please respond' :
@@ -122,51 +143,14 @@ const GigInnerContent = memo(function GigInnerContent({ gig, formattedDate }: { 
                     gig.invitationStatus === 'tentative' ? 'Tentative' :
                       gig.invitationStatus
             }
-          </span>
-        </div>
-      )}
+          </div>
+        )}
 
-      {/* Metadata row - with role tooltip on desktop */}
-      <TooltipProvider delayDuration={300}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
-              {/* Date */}
-              <div className="flex items-center gap-1 sm:gap-1.5 text-muted-foreground">
-                <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                <span className="text-[10px] sm:text-sm">{formattedDate}</span>
-              </div>
-
-              {/* Location */}
-              {gig.locationName && (
-                <div className="flex items-center gap-1 sm:gap-1.5 text-muted-foreground">
-                  <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                  <span className="truncate max-w-[120px] sm:max-w-none text-[10px] sm:text-sm">{gig.locationName}</span>
-                </div>
-              )}
-
-              {/* Invitation Status (if player and not accepted) */}
-              {gig.isPlayer && gig.invitationStatus && gig.invitationStatus !== "accepted" && (
-                <Badge
-                  variant={
-                    gig.invitationStatus === "declined" || gig.invitationStatus === "needs_sub"
-                      ? "destructive"
-                      : "secondary"
-                  }
-                  className="capitalize text-[10px] sm:text-xs h-5"
-                >
-                  {gig.invitationStatus === "needs_sub" ? "Need Sub" : gig.invitationStatus}
-                </Badge>
-              )}
-            </div>
-          </TooltipTrigger>
-          {gig.isPlayer && gig.playerRoleName && (
-            <TooltipContent>
-              <span className="capitalize">Your role: {gig.playerRoleName}</span>
-            </TooltipContent>
-          )}
-        </Tooltip>
-      </TooltipProvider>
+        {/* Player role name */}
+        {gig.isPlayer && gig.isManager && gig.playerRoleName && (
+          <span className="capitalize text-sm font-medium text-foreground/70">{gig.playerRoleName}</span>
+        )}
+      </div>
     </>
   );
 });
@@ -186,7 +170,7 @@ export function DashboardGigItem({
 }: DashboardGigItemProps) {
   const { user } = useUser();
   const gigDate = new Date(gig.date);
-  const formattedDate = format(gigDate, "EEE, MMM d, yyyy");
+
 
   // Conflict detection state
   const [showConflictDialog, setShowConflictDialog] = useState(false);
@@ -290,21 +274,22 @@ export function DashboardGigItem({
   return (
     <>
       <Card className={`p-3 sm:p-4 hover:bg-muted/50 transition-colors group ${isPastGig ? 'opacity-70 saturate-75' : ''}`}>
-        <div className="flex items-start gap-2 sm:gap-4">
-          {/* Date Badge - Compact on mobile */}
-          <div className="flex flex-col items-center bg-primary/10 rounded-md sm:rounded-lg p-1.5 sm:p-2 min-w-[45px] sm:min-w-[60px]">
-            <span className="text-[10px] sm:text-xs text-muted-foreground uppercase">
+        <div className="flex items-start gap-3 sm:gap-4">
+          {/* Date Badge - Ticket stub style on all sizes */}
+          <div className="flex flex-col items-center justify-center self-stretch pl-2 pr-6 sm:pl-3 sm:pr-7 border-r border-border/50 min-w-[48px] sm:min-w-[56px]">
+            <span className="text-xs sm:text-xs text-muted-foreground uppercase font-medium tracking-wide">
               {format(gigDate, "MMM")}
             </span>
-            <span className="text-lg sm:text-2xl font-bold">{format(gigDate, "d")}</span>
+            <span className="text-2xl sm:text-3xl font-bold leading-none">{format(gigDate, "d")}</span>
           </div>
 
-          {/* Gig Details */}
-          <div className="flex-1 min-w-0 space-y-2">
+          {/* Gig Details + Right column */}
+          <div className="flex-1 min-w-0 sm:flex sm:gap-4 space-y-2 sm:space-y-0 relative self-stretch sm:self-auto">
+            {/* Clickable content */}
             {onClick ? (
               <div
                 onClick={() => onClick(gig)}
-                className="block space-y-2 cursor-pointer"
+                className="block space-y-2 sm:space-y-0 cursor-pointer sm:flex-1 sm:min-w-0"
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
@@ -313,57 +298,150 @@ export function DashboardGigItem({
                   }
                 }}
               >
-                <GigInnerContent
-                  gig={gig}
-                  formattedDate={formattedDate}
-                />
+                <GigInnerContent gig={gig} />
               </div>
             ) : (
-              <Link href={gigUrl} className="block space-y-2">
-                <GigInnerContent
-                  gig={gig}
-                  formattedDate={formattedDate}
-                />
+              <Link href={gigUrl} className="block space-y-2 sm:space-y-0 sm:flex-1 sm:min-w-0">
+                <GigInnerContent gig={gig} />
               </Link>
             )}
 
-            {/* Action Buttons - only full row for manager gigs */}
-            {!isPlayerOnly && (
-            <div className="flex justify-end gap-1.5 sm:gap-2">
-              {/* Gig Pack Button (only for hosts - players click card to go to pack) - hide text on mobile */}
-              {gig.isManager && (
-                <Link href={`/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`} onClick={(e) => e.stopPropagation()}>
-                  <Button variant="outline" size="sm" className="gap-1.5 sm:gap-2 h-8 sm:h-9 text-xs sm:text-sm">
-                    <Package className="h-4 w-4" />
-                    <span className="hidden sm:inline">Gig Pack</span>
+            {/* Desktop right column: badges / buttons stacked */}
+            <div className="hidden sm:flex sm:flex-col sm:items-end sm:justify-between sm:flex-shrink-0 sm:self-stretch">
+              {/* Row 1: Badges */}
+              <div className="flex items-center gap-2">
+                {gig.status && (
+                  <GigStatusBadge status={gig.status} />
+                )}
+                {gig.isExternal && (
+                  <Badge variant="outline" className="gap-1 text-xs bg-violet-50 border-violet-200 text-violet-700 dark:bg-violet-950 dark:border-violet-800 dark:text-violet-300">
+                    <CalendarSync className="h-3 w-3" />
+                    External
+                  </Badge>
+                )}
+                {gig.isManager ? (
+                  <Badge variant="outline" className="gap-1 text-xs bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-950 dark:border-orange-800 dark:text-orange-300">
+                    <Crown className="h-3 w-3" />
+                    You
+                  </Badge>
+                ) : gig.hostName && !gig.isExternal ? (
+                  <Badge variant="outline" className="gap-1 text-xs bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-300">
+                    <Mail className="h-3 w-3" />
+                    {gig.hostName}
+                  </Badge>
+                ) : null}
+              </div>
+
+              {/* Row 2: Buttons (manager only) */}
+              {!isPlayerOnly && (
+              <div className="flex items-center gap-2">
+                {gig.isManager && (
+                  <Link href={`/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`} onClick={(e) => e.stopPropagation()}>
+                    <Button variant="outline" size="sm" className="h-8 px-2.5 gap-1.5 text-xs">
+                      <Package className="h-3.5 w-3.5" />
+                      Gig Pack
+                    </Button>
+                  </Link>
+                )}
+                {gig.isManager && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-8 px-2.5 text-xs"
+                    onClick={handleShare}
+                    disabled={isLoadingShare}
+                  >
+                    <Share2 className={`h-3.5 w-3.5 ${isLoadingShare ? 'animate-pulse' : ''}`} />
+                    Share
                   </Button>
-                </Link>
+                )}
+
+                {/* Quick Actions Dropdown */}
+                {(showPlayerActions || showManagerActions) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 px-0" onClick={(e) => e.stopPropagation()}>
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      {/* Group 1: Invitation Actions */}
+                      {showInvitationActions && (
+                        <>
+                          <DropdownMenuItem onClick={handleAcceptInvitation}>
+                            <Check className="h-4 w-4 mr-2 text-green-600" />
+                            Accept Invitation
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
+                            <X className="h-4 w-4 mr-2 text-red-600" />
+                            Decline Invitation
+                          </DropdownMenuItem>
+                        </>
+                      )}
+
+                      {showWithdrawAction && (
+                        <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
+                          <X className="h-4 w-4 mr-2 text-red-600" />
+                          Decline Gig
+                        </DropdownMenuItem>
+                      )}
+
+                      {/* Separator between player and manager actions */}
+                      {(showInvitationActions || showWithdrawAction) && showManagerActions && <DropdownMenuSeparator />}
+
+                      {/* Group 2: Status Actions */}
+                      {showManagerActions && (
+                        <>
+                          {gig.status !== "confirmed" && (
+                            <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ gigId: gig.gigId, status: "confirmed" })}>
+                              <CircleCheck className="h-4 w-4 mr-2" />
+                              Confirm Gig
+                            </DropdownMenuItem>
+                          )}
+                          {gig.status !== "tentative" && (
+                            <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ gigId: gig.gigId, status: "tentative" })}>
+                              <CircleDashed className="h-4 w-4 mr-2" />
+                              Mark as Tentative
+                            </DropdownMenuItem>
+                          )}
+                          {gig.status !== "cancelled" && (
+                            <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ gigId: gig.gigId, status: "cancelled" })}>
+                              <CircleX className="h-4 w-4 mr-2" />
+                              Cancel Gig
+                            </DropdownMenuItem>
+                          )}
+                          {/* Group 3: Duplicate */}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => router.push(`/gigs/new?duplicate=${gig.gigId}`)}>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Duplicate Gig
+                          </DropdownMenuItem>
+                          {/* Group 4: Destructive */}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => setDeleteDialogOpen(true)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Gig
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
               )}
 
-              {/* Share Button (only for hosts) - hide text on mobile */}
-              {gig.isManager && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5 sm:gap-2 h-8 sm:h-9 text-xs sm:text-sm"
-                  onClick={handleShare}
-                  disabled={isLoadingShare}
-                >
-                  <Share2 className={`h-4 w-4 ${isLoadingShare ? 'animate-pulse' : ''}`} />
-                  <span className="hidden sm:inline">Share</span>
-                </Button>
-              )}
-
-              {/* Quick Actions Dropdown */}
-              {(showPlayerActions || showManagerActions) && (
+              {/* Player-only: dropdown in right column on desktop */}
+              {isPlayerOnly && (showInvitationActions || showWithdrawAction) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 sm:h-9 w-8 sm:w-auto px-2" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 px-0" onClick={(e) => e.stopPropagation()}>
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                    {/* Group 1: Invitation Actions */}
                     {showInvitationActions && (
                       <>
                         <DropdownMenuItem onClick={handleAcceptInvitation}>
@@ -376,20 +454,57 @@ export function DashboardGigItem({
                         </DropdownMenuItem>
                       </>
                     )}
-
                     {showWithdrawAction && (
                       <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
                         <X className="h-4 w-4 mr-2 text-red-600" />
                         Decline Gig
                       </DropdownMenuItem>
                     )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
 
-                    {/* Separator between player and manager actions */}
-                    {(showInvitationActions || showWithdrawAction) && showManagerActions && <DropdownMenuSeparator />}
-
-                    {/* Group 2: Status Actions */}
+            {/* Mobile-only action buttons */}
+            {!isPlayerOnly && (
+            <div className="sm:hidden absolute right-0 -bottom-2 flex items-center justify-end gap-1.5">
+              {gig.isManager && (
+                <Link href={`/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`} onClick={(e) => e.stopPropagation()}>
+                  <Button variant="outline" size="sm" className="h-6 px-2 gap-1 rounded-sm text-muted-foreground text-[11px]">
+                    <Package className="h-3 w-3" />
+                    Gig Pack
+                  </Button>
+                </Link>
+              )}
+              {(showPlayerActions || showManagerActions) && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 px-2" onClick={(e) => e.stopPropagation()}>
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    {showInvitationActions && (
+                      <>
+                        <DropdownMenuItem onClick={handleAcceptInvitation}>
+                          <Check className="h-4 w-4 mr-2 text-green-600" />
+                          Accept Invitation
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
+                          <X className="h-4 w-4 mr-2 text-red-600" />
+                          Decline Invitation
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {showWithdrawAction && (
+                      <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
+                        <X className="h-4 w-4 mr-2 text-red-600" />
+                        Decline Gig
+                      </DropdownMenuItem>
+                    )}
                     {showManagerActions && (
                       <>
+                        <DropdownMenuSeparator />
                         {gig.status !== "confirmed" && (
                           <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ gigId: gig.gigId, status: "confirmed" })}>
                             <CircleCheck className="h-4 w-4 mr-2" />
@@ -402,19 +517,6 @@ export function DashboardGigItem({
                             Mark as Tentative
                           </DropdownMenuItem>
                         )}
-                        {gig.status !== "cancelled" && (
-                          <DropdownMenuItem onClick={() => updateStatusMutation.mutate({ gigId: gig.gigId, status: "cancelled" })}>
-                            <CircleX className="h-4 w-4 mr-2" />
-                            Cancel Gig
-                          </DropdownMenuItem>
-                        )}
-                        {/* Group 3: Duplicate */}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => router.push(`/gigs/new?duplicate=${gig.gigId}`)}>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Duplicate Gig
-                        </DropdownMenuItem>
-                        {/* Group 4: Destructive */}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => setDeleteDialogOpen(true)}
@@ -430,40 +532,41 @@ export function DashboardGigItem({
               )}
             </div>
             )}
-          </div>
 
-          {/* Player-only: compact dropdown aligned with metadata row */}
-          {isPlayerOnly && (showInvitationActions || showWithdrawAction) && (
-            <div className="self-end">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={(e) => e.stopPropagation()}>
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                  {showInvitationActions && (
-                    <>
-                      <DropdownMenuItem onClick={handleAcceptInvitation}>
-                        <Check className="h-4 w-4 mr-2 text-green-600" />
-                        Accept Invitation
-                      </DropdownMenuItem>
+            {/* Player-only: compact dropdown (mobile) */}
+            {isPlayerOnly && (showInvitationActions || showWithdrawAction) && (
+              <div className="sm:hidden absolute right-0 -bottom-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={(e) => e.stopPropagation()}>
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    {showInvitationActions && (
+                      <>
+                        <DropdownMenuItem onClick={handleAcceptInvitation}>
+                          <Check className="h-4 w-4 mr-2 text-green-600" />
+                          Accept Invitation
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
+                          <X className="h-4 w-4 mr-2 text-red-600" />
+                          Decline Invitation
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    {showWithdrawAction && (
                       <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
                         <X className="h-4 w-4 mr-2 text-red-600" />
-                        Decline Invitation
+                        Decline Gig
                       </DropdownMenuItem>
-                    </>
-                  )}
-                  {showWithdrawAction && (
-                    <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
-                      <X className="h-4 w-4 mr-2 text-red-600" />
-                      Decline Gig
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+
+          </div>
         </div>
       </Card>
 

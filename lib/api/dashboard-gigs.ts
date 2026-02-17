@@ -174,6 +174,7 @@ async function listDashboardGigsFallback(
       gig_roles (
         id,
         role_name,
+        musician_name,
         invitation_status,
         payment_status,
         musician_id
@@ -223,6 +224,10 @@ async function listDashboardGigsFallback(
         roleStats = { total, invited, accepted, declined, pending };
       }
 
+      const acceptedMusicians = roles
+        .filter(r => r?.invitation_status === 'accepted' && r?.musician_name)
+        .map(r => ({ name: r.musician_name! }));
+
       gigMap.set(gig.id, {
         gigId: gig.id,
         gigTitle: gig.title,
@@ -245,6 +250,7 @@ async function listDashboardGigsFallback(
         heroImageUrl: gig.hero_image_url,
         gigType: gig.gig_type,
         roleStats,
+        acceptedMusicians,
       });
     }
   }

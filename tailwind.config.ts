@@ -71,10 +71,16 @@ const config: Config = {
   		},
         fontFamily: {
             sans: [
+              'var(--font-ploni)',
               'var(--font-helvetica-now)',
               'Helvetica Neue',
               'Helvetica',
               'Arial',
+              'sans-serif',
+            ],
+            hebrew: [
+              'var(--font-ploni)',
+              'var(--font-helvetica-now)',
               'sans-serif',
             ],
           },

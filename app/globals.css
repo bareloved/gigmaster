@@ -174,16 +174,6 @@
   85%, 100% { transform: translateX(0); }
 }
 
-/* Google Sans Variable Font - Local - Hebrew characters only */
-@font-face {
-  font-family: 'Google Sans Hebrew';
-  src: url('/fonts/GoogleSans-VariableFont_GRAD,opsz,wght.ttf') format('truetype-variations');
-  font-weight: 100 900;
-  font-style: normal;
-  font-display: swap;
-  unicode-range: U+0590-05FF, U+FB1D-FB4F;
-}
-
 /* ==========================================================================
    SETLIST PAPER — concert setlist taped to stage floor
    ========================================================================== */
