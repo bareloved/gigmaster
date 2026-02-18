@@ -15,7 +15,7 @@ export async function getPersonalEarnings(gigId: string): Promise<{
 
   const { data: role, error } = await supabase
     .from('gig_roles')
-    .select('id, personal_earnings_amount, personal_earnings_currency, personal_earnings_notes, personal_earnings_paid_at')
+    .select('id, personal_earnings_amount, personal_earnings_currency, personal_earnings_notes, personal_earnings_paid_at, personal_earnings_payment_method')
     .eq('gig_id', gigId)
     .eq('musician_id', user.id)
     .maybeSingle();
@@ -29,6 +29,7 @@ export async function getPersonalEarnings(gigId: string): Promise<{
       currency: role.personal_earnings_currency || 'ILS',
       notes: role.personal_earnings_notes,
       paidAt: role.personal_earnings_paid_at,
+      paymentMethod: role.personal_earnings_payment_method,
     },
   };
 }
@@ -58,7 +59,8 @@ export async function getPlayerPaymentInfo(gigId: string): Promise<{
       personal_earnings_amount,
       personal_earnings_currency,
       personal_earnings_notes,
-      personal_earnings_paid_at
+      personal_earnings_paid_at,
+      personal_earnings_payment_method
     `)
     .eq('gig_id', gigId)
     .eq('musician_id', user.id)
@@ -80,6 +82,7 @@ export async function getPlayerPaymentInfo(gigId: string): Promise<{
         currency: role.personal_earnings_currency || 'ILS',
         notes: role.personal_earnings_notes,
         paidAt: role.personal_earnings_paid_at,
+        paymentMethod: role.personal_earnings_payment_method,
       },
     },
   };
@@ -95,6 +98,7 @@ export async function updatePersonalEarnings(
     currency: string;
     notes: string | null;
     paidAt: string | null;
+    paymentMethod: string | null;
   }
 ): Promise<void> {
   const supabase = createClient();
@@ -106,6 +110,7 @@ export async function updatePersonalEarnings(
       personal_earnings_currency: data.currency,
       personal_earnings_notes: data.notes,
       personal_earnings_paid_at: data.paidAt,
+      personal_earnings_payment_method: data.paymentMethod,
     })
     .eq('id', roleId);
 

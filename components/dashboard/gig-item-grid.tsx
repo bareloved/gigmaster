@@ -86,7 +86,7 @@ const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, he
           <span className="text-xl font-bold">{format(gigDate, "d")}</span>
         </div>
         {/* Status overlay */}
-        <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
+        <div className="absolute top-2 right-2 flex flex-col gap-1 items-end origin-top-right scale-90">
           {gig.isExternal && (
             <Badge variant="outline" className="gap-0.5 text-[10px] px-1.5 py-0 border font-semibold bg-violet-50/90 border-violet-200 text-violet-700 dark:bg-violet-950/90 dark:border-violet-800 dark:text-violet-300 backdrop-blur-sm">
               <CalendarSync className="h-2.5 w-2.5" />
@@ -168,31 +168,18 @@ const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, he
             </div>
           )}
 
-          {/* Participation Status (Musician-only) - Only show for non-accepted statuses */}
-          {gig.isPlayer && gig.invitationStatus && gig.invitationStatus !== 'accepted' && (
-            <div className="text-xs text-muted-foreground">
-              {gig.invitationStatus === 'invited' ? 'Respond' :
-               gig.invitationStatus === 'declined' ? 'Declined' : gig.invitationStatus}
-            </div>
-          )}
-
-          {/* Invitation Status Badge - only for non-accepted statuses */}
-          {gig.isPlayer && gig.invitationStatus && gig.invitationStatus !== "accepted" && (
-            <div className="flex flex-wrap gap-1 sm:gap-1.5">
-              <Badge
-                variant={
-                  gig.invitationStatus === "declined" || gig.invitationStatus === "needs_sub"
-                    ? "destructive"
-                    : "secondary"
-                }
-                className="text-xs capitalize h-5"
-              >
-                {gig.invitationStatus === "needs_sub" ? "Need Sub" : gig.invitationStatus}
-              </Badge>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Invited badge - centered on the whole card */}
+      {gig.isPlayer && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending') && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <Badge className="bg-white hover:bg-white text-black border-0 text-sm px-3 py-1 shadow-lg pointer-events-auto">
+            <Mail className="h-3.5 w-3.5 mr-1.5" />
+            Invited
+          </Badge>
+        </div>
+      )}
     </>
   );
 });
@@ -246,7 +233,8 @@ export function DashboardGigItemGrid({
         user.id,
         gig.date,
         gig.startTime,
-        gig.endTime
+        gig.endTime,
+        gig.gigId
       );
 
       if (conflictingGigs.length > 0) {
@@ -312,6 +300,7 @@ export function DashboardGigItemGrid({
   const showWithdrawAction = showPlayerActions && gig.invitationStatus === "accepted" && !isPastGig;
   const showManagerActions = gig.isManager && !isPastGig;
   const isPlayerOnly = gig.isPlayer && !gig.isManager;
+  const needsResponse = gig.isPlayer && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
 
   // Determine gig URL: external gigs always go to pack, managers see full detail, players see pack
   const gigUrl = gig.isManager && !gig.isExternal
@@ -330,7 +319,7 @@ export function DashboardGigItemGrid({
 
   return (
     <>
-      <Card className={`overflow-hidden hover:bg-muted/50 transition-colors group h-full flex flex-col relative ${isPastGig ? 'opacity-70 saturate-75' : ''}`}>
+      <Card className={`overflow-hidden hover:bg-muted/50 transition-colors group h-full flex flex-col relative ${isPastGig ? 'opacity-70 saturate-75' : needsResponse ? 'opacity-75' : ''}`}>
         {onClick ? (
           <div
             onClick={() => onClick(gig)}

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getRolePaymentDefaults, updateRolePayment, getBandPaymentDefaults } from '@/lib/api/role-payment';
-import { formatCurrency } from '@/lib/utils/currency';
+import { formatCurrency, getCurrencySymbol } from '@/lib/utils/currency';
 import { PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -436,7 +436,7 @@ function RolePaymentForm(props: RolePaymentFormProps) {
             </SelectTrigger>
             <SelectContent>
               {CURRENCIES.map(c => (
-                <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>
+                <SelectItem key={c} value={c} className="text-xs">{getCurrencySymbol(c).trim()} {c}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -444,9 +444,9 @@ function RolePaymentForm(props: RolePaymentFormProps) {
           <button
             type="button"
             onClick={() => setShowCurrency(true)}
-            className="text-xs text-muted-foreground hover:text-foreground shrink-0"
+            className="text-sm text-muted-foreground hover:text-foreground shrink-0"
           >
-            {currency}<ChevronDown className="inline h-3 w-3 ml-0.5" />
+            {getCurrencySymbol(currency).trim()}<ChevronDown className="inline h-3 w-3 ml-0.5" />
           </button>
         )}
       </div>

@@ -71,6 +71,7 @@ const config: Config = {
   		},
         fontFamily: {
             sans: [
+              'PloniCurrency',
               'var(--font-ploni)',
               'var(--font-helvetica-now)',
               'Helvetica Neue',
@@ -79,6 +80,7 @@ const config: Config = {
               'sans-serif',
             ],
             hebrew: [
+              'PloniCurrency',
               'var(--font-ploni)',
               'var(--font-helvetica-now)',
               'sans-serif',

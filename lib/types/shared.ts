@@ -425,6 +425,7 @@ export interface PersonalEarnings {
   currency: string;
   notes: string | null;
   paidAt: string | null;
+  paymentMethod: string | null;
 }
 
 /**

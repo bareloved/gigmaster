@@ -27,15 +27,15 @@ export function getCurrencySymbol(currency: string): string {
  * Format a number as currency with proper decimal places and thousand separators
  * @param amount - The amount to format
  * @param currency - ISO 4217 currency code
- * @returns Formatted currency string (e.g., "₪1,500.00")
+ * @returns Formatted currency string (e.g., "₪ 1,500.00")
  */
 export function formatCurrency(amount: number, currency: string = 'ILS'): string {
-  const symbol = getCurrencySymbol(currency);
+  const symbol = getCurrencySymbol(currency).trim();
   const formatted = amount.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  return `${symbol}${formatted}`;
+  return `${symbol}\u200A${formatted}`;
 }
 
 /**

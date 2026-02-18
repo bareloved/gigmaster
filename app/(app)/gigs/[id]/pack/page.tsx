@@ -323,6 +323,8 @@ export default function GigPackPage() {
           roleId={pendingInvitationRole.gigRoleId}
           gigId={gigId}
           roleName={pendingInvitationRole.role ?? undefined}
+          agreedFee={pendingInvitationRole.agreedFee}
+          currency={pendingInvitationRole.currency}
         />
       )}
 

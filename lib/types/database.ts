@@ -514,6 +514,7 @@ export type Database = {
           personal_earnings_currency: string | null
           personal_earnings_notes: string | null
           personal_earnings_paid_at: string | null
+          personal_earnings_payment_method: string | null
           player_notes: string | null
           role_name: string | null
           sort_order: number | null
@@ -545,6 +546,7 @@ export type Database = {
           personal_earnings_currency?: string | null
           personal_earnings_notes?: string | null
           personal_earnings_paid_at?: string | null
+          personal_earnings_payment_method?: string | null
           player_notes?: string | null
           role_name?: string | null
           sort_order?: number | null
@@ -576,6 +578,7 @@ export type Database = {
           personal_earnings_currency?: string | null
           personal_earnings_notes?: string | null
           personal_earnings_paid_at?: string | null
+          personal_earnings_payment_method?: string | null
           player_notes?: string | null
           role_name?: string | null
           sort_order?: number | null

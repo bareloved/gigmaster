@@ -14,11 +14,12 @@ interface MonthViewEventPillProps {
 export function MonthViewEventPill({ gig, color, onClick }: MonthViewEventPillProps) {
   const { mode } = useTheme();
   const isDark = mode === "dark";
+  const needsResponse = gig.isPlayer && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
 
   return (
     <button
       data-calendar-event
-      className="flex items-center gap-1.5 w-full rounded px-1.5 py-2 text-left hover:opacity-80 cursor-pointer"
+      className={`flex items-center gap-1.5 w-full rounded px-1.5 py-2 text-left hover:opacity-80 cursor-pointer ${needsResponse ? 'opacity-60' : ''}`}
       style={{ backgroundColor: eventBgColor(color, isDark) }}
       onMouseEnter={(e) => startMarquee(e.currentTarget)}
       onMouseLeave={(e) => stopMarquee(e.currentTarget)}
