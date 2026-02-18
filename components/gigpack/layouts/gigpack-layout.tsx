@@ -40,9 +40,10 @@ interface GigPackLayoutProps {
   openMaps: () => void;
   slug: string;
   locale?: string;
+  paymentSection?: React.ReactNode;
 }
 
-export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
+export function GigPackLayout({ gigPack, openMaps, paymentSection }: GigPackLayoutProps) {
   const activeLocale = useLocale();
   
   const t = useTranslations("public");
@@ -709,6 +710,13 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
               </div>
             )}
 
+            {/* Payment section — mobile (after materials) */}
+            {paymentSection && (
+              <div className="lg:hidden pb-8 border-t border-border/30 pt-6">
+                {paymentSection}
+              </div>
+            )}
+
           </div>{/* end main column */}
 
           {/* ─── Sidebar Column (right, narrower — bordered card like reference) ─── */}
@@ -739,6 +747,13 @@ export function GigPackLayout({ gigPack, openMaps }: GigPackLayoutProps) {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Payment section — desktop (right column, after schedule) */}
+              {paymentSection && (
+                <div className="hidden lg:block">
+                  {paymentSection}
                 </div>
               )}
 

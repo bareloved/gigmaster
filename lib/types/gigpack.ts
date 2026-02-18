@@ -50,6 +50,9 @@ export interface Band {
   calendar_color: string | null;
   poster_skin: PosterSkin | null;
   default_lineup: LineupMember[];
+  default_fee: number | null;
+  default_currency: string | null;
+  default_payment_method: string | null;
   created_at: string;
   updated_at: string;
 }

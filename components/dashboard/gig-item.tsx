@@ -26,6 +26,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUser } from "@/lib/providers/user-provider";
 import type { DashboardGig } from "@/lib/types/shared";
+import { GigPaymentText } from "@/components/shared/gig-payment-text";
 import { StackedAvatars } from "@/components/shared/stacked-avatars";
 // PERFORMANCE: Use optimistic update hooks for instant UI feedback
 import {
@@ -94,6 +95,18 @@ const GigInnerContent = memo(function GigInnerContent({ gig }: { gig: DashboardG
         )}
         {gig.isPlayer && gig.isManager && gig.playerRoleName && (
           <span className="capitalize text-sm font-medium text-foreground/70">{gig.playerRoleName}</span>
+        )}
+        {gig.isPlayer && (
+          <GigPaymentText
+            agreedFee={gig.playerAgreedFee}
+            currency={gig.playerCurrency}
+            isPaid={gig.playerIsPaid}
+            paidAt={gig.playerPaidAt}
+            expectedPaymentDate={gig.playerExpectedPaymentDate}
+            personalEarningsAmount={gig.playerPersonalEarningsAmount}
+            personalEarningsCurrency={gig.playerPersonalEarningsCurrency}
+            className="text-[11px]"
+          />
         )}
       </div>
 
@@ -202,7 +215,8 @@ export function DashboardGigItem({
         user.id,
         gig.date,
         gig.startTime,
-        gig.endTime
+        gig.endTime,
+        gig.gigId
       );
 
       if (conflictingGigs.length > 0) {
@@ -265,6 +279,7 @@ export function DashboardGigItem({
   const showWithdrawAction = showPlayerActions && gig.invitationStatus === "accepted" && !isPastGig;
   const showManagerActions = gig.isManager && !isPastGig;
   const isPlayerOnly = gig.isPlayer && !gig.isManager;
+  const needsResponse = gig.isPlayer && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
 
   // Determine gig URL: external gigs always go to pack, managers see full detail, players see pack
   const gigUrl = gig.isManager && !gig.isExternal
@@ -273,7 +288,7 @@ export function DashboardGigItem({
 
   return (
     <>
-      <Card className={`p-3 sm:p-4 hover:bg-muted/50 transition-colors group ${isPastGig ? 'opacity-70 saturate-75' : ''}`}>
+      <Card className={`p-3 sm:p-4 hover:bg-muted/50 transition-colors group relative ${isPastGig ? 'opacity-70 saturate-75' : needsResponse ? 'opacity-75' : ''}`}>
         <div className="flex items-start gap-3 sm:gap-4">
           {/* Date Badge - Ticket stub style on all sizes */}
           <div className="flex flex-col items-center justify-center self-stretch pl-2 pr-6 sm:pl-3 sm:pr-7 border-r border-border/50 min-w-[48px] sm:min-w-[56px]">
@@ -331,6 +346,19 @@ export function DashboardGigItem({
                   </Badge>
                 ) : null}
               </div>
+
+              {/* Payment info (private to this player) */}
+              {gig.isPlayer && (
+                <GigPaymentText
+                  agreedFee={gig.playerAgreedFee}
+                  currency={gig.playerCurrency}
+                  isPaid={gig.playerIsPaid}
+                  paidAt={gig.playerPaidAt}
+                  expectedPaymentDate={gig.playerExpectedPaymentDate}
+                  personalEarningsAmount={gig.playerPersonalEarningsAmount}
+                  personalEarningsCurrency={gig.playerPersonalEarningsCurrency}
+                />
+              )}
 
               {/* Row 2: Buttons (manager only) */}
               {!isPlayerOnly && (
@@ -568,6 +596,16 @@ export function DashboardGigItem({
 
           </div>
         </div>
+
+        {/* Invited badge - centered on the whole card */}
+        {needsResponse && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <Badge className="bg-white hover:bg-white text-black border-0 text-sm px-3 py-1 shadow-lg pointer-events-auto">
+              <Mail className="h-3.5 w-3.5 mr-1.5" />
+              Invited
+            </Badge>
+          </div>
+        )}
       </Card>
 
       {/* Conflict Warning Dialog */}

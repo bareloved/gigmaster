@@ -40,6 +40,8 @@ import {
 } from "lucide-react";
 import { GigPack, LineupMember, PackingChecklistItem, GigMaterial, GigScheduleItem, Band } from "@/lib/gigpack/types";
 import { createClient } from "@/lib/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useUser } from "@/lib/providers/user-provider";
 import { useToast } from "@/hooks/use-toast";
 import { uploadImage, deleteImage, getPathFromUrl, validateImageFile } from "@/lib/utils/image-upload";
 import { updateGig } from "@/lib/api/gigs";
@@ -302,6 +304,8 @@ export function GigEditorPanel({
   isDuplicating = false,
 }: GigEditorPanelProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { user } = useUser();
   const { toast } = useToast();
   const t = useTranslations("gigpack");
   const tCommon = useTranslations("common");
@@ -715,6 +719,18 @@ export function GigEditorPanel({
   const updateLineupMember = (index: number, field: keyof LineupMember, value: string) => {
     const newLineup = [...lineup];
     newLineup[index] = { ...newLineup[index], [field]: value };
+    setLineup(newLineup);
+  };
+
+  const handleLocalPaymentSave = (index: number, data: { agreedFee: number | null; currency: string; paymentMethod: string | null; expectedPaymentDate: string | null }) => {
+    const newLineup = [...lineup];
+    newLineup[index] = {
+      ...newLineup[index],
+      agreedFee: data.agreedFee,
+      currency: data.currency,
+      paymentMethod: data.paymentMethod,
+      expectedPaymentDate: data.expectedPaymentDate,
+    };
     setLineup(newLineup);
   };
 
@@ -1609,6 +1625,12 @@ export function GigEditorPanel({
                 onRemoveMember={removeLineupMember}
                 placeholder={t("searchMusicians")}
                 disabled={isLoading}
+                bandId={bandId}
+                gigId={gigPack?.id}
+                onPaymentSaved={() => {
+                  queryClient.invalidateQueries({ queryKey: ['gig-pack', gigPack?.id, user?.id] });
+                }}
+                onLocalPaymentSave={handleLocalPaymentSave}
               />
               <CalendarInviteBanner />
             </>

@@ -4,15 +4,18 @@ import { useState } from 'react';
 import { Check, XIcon, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useInvitationAction } from '@/lib/hooks/use-invitation-action';
+import { formatCurrency } from '@/lib/utils/currency';
 import { cn } from '@/lib/utils';
 
 interface InvitationBannerProps {
   roleId: string;
   gigId: string;
   roleName?: string;
+  agreedFee?: number | null;
+  currency?: string | null;
 }
 
-export function InvitationBanner({ roleId, gigId, roleName }: InvitationBannerProps) {
+export function InvitationBanner({ roleId, gigId, roleName, agreedFee, currency }: InvitationBannerProps) {
   const [respondedStatus, setRespondedStatus] = useState<'accepted' | 'declined' | null>(null);
 
   const invitationMutation = useInvitationAction({
@@ -50,6 +53,11 @@ export function InvitationBanner({ roleId, gigId, roleName }: InvitationBannerPr
           <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
           <span className="text-blue-700 dark:text-blue-300 font-medium">
             You&apos;re invited to this gig{roleName ? ` as ${roleName}` : ''}
+            {agreedFee != null && (
+              <span className="ml-1.5 text-blue-800 dark:text-blue-200">
+                · {formatCurrency(agreedFee, currency || 'ILS')}
+              </span>
+            )}
           </span>
         </div>
         <div className="flex items-center gap-2">

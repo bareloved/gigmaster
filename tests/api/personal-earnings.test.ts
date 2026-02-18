@@ -74,6 +74,7 @@ describe("updatePersonalEarnings", () => {
       currency: "USD",
       notes: "Bank transfer",
       paidAt: "2024-12-20T00:00:00Z",
+      paymentMethod: null,
     });
 
     expect(mockSupabase.from).toHaveBeenCalledWith("gig_roles");
@@ -90,6 +91,7 @@ describe("updatePersonalEarnings", () => {
         currency: "ILS",
         notes: null,
         paidAt: null,
+        paymentMethod: null,
       })
     ).rejects.toThrow();
   });

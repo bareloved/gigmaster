@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { useContactAvatarLookup } from "@/hooks/use-contact-avatar-lookup";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverTrigger } from "@/components/ui/popover";
 import { RoleSelect } from "@/components/gigpack/ui/role-select";
+import { RolePaymentPopoverContent, type LocalPaymentData } from "@/components/roles/role-payment-popover";
 import { cn } from "@/lib/utils";
-import { X } from "lucide-react";
+import { X, Banknote } from "lucide-react";
 import { InvitationStatusIcon } from "@/components/gigpack/ui/invitation-status-icon";
 
 /**
@@ -29,8 +32,14 @@ interface LineupMemberRowProps {
   instrument?: string | null;
   invitationStatus?: string;
   avatarUrl?: string | null;
+  gigRoleId?: string;
+  bandId?: string | null;
+  hasPayment?: boolean;
+  localPaymentData?: LocalPaymentData | null;
   onRoleChange: (role: string) => void;
   onRemove: () => void;
+  onPaymentSaved?: () => void;
+  onLocalPaymentSave?: (data: LocalPaymentData) => void;
   disabled?: boolean;
 }
 
@@ -42,10 +51,18 @@ export function LineupMemberRow({
   instrument,
   invitationStatus,
   avatarUrl: propAvatarUrl,
+  gigRoleId,
+  bandId,
+  hasPayment = false,
+  localPaymentData,
   onRoleChange,
   onRemove,
+  onPaymentSaved,
+  onLocalPaymentSave,
   disabled = false,
 }: LineupMemberRowProps) {
+  const [paymentOpen, setPaymentOpen] = useState(false);
+
   // Look up avatar for the name if not provided via props
   const { avatarUrl: lookupAvatarUrl } = useContactAvatarLookup(name);
   const avatarUrl = propAvatarUrl || lookupAvatarUrl;
@@ -88,20 +105,64 @@ export function LineupMemberRow({
         />
       </div>
 
-      {/* Remove button */}
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={onRemove}
-        disabled={disabled}
-        className={cn(
-          "h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive",
-          "md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-        )}
-      >
-        <X className="h-4 w-4" />
-      </Button>
+      {/* Payment + Remove — tighter gap */}
+      <div className="flex items-center gap-0.5 shrink-0">
+        <Popover open={paymentOpen} onOpenChange={setPaymentOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-8 w-8 border",
+                hasPayment
+                  ? "text-green-600 dark:text-green-400 border-green-200 dark:border-green-800"
+                  : "text-muted-foreground hover:text-primary border-input"
+              )}
+            >
+              <Banknote className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          {paymentOpen && (
+            gigRoleId ? (
+              <RolePaymentPopoverContent
+                mode="db"
+                roleId={gigRoleId}
+                bandId={bandId ?? null}
+                onSaved={() => {
+                  onPaymentSaved?.();
+                  setPaymentOpen(false);
+                }}
+                onClose={() => setPaymentOpen(false)}
+              />
+            ) : (
+              <RolePaymentPopoverContent
+                mode="local"
+                bandId={bandId ?? null}
+                initialData={localPaymentData}
+                onSaveLocal={(data) => {
+                  onLocalPaymentSave?.(data);
+                  setPaymentOpen(false);
+                }}
+                onClose={() => setPaymentOpen(false)}
+              />
+            )
+          )}
+        </Popover>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={onRemove}
+          disabled={disabled}
+          className={cn(
+            "h-8 w-8 text-muted-foreground hover:text-destructive",
+            "md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+          )}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }

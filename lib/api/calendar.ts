@@ -19,7 +19,8 @@ export async function checkGigConflicts(
   userId: string,
   date: string,
   startTime: string | null,
-  endTime: string | null
+  endTime: string | null,
+  excludeGigId?: string
 ): Promise<DashboardGig[]> {
   // Fetch all gigs for the user on the same date
   const gigDate = new Date(date);
@@ -30,8 +31,10 @@ export async function checkGigConflicts(
     offset: 0,
   });
 
-  // Filter to only gigs on the exact date
-  const gigsOnDate = gigs.filter((gig) => gig.date === date);
+  // Filter to only gigs on the exact date, excluding the gig being accepted
+  const gigsOnDate = gigs.filter(
+    (gig) => gig.date === date && gig.gigId !== excludeGigId
+  );
 
   // If no times specified, any gig on same date is a potential conflict
   if (!startTime || !endTime) {

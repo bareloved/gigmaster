@@ -30,13 +30,14 @@ export const helveticaNow = localFont({
   fallback: ["Helvetica Neue", "Helvetica", "Arial", "sans-serif"],
 });
 
-// Hebrew font: Ploni
-// unicode-range restricts this font to the Hebrew Unicode blocks so the browser
-// always uses Ploni for Hebrew characters regardless of fallback-stack order.
+// Hebrew font + numbers: Ploni
+// unicode-range restricts this font to specific Unicode blocks so the browser
+// always uses Ploni for Hebrew characters and digits regardless of fallback order.
 // Helvetica Now Display contains some Hebrew glyphs which would otherwise win
 // because it appears first in the font-sans stack.
 //
 // Ranges covered:
+//   U+0030-0039  ASCII digits (0-9) — numbers rendered in Ploni across the app
 //   U+0590-05FF  Hebrew block (alef-bet, vowels, cantillation marks, punctuation)
 //   U+FB1D-FB4F  Hebrew Presentation Forms (precomposed ligatures used in some fonts)
 //   U+200F        Right-to-Left Mark (RTL control character — keeps spacing correct)
@@ -90,7 +91,7 @@ export const ploni = localFont({
     {
       prop: "unicode-range",
       value:
-        "U+0590-05FF, U+200F, U+FB1D-FB4F",
+        "U+0030-0039, U+0590-05FF, U+200F, U+FB1D-FB4F",
     },
   ],
 });

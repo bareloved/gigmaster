@@ -52,12 +52,13 @@ export function PersonalEarningsForm({ gigId }: PersonalEarningsFormProps) {
   }
 
   const mutation = useMutation({
-    mutationFn: (params: { roleId: string; amount: number | null; currency: string; notes: string | null; paidAt: string | null }) =>
+    mutationFn: (params: { roleId: string; amount: number | null; currency: string; notes: string | null; paidAt: string | null; paymentMethod: string | null }) =>
       updatePersonalEarnings(params.roleId, {
         amount: params.amount,
         currency: params.currency,
         notes: params.notes,
         paidAt: params.paidAt,
+        paymentMethod: params.paymentMethod,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['personal-earnings', gigId] });
@@ -80,6 +81,7 @@ export function PersonalEarningsForm({ gigId }: PersonalEarningsFormProps) {
       currency,
       notes: notes || null,
       paidAt: paidAt ? new Date(paidAt).toISOString() : null,
+      paymentMethod: null,
     });
   };
 

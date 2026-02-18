@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  // DollarSign, // FROZEN: Money page
+  Banknote,
   LogOut,
   // Users, // FROZEN: My Circle page
   History,
@@ -121,15 +121,15 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
-              {/* Money - FROZEN */}
-              {/* <SidebarMenuItem>
+              {/* Money */}
+              <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/money"}>
                   <Link href="/money" prefetch={false}>
-                    <DollarSign />
+                    <Banknote />
                     <span>Money</span>
                   </Link>
                 </SidebarMenuButton>
-              </SidebarMenuItem> */}
+              </SidebarMenuItem>
 
               {/* Calendar */}
               <SidebarMenuItem>

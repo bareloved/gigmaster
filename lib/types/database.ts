@@ -20,7 +20,10 @@ export type Database = {
           band_logo_url: string | null
           calendar_color: string | null
           created_at: string | null
+          default_currency: string | null
+          default_fee: number | null
           default_lineup: Json | null
+          default_payment_method: string | null
           description: string | null
           hero_image_url: string | null
           id: string
@@ -34,7 +37,10 @@ export type Database = {
           band_logo_url?: string | null
           calendar_color?: string | null
           created_at?: string | null
+          default_currency?: string | null
+          default_fee?: number | null
           default_lineup?: Json | null
+          default_payment_method?: string | null
           description?: string | null
           hero_image_url?: string | null
           id?: string
@@ -48,7 +54,10 @@ export type Database = {
           band_logo_url?: string | null
           calendar_color?: string | null
           created_at?: string | null
+          default_currency?: string | null
+          default_fee?: number | null
           default_lineup?: Json | null
+          default_payment_method?: string | null
           description?: string | null
           hero_image_url?: string | null
           id?: string
@@ -498,11 +507,14 @@ export type Database = {
           notes: string | null
           paid_amount: number | null
           paid_at: string | null
+          payment_method: string | null
           payment_status: string | null
+          expected_payment_date: string | null
           personal_earnings_amount: number | null
           personal_earnings_currency: string | null
           personal_earnings_notes: string | null
           personal_earnings_paid_at: string | null
+          personal_earnings_payment_method: string | null
           player_notes: string | null
           role_name: string | null
           sort_order: number | null
@@ -527,11 +539,14 @@ export type Database = {
           notes?: string | null
           paid_amount?: number | null
           paid_at?: string | null
+          payment_method?: string | null
           payment_status?: string | null
+          expected_payment_date?: string | null
           personal_earnings_amount?: number | null
           personal_earnings_currency?: string | null
           personal_earnings_notes?: string | null
           personal_earnings_paid_at?: string | null
+          personal_earnings_payment_method?: string | null
           player_notes?: string | null
           role_name?: string | null
           sort_order?: number | null
@@ -556,11 +571,14 @@ export type Database = {
           notes?: string | null
           paid_amount?: number | null
           paid_at?: string | null
+          payment_method?: string | null
           payment_status?: string | null
+          expected_payment_date?: string | null
           personal_earnings_amount?: number | null
           personal_earnings_currency?: string | null
           personal_earnings_notes?: string | null
           personal_earnings_paid_at?: string | null
+          personal_earnings_payment_method?: string | null
           player_notes?: string | null
           role_name?: string | null
           sort_order?: number | null
@@ -1196,10 +1214,13 @@ export type Database = {
           p_user_id: string
         }
         Returns: {
+          agreed_fee: number
           band_id: string
           band_name: string
+          call_time: string
           date: string
           end_time: string
+          expected_payment_date: string
           gig_id: string
           gig_title: string
           gig_type: string
@@ -1207,10 +1228,17 @@ export type Database = {
           host_id: string
           host_name: string
           invitation_status: string
+          is_external: boolean
           is_manager: boolean
+          is_paid: boolean
           is_player: boolean
           location_name: string
+          paid_at: string
+          payment_method: string
           payment_status: string
+          personal_earnings_amount: number
+          personal_earnings_currency: string
+          player_currency: string
           player_gig_role_id: string
           player_role_name: string
           role_stats: Json
@@ -1222,8 +1250,13 @@ export type Database = {
       list_past_gigs: {
         Args: { p_limit?: number; p_offset?: number; p_user_id: string }
         Returns: {
+          agreed_fee: number
+          band_id: string
+          band_name: string
+          call_time: string
           date: string
           end_time: string
+          expected_payment_date: string
           gig_id: string
           gig_title: string
           gig_type: string
@@ -1231,10 +1264,17 @@ export type Database = {
           host_id: string
           host_name: string
           invitation_status: string
+          is_external: boolean
           is_manager: boolean
+          is_paid: boolean
           is_player: boolean
           location_name: string
+          paid_at: string
+          payment_method: string
           payment_status: string
+          personal_earnings_amount: number
+          personal_earnings_currency: string
+          player_currency: string
           player_gig_role_id: string
           player_role_name: string
           start_time: string

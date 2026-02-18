@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Music, Calendar, Guitar } from "lucide-react";
+import { Music, Calendar, Guitar, Banknote } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { title: "Gigs", href: "/gigs", icon: Music },
   { title: "Calendar", href: "/calendar", icon: Calendar },
   { title: "Bands", href: "/bands", icon: Guitar },
+  { title: "Money", href: "/money", icon: Banknote },
 ] as const;
 
 export function BottomNav() {

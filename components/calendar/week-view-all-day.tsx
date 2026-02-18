@@ -51,10 +51,11 @@ export function WeekViewAllDay({
             >
               {dayGigs.map((gig) => {
                 const color = getGigColor(gig.bandId);
+                const needsResponse = gig.isPlayer && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
                 return (
                   <button
                     key={gig.gigId}
-                    className="block w-full rounded px-1 py-0.5 text-left text-[10px] font-medium truncate cursor-pointer hover:opacity-80"
+                    className={`block w-full rounded px-1 py-0.5 text-left text-[10px] font-medium truncate cursor-pointer hover:opacity-80 ${needsResponse ? 'opacity-60' : ''}`}
                     style={{
                       backgroundColor: eventBgColor(color, isDark),
                       color: eventTextColor(color, isDark),

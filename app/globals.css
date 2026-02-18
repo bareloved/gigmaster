@@ -2,6 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Currency symbols — same Ploni font but rendered ~80% size so symbols
+   (₪ $ € £ ¥) don't visually overpower the digits next to them.
+   The browser uses these @font-face rules automatically via unicode-range. */
+@font-face {
+  font-family: 'PloniCurrency';
+  src: url('/fonts/ploni-regular-aaa.otf') format('opentype');
+  font-weight: 300 400;
+  font-display: swap;
+  size-adjust: 80%;
+  unicode-range: U+0024, U+00A3, U+00A5, U+20A0-20CF;
+}
+@font-face {
+  font-family: 'PloniCurrency';
+  src: url('/fonts/ploni-demibold-aaa.otf') format('opentype');
+  font-weight: 500 600;
+  font-display: swap;
+  size-adjust: 80%;
+  unicode-range: U+0024, U+00A3, U+00A5, U+20A0-20CF;
+}
+@font-face {
+  font-family: 'PloniCurrency';
+  src: url('/fonts/ploni-bold-aaa.otf') format('opentype');
+  font-weight: 700 900;
+  font-display: swap;
+  size-adjust: 80%;
+  unicode-range: U+0024, U+00A3, U+00A5, U+20A0-20CF;
+}
+
+/* Force form elements and Radix portals to use the app font */
+input, textarea, select, button,
+[data-radix-popper-content-wrapper],
+[data-radix-popper-content-wrapper] * {
+  font-family: PloniCurrency, var(--font-ploni), var(--font-helvetica-now), 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
 @layer base {
   :root {
     /* Clean Minimal - Warm neutrals + copper accent */

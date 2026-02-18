@@ -53,6 +53,7 @@ import { format, parseISO } from "date-fns";
 import dynamic from "next/dynamic";
 import { GigStatusBadge } from "@/components/gigs/shared/status-badge";
 import { GigActivityWidget } from "@/components/dashboard/activity-widget";
+import { EarningsWidget } from "@/components/dashboard/earnings-widget";
 import { useDashboardKeyboardShortcuts } from "@/hooks/use-dashboard-keyboard-shortcuts";
 import { getGig } from "../gigs/actions";
 import { AppLoadingScreen } from "@/components/layout/app-loading-screen";
@@ -539,6 +540,9 @@ export default function DashboardPage() {
 
         {/* RIGHT COLUMN (Side - 1/3 width) */}
         <div className="space-y-6">
+            {/* Earnings Widget */}
+            <EarningsWidget />
+
             {/* Band & Changes Activity Feed */}
             <GigActivityWidget
               limit={10}

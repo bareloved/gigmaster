@@ -44,6 +44,7 @@ export function WeekViewEvent({
   const { mode } = useTheme();
   const isDark = mode === "dark";
   const isCompact = height < 40;
+  const needsResponse = gig.isPlayer && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
   const widthPercent = 100 / totalColumns;
   const leftPercent = column * widthPercent;
 
@@ -58,7 +59,7 @@ export function WeekViewEvent({
   return (
     <button
       data-calendar-event
-      className="absolute z-10 cursor-pointer overflow-hidden rounded-md border text-left transition-all hover:shadow-md"
+      className={`absolute z-10 cursor-pointer overflow-hidden rounded-md border text-left transition-all hover:shadow-md ${needsResponse ? 'opacity-60' : ''}`}
       onMouseEnter={(e) => startMarquee(e.currentTarget)}
       onMouseLeave={(e) => stopMarquee(e.currentTarget)}
       style={{

@@ -94,6 +94,7 @@ export async function getGigPackFull(gigId: string): Promise<GigPack | null> {
         contact_id,
         invitation_status,
         sort_order,
+        agreed_fee,
         contact:musician_contacts(
           email,
           phone
