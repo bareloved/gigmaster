@@ -1,6 +1,6 @@
 # App Overview
 
-> Last updated: 2026-02-01
+> Last updated: 2026-02-18
 
 ## 1. What this app is
 
@@ -13,7 +13,7 @@
 - **Lineup & Roles:** Invite musicians to roles, track acceptance status, manage payments.
 - **Preparation:** Musicians track learning progress and access materials (charts, audio, PDF setlists).
 - **Financials:** Track earnings (as player) and payouts (as manager).
-- **Calendar Sync:** ICS feed export + Google Calendar OAuth import with conflict detection.
+- **Calendar Sync:** Google Calendar OAuth import with conflict detection, in-app calendar with swipe navigation and 3-day view.
 
 ## 2. Tech stack
 
@@ -26,7 +26,7 @@
 | Database | Supabase (PostgreSQL) |
 | Storage | Supabase Storage (avatars, setlist PDFs) |
 | Email | Resend SDK |
-| Calendar | Google Calendar API (`googleapis`), ICS generation (`ics`) |
+| Calendar | Google Calendar API (`googleapis`) |
 | Maps | Google Places API (venue autocomplete) |
 | Testing | Vitest, React Testing Library, happy-dom |
 | i18n | next-intl |
@@ -52,8 +52,8 @@ docs/               # Project documentation
 
 **Key entrypoints:**
 - `app/layout.tsx` — Root layout with providers
-- `app/(app)/dashboard/page.tsx` — Main dashboard
-- `app/(app)/gigs/page.tsx` — Gig list and editor
+- `app/(app)/gigs/page.tsx` — Main landing page (gig list with editor)
+- `app/(app)/calendar/page.tsx` — Calendar view with swipe navigation
 - `components/layout/top-nav.tsx` — Primary navigation
 - `components/gigpack/editor/gig-editor-panel.tsx` — GigPack editor
 
@@ -124,7 +124,7 @@ Managed in `supabase/migrations/`. Applied manually via Supabase Dashboard SQL E
 | **Roles & Lineup** | Connect gigs to musicians. Invitation workflow. | `lib/api/gig-roles.ts`, `lib/api/gig-invitations.ts` |
 | **Setlists** | Drag-and-drop, sections, bulk import, learning status, PDF upload. | `lib/api/setlist-items.ts`, `lib/api/setlist-learning.ts` |
 | **Money** | Player earnings and manager payouts. Payment status enum. | `lib/api/money.ts`, `lib/api/player-money.ts` |
-| **Calendar** | ICS feed, Google Calendar OAuth, conflict detection. | `lib/api/calendar.ts`, `lib/api/calendar-google.ts` |
+| **Calendar** | Google Calendar OAuth import, calendar invites, conflict detection. | `lib/api/calendar.ts`, `lib/api/calendar-google.ts` |
 | **Contacts** | "My Circle" with smart learning and auto-linking. | `lib/api/musician-contacts.ts` |
 | **Notifications** | Real-time via Supabase Realtime + polling backup. | `lib/api/notifications.ts` |
 
@@ -134,30 +134,30 @@ Managed in `supabase/migrations/`. Applied manually via Supabase Dashboard SQL E
 
 | Route | Description |
 |-------|-------------|
-| `/dashboard` | Main overview (player/manager tabs, search, filters) |
-| `/gigs` | Gig list with editor panel |
+| `/gigs` | Main landing page — gig list with upcoming/previous toggle and editor panel |
 | `/gigs/[id]` | Gig detail |
 | `/gigs/[id]/pack` | GigPack mobile view |
 | `/bands` | Band management |
 | `/money` | Earnings (player) and payouts (manager) |
 | `/my-circle` | Musician contacts |
-| `/calendar` | In-app calendar view |
+| `/calendar` | In-app calendar view (month/week/3-day) with swipe navigation |
 | `/calendar/import` | Google Calendar import |
 | `/history` | Past gigs archive |
 | `/invitations` | Pending/declined invitations |
-| `/profile` | User profile with avatar upload |
-| `/settings/calendar` | ICS feed + Google Calendar connection |
+| `/settings` | Unified settings (Profile, General, Calendar, Account) |
+| `/dashboard` | Dashboard (grayed out, pending redesign) |
 
 ### API routes
 
 | Endpoint | Purpose |
 |----------|---------|
-| `/api/calendar.ics` | Public ICS feed (token-protected) |
 | `/api/calendar/*` | Google Calendar OAuth + sync |
 | `/api/auth/google-calendar/callback` | OAuth callback |
 | `/api/send-invitation` | Email invitations via Resend |
 | `/api/gigpack/[slug]/*` | Public GigPack endpoints |
 | `/api/gig/[id]/*` | Individual gig operations |
+| `/api/webhooks/*` | Google Calendar event webhooks |
+| `/api/account/*` | Account deletion |
 
 ## 9. Files, media, and exports
 
@@ -183,7 +183,7 @@ Managed in `supabase/migrations/`. Applied manually via Supabase Dashboard SQL E
 ## 11. Observability, testing, performance
 
 - **Logging:** Minimal server-side logging. `gig_activity_log` table tracks business events.
-- **Tests:** Vitest test suite with API and component tests. See `docs/TESTING.md`.
+- **Tests:** Vitest test suite — 827 tests across 26 files, 95% API coverage. See `docs/TESTING.md`.
 - **Performance:**
   - TanStack Query caching throughout (2-5 min stale times)
   - Dashboard RPC functions (`list_dashboard_gigs`, `list_past_gigs`) for single-query loading
@@ -209,4 +209,4 @@ Managed in `supabase/migrations/`. Applied manually via Supabase Dashboard SQL E
 5. **No bulk payment updates** — One at a time
 6. **No CSV/PDF export** — For financial data
 7. **Manual overdue marking** — No automatic detection
-8. **Test coverage gaps** — API layer tested, most components not yet
+8. **Component test coverage** — API layer at 95%, component tests still limited
