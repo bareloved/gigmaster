@@ -44,16 +44,15 @@ npm run dev
 ```
 /app
   /(app)                # Authenticated routes
-    /bands              # Band/project management
-    /calendar           # Calendar view & Google import
-    /dashboard          # Main dashboard (player/manager views)
-    /gigs               # Gig editor, detail, and pack views
+    /gigs               # Main landing page — gig list, editor, and pack views
+    /bands              # Band/act management
+    /calendar           # Calendar view (month/week/3-day) with swipe navigation
+    /dashboard          # Dashboard (grayed out, pending redesign)
     /history            # Past gigs archive
     /invitations        # Invitation acceptance
     /money              # Earnings & payouts
     /my-circle          # Musician contacts
-    /profile            # User profile
-    /settings           # App settings (calendar, etc.)
+    /settings           # Unified settings (Profile, General, Calendar, Account)
   /api                  # API routes (calendar, invitations, gigpack)
   /auth                 # Authentication pages
 
@@ -118,10 +117,10 @@ npm run dev
 - Invitation acceptance/decline with conflict detection
 
 ### Calendar
-- ICS feed export (subscribe from any calendar app)
 - Google Calendar OAuth import with smart schedule parsing
-- In-app calendar view (month/week/day) with role filtering
-- Conflict detection across Ensemble gigs and Google Calendar
+- Automatic calendar invites sent to musicians on gig creation
+- In-app calendar view (month/week/3-day) with swipe navigation and animations
+- Conflict detection across GigMaster gigs and Google Calendar
 
 ### Money
 - Player earnings view with year/month filtering
@@ -155,4 +154,4 @@ npm run dev
 
 See [CHANGELOG.md](./CHANGELOG.md) for recent changes and [BUILD_STEPS.md](./BUILD_STEPS.md) for full build history.
 
-**Not yet production-ready.** Active development areas: invitation polish, calendar enhancements, payment tracking improvements, and mobile companion app.
+**Not yet production-ready.** Active development areas: UI redesign, calendar enhancements, payment tracking improvements, and mobile companion app. Test suite: 827 tests across 26 files (95% API coverage).
