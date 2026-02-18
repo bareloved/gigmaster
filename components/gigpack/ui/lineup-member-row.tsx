@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger } from "@/components/ui/popover";
 import { RoleSelect } from "@/components/gigpack/ui/role-select";
-import { RolePaymentPopoverContent } from "@/components/roles/role-payment-popover";
+import { RolePaymentPopoverContent, type LocalPaymentData } from "@/components/roles/role-payment-popover";
 import { cn } from "@/lib/utils";
 import { X, Banknote } from "lucide-react";
 import { InvitationStatusIcon } from "@/components/gigpack/ui/invitation-status-icon";
@@ -35,9 +35,11 @@ interface LineupMemberRowProps {
   gigRoleId?: string;
   bandId?: string | null;
   hasPayment?: boolean;
+  localPaymentData?: LocalPaymentData | null;
   onRoleChange: (role: string) => void;
   onRemove: () => void;
   onPaymentSaved?: () => void;
+  onLocalPaymentSave?: (data: LocalPaymentData) => void;
   disabled?: boolean;
 }
 
@@ -52,9 +54,11 @@ export function LineupMemberRow({
   gigRoleId,
   bandId,
   hasPayment = false,
+  localPaymentData,
   onRoleChange,
   onRemove,
   onPaymentSaved,
+  onLocalPaymentSave,
   disabled = false,
 }: LineupMemberRowProps) {
   const [paymentOpen, setPaymentOpen] = useState(false);
@@ -101,8 +105,8 @@ export function LineupMemberRow({
         />
       </div>
 
-      {/* Payment popover — only for saved roles */}
-      {gigRoleId && (
+      {/* Payment + Remove — tighter gap */}
+      <div className="flex items-center gap-0.5 shrink-0">
         <Popover open={paymentOpen} onOpenChange={setPaymentOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -110,43 +114,55 @@ export function LineupMemberRow({
               variant="ghost"
               size="icon"
               className={cn(
-                "h-8 w-8 shrink-0",
+                "h-8 w-8 border",
                 hasPayment
-                  ? "text-green-600 dark:text-green-400"
-                  : "text-muted-foreground hover:text-primary"
+                  ? "text-green-600 dark:text-green-400 border-green-200 dark:border-green-800"
+                  : "text-muted-foreground hover:text-primary border-input"
               )}
             >
               <Banknote className="h-4 w-4" />
             </Button>
           </PopoverTrigger>
           {paymentOpen && (
-            <RolePaymentPopoverContent
-              roleId={gigRoleId}
-              bandId={bandId ?? null}
-              onSaved={() => {
-                onPaymentSaved?.();
-                setPaymentOpen(false);
-              }}
-              onClose={() => setPaymentOpen(false)}
-            />
+            gigRoleId ? (
+              <RolePaymentPopoverContent
+                mode="db"
+                roleId={gigRoleId}
+                bandId={bandId ?? null}
+                onSaved={() => {
+                  onPaymentSaved?.();
+                  setPaymentOpen(false);
+                }}
+                onClose={() => setPaymentOpen(false)}
+              />
+            ) : (
+              <RolePaymentPopoverContent
+                mode="local"
+                bandId={bandId ?? null}
+                initialData={localPaymentData}
+                onSaveLocal={(data) => {
+                  onLocalPaymentSave?.(data);
+                  setPaymentOpen(false);
+                }}
+                onClose={() => setPaymentOpen(false)}
+              />
+            )
           )}
         </Popover>
-      )}
-
-      {/* Remove button */}
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={onRemove}
-        disabled={disabled}
-        className={cn(
-          "h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive",
-          "md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-        )}
-      >
-        <X className="h-4 w-4" />
-      </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={onRemove}
+          disabled={disabled}
+          className={cn(
+            "h-8 w-8 text-muted-foreground hover:text-destructive",
+            "md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+          )}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }

@@ -23,6 +23,10 @@ interface GigRoleRow {
   notes: string | null;
   invitation_status: string | null;
   musician_id: string | null;
+  agreed_fee: number | null;
+  currency: string | null;
+  payment_method: string | null;
+  expected_payment_date: string | null;
 }
 
 interface SetlistItemRow {
@@ -575,6 +579,10 @@ export async function getGig(id: string): Promise<GigPack | null> {
       invitationStatus: r.invitation_status || undefined,
       gigRoleId: r.id,
       userId: r.musician_id || undefined,
+      agreedFee: r.agreed_fee ?? undefined,
+      currency: r.currency || undefined,
+      paymentMethod: r.payment_method || undefined,
+      expectedPaymentDate: r.expected_payment_date || undefined,
     })) || [],
     setlist: gig.setlist,
     setlist_pdf_url: gig.setlist_pdf_url || null,

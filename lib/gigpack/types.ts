@@ -21,8 +21,14 @@ export interface LineupMember {
   invitationStatus?: string;
   /** Gig role ID from the database (for tracking existing roles) */
   gigRoleId?: string;
-  /** Agreed fee set by manager (transient, for UI display) */
+  /** Agreed fee set by manager */
   agreedFee?: number | null;
+  /** Currency for the agreed fee (e.g. 'ILS', 'USD') */
+  currency?: string | null;
+  /** Payment method (e.g. 'Cash', 'Bank Transfer') */
+  paymentMethod?: string | null;
+  /** Expected payment date (ISO date string) */
+  expectedPaymentDate?: string | null;
   /** Email for display (transient, not persisted to DB) */
   email?: string | null;
   /** Phone for display (transient, not persisted to DB) */

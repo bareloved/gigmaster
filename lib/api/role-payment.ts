@@ -16,6 +16,32 @@ export interface RolePaymentDefaults {
 }
 
 /**
+ * Fetch band-level payment defaults (fee, currency, method).
+ * Used by local mode when no roleId exists yet.
+ */
+export async function getBandPaymentDefaults(
+  bandId: string
+): Promise<{ defaultFee: number | null; defaultCurrency: string | null; defaultPaymentMethod: string | null } | null> {
+  const supabase = createClient();
+
+  const { data: band } = await supabase
+    .from('bands')
+    .select('default_fee, default_currency, default_payment_method')
+    .eq('id', bandId)
+    .single();
+
+  if (!band || (band.default_fee == null && band.default_payment_method == null)) {
+    return null;
+  }
+
+  return {
+    defaultFee: band.default_fee,
+    defaultCurrency: band.default_currency,
+    defaultPaymentMethod: band.default_payment_method,
+  };
+}
+
+/**
  * Fetch payment defaults for a role: existing data, last-gig history, band defaults.
  */
 export async function getRolePaymentDefaults(

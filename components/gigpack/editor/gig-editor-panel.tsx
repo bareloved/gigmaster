@@ -722,6 +722,18 @@ export function GigEditorPanel({
     setLineup(newLineup);
   };
 
+  const handleLocalPaymentSave = (index: number, data: { agreedFee: number | null; currency: string; paymentMethod: string | null; expectedPaymentDate: string | null }) => {
+    const newLineup = [...lineup];
+    newLineup[index] = {
+      ...newLineup[index],
+      agreedFee: data.agreedFee,
+      currency: data.currency,
+      paymentMethod: data.paymentMethod,
+      expectedPaymentDate: data.expectedPaymentDate,
+    };
+    setLineup(newLineup);
+  };
+
   // Add member from search (My Circle or System Users)
   const addLineupMemberFromSearch = (member: SelectedMember) => {
     // Build the lineup member with user/contact IDs for proper notification handling
@@ -1618,6 +1630,7 @@ export function GigEditorPanel({
                 onPaymentSaved={() => {
                   queryClient.invalidateQueries({ queryKey: ['gig-pack', gigPack?.id, user?.id] });
                 }}
+                onLocalPaymentSave={handleLocalPaymentSave}
               />
               <CalendarInviteBanner />
             </>
