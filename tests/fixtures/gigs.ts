@@ -89,6 +89,8 @@ export const mockGigRole: GigRole = {
   personal_earnings_currency: "ILS",
   personal_earnings_notes: null,
   personal_earnings_paid_at: null,
+  payment_method: null,
+  expected_payment_date: null,
 };
 
 /**

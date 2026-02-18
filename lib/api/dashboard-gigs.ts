@@ -24,6 +24,15 @@ interface DashboardRpcRow {
   role_stats?: { total: number; invited: number; accepted: number; declined: number; pending: number } | null;
   band_id: string | null;
   band_name: string | null;
+  agreed_fee: number | null;
+  player_currency: string | null;
+  is_paid: boolean | null;
+  paid_at: string | null;
+  payment_method: string | null;
+  expected_payment_date: string | null;
+  personal_earnings_amount: number | null;
+  personal_earnings_currency: string | null;
+  is_external: boolean;
 }
 
 /**
@@ -106,10 +115,20 @@ export async function listDashboardGigs(
         hostId: row.host_id,
         hostName: row.host_name,
         bandId: row.band_id,
+        bandName: row.band_name,
         projectName: row.band_name,
         heroImageUrl: row.hero_image_url,
         gigType: row.gig_type,
         roleStats: row.role_stats,
+        isExternal: row.is_external ?? false,
+        playerAgreedFee: row.agreed_fee,
+        playerCurrency: row.player_currency,
+        playerIsPaid: row.is_paid,
+        playerPaidAt: row.paid_at,
+        playerPaymentMethod: row.payment_method,
+        playerExpectedPaymentDate: row.expected_payment_date,
+        playerPersonalEarningsAmount: row.personal_earnings_amount,
+        playerPersonalEarningsCurrency: row.personal_earnings_currency,
       }));
 
       return {
@@ -177,7 +196,15 @@ async function listDashboardGigsFallback(
         musician_name,
         invitation_status,
         payment_status,
-        musician_id
+        musician_id,
+        agreed_fee,
+        currency,
+        is_paid,
+        paid_at,
+        payment_method,
+        expected_payment_date,
+        personal_earnings_amount,
+        personal_earnings_currency
       )
     `)
     .gte("date", fromStr)
@@ -251,6 +278,14 @@ async function listDashboardGigsFallback(
         gigType: gig.gig_type,
         roleStats,
         acceptedMusicians,
+        playerAgreedFee: userRole?.agreed_fee ?? null,
+        playerCurrency: userRole?.currency ?? null,
+        playerIsPaid: userRole?.is_paid ?? null,
+        playerPaidAt: userRole?.paid_at ?? null,
+        playerPaymentMethod: userRole?.payment_method ?? null,
+        playerExpectedPaymentDate: userRole?.expected_payment_date ?? null,
+        playerPersonalEarningsAmount: userRole?.personal_earnings_amount ?? null,
+        playerPersonalEarningsCurrency: userRole?.personal_earnings_currency ?? null,
       });
     }
   }
@@ -321,7 +356,15 @@ export async function listRecentPastGigs(
         role_name,
         invitation_status,
         payment_status,
-        musician_id
+        musician_id,
+        agreed_fee,
+        currency,
+        is_paid,
+        paid_at,
+        payment_method,
+        expected_payment_date,
+        personal_earnings_amount,
+        personal_earnings_currency
       )
     `)
     .gte("date", fromStr)
@@ -371,6 +414,14 @@ export async function listRecentPastGigs(
         invitationStatus: userRole?.invitation_status || null,
         hostId: gig.owner_id,
         hostName,
+        playerAgreedFee: userRole?.agreed_fee ?? null,
+        playerCurrency: userRole?.currency ?? null,
+        playerIsPaid: userRole?.is_paid ?? null,
+        playerPaidAt: userRole?.paid_at ?? null,
+        playerPaymentMethod: userRole?.payment_method ?? null,
+        playerExpectedPaymentDate: userRole?.expected_payment_date ?? null,
+        playerPersonalEarningsAmount: userRole?.personal_earnings_amount ?? null,
+        playerPersonalEarningsCurrency: userRole?.personal_earnings_currency ?? null,
       });
     }
   }
@@ -422,6 +473,17 @@ export async function listAllPastGigs(
         invitationStatus: row.invitation_status,
         hostId: row.host_id,
         hostName: row.host_name,
+        bandId: row.band_id,
+        bandName: row.band_name,
+        isExternal: row.is_external ?? false,
+        playerAgreedFee: row.agreed_fee,
+        playerCurrency: row.player_currency,
+        playerIsPaid: row.is_paid,
+        playerPaidAt: row.paid_at,
+        playerPaymentMethod: row.payment_method,
+        playerExpectedPaymentDate: row.expected_payment_date,
+        playerPersonalEarningsAmount: row.personal_earnings_amount,
+        playerPersonalEarningsCurrency: row.personal_earnings_currency,
       }));
 
       return {
@@ -476,7 +538,15 @@ async function listAllPastGigsFallback(
         role_name,
         invitation_status,
         payment_status,
-        musician_id
+        musician_id,
+        agreed_fee,
+        currency,
+        is_paid,
+        paid_at,
+        payment_method,
+        expected_payment_date,
+        personal_earnings_amount,
+        personal_earnings_currency
       )
     `)
     .lt("date", todayStr)
@@ -522,6 +592,14 @@ async function listAllPastGigsFallback(
         invitationStatus: userRole?.invitation_status || null,
         hostId: gig.owner_id,
         hostName,
+        playerAgreedFee: userRole?.agreed_fee ?? null,
+        playerCurrency: userRole?.currency ?? null,
+        playerIsPaid: userRole?.is_paid ?? null,
+        playerPaidAt: userRole?.paid_at ?? null,
+        playerPaymentMethod: userRole?.payment_method ?? null,
+        playerExpectedPaymentDate: userRole?.expected_payment_date ?? null,
+        playerPersonalEarningsAmount: userRole?.personal_earnings_amount ?? null,
+        playerPersonalEarningsCurrency: userRole?.personal_earnings_currency ?? null,
       });
     }
   }

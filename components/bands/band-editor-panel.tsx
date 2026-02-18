@@ -12,6 +12,14 @@ import { createClient } from "@/lib/supabase/client";
 import type { Json, Tables } from "@/lib/types/database";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   X,
   Check,
@@ -21,6 +29,7 @@ import {
   Users,
   Pencil,
   Trash2,
+  Banknote,
 } from "lucide-react";
 import { uploadImage, deleteImage, getPathFromUrl } from "@/lib/utils/image-upload";
 import { ImageCropDialog } from "@/components/bands/image-crop-dialog";
@@ -50,6 +59,9 @@ export function BandEditorPanel({
   const [bandLogoUrl, setBandLogoUrl] = useState("");
   const [heroImageUrl, setHeroImageUrl] = useState("");
   const [defaultLineup, setDefaultLineup] = useState<LineupMember[]>([]);
+  const [defaultFee, setDefaultFee] = useState<string>('');
+  const [defaultCurrency, setDefaultCurrency] = useState<string>('ILS');
+  const [defaultPaymentMethod, setDefaultPaymentMethod] = useState<string>('');
 
   // UI state
   const [isLoading, setIsLoading] = useState(false);
@@ -71,6 +83,9 @@ export function BandEditorPanel({
       setBandLogoUrl(band.band_logo_url || "");
       setHeroImageUrl(band.hero_image_url || "");
       setDefaultLineup(band.default_lineup || []);
+      setDefaultFee(band.default_fee != null ? String(band.default_fee) : '');
+      setDefaultCurrency(band.default_currency || 'ILS');
+      setDefaultPaymentMethod(band.default_payment_method || '');
     } else {
       // Reset for new band
       setName("");
@@ -78,6 +93,9 @@ export function BandEditorPanel({
       setBandLogoUrl("");
       setHeroImageUrl("");
       setDefaultLineup([]);
+      setDefaultFee('');
+      setDefaultCurrency('ILS');
+      setDefaultPaymentMethod('');
     }
   }, [band, open]);
 
@@ -300,6 +318,9 @@ export function BandEditorPanel({
         band_logo_url: bandLogoUrl || null,
         hero_image_url: heroImageUrl || null,
         default_lineup: defaultLineup as unknown as Json,
+        default_fee: defaultFee ? parseFloat(defaultFee) : null,
+        default_currency: defaultCurrency || null,
+        default_payment_method: defaultPaymentMethod || null,
       };
 
       let rawData: Tables<'bands'> & { cover_image_url?: string | null };
@@ -515,6 +536,62 @@ export function BandEditorPanel({
                 placeholder="Search musicians..."
                 disabled={isLoading}
               />
+            </div>
+
+            {/* Payment Defaults Card */}
+            <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="rounded-md bg-primary/10 p-1.5">
+                    <Banknote className="h-3.5 w-3.5 text-primary" />
+                  </div>
+                  <span className="text-sm font-semibold">Payment Defaults</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1.5 ml-8">
+                  Auto-fill these values when setting payment for musicians in this band.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Default Fee</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    placeholder="0"
+                    value={defaultFee}
+                    onChange={(e) => setDefaultFee(e.target.value)}
+                    disabled={isLoading}
+                    className="h-9"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">Currency</Label>
+                  <Select value={defaultCurrency} onValueChange={setDefaultCurrency} disabled={isLoading}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {['ILS', 'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF'].map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs">Payment Method</Label>
+                <Select value={defaultPaymentMethod} onValueChange={setDefaultPaymentMethod} disabled={isLoading}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Select method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {['Cash', 'Bank Transfer', 'Bit', 'PayBox', 'Check', 'PayPal', 'Other'].map(m => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 

@@ -26,6 +26,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUser } from "@/lib/providers/user-provider";
 import type { DashboardGig } from "@/lib/types/shared";
+import { GigPaymentText } from "@/components/shared/gig-payment-text";
 import { StackedAvatars } from "@/components/shared/stacked-avatars";
 // PERFORMANCE: Use optimistic update hooks for instant UI feedback
 import {
@@ -94,6 +95,18 @@ const GigInnerContent = memo(function GigInnerContent({ gig }: { gig: DashboardG
         )}
         {gig.isPlayer && gig.isManager && gig.playerRoleName && (
           <span className="capitalize text-sm font-medium text-foreground/70">{gig.playerRoleName}</span>
+        )}
+        {gig.isPlayer && (
+          <GigPaymentText
+            agreedFee={gig.playerAgreedFee}
+            currency={gig.playerCurrency}
+            isPaid={gig.playerIsPaid}
+            paidAt={gig.playerPaidAt}
+            expectedPaymentDate={gig.playerExpectedPaymentDate}
+            personalEarningsAmount={gig.playerPersonalEarningsAmount}
+            personalEarningsCurrency={gig.playerPersonalEarningsCurrency}
+            className="text-[11px]"
+          />
         )}
       </div>
 
@@ -331,6 +344,19 @@ export function DashboardGigItem({
                   </Badge>
                 ) : null}
               </div>
+
+              {/* Payment info (private to this player) */}
+              {gig.isPlayer && (
+                <GigPaymentText
+                  agreedFee={gig.playerAgreedFee}
+                  currency={gig.playerCurrency}
+                  isPaid={gig.playerIsPaid}
+                  paidAt={gig.playerPaidAt}
+                  expectedPaymentDate={gig.playerExpectedPaymentDate}
+                  personalEarningsAmount={gig.playerPersonalEarningsAmount}
+                  personalEarningsCurrency={gig.playerPersonalEarningsCurrency}
+                />
+              )}
 
               {/* Row 2: Buttons (manager only) */}
               {!isPlayerOnly && (

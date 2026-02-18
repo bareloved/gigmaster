@@ -21,6 +21,8 @@ export interface LineupMember {
   invitationStatus?: string;
   /** Gig role ID from the database (for tracking existing roles) */
   gigRoleId?: string;
+  /** Agreed fee set by manager (transient, for UI display) */
+  agreedFee?: number | null;
   /** Email for display (transient, not persisted to DB) */
   email?: string | null;
   /** Phone for display (transient, not persisted to DB) */
@@ -61,6 +63,9 @@ export interface Band {
   accent_color: string | null; // Missing in DB, will be null
   poster_skin: PosterSkin | null; // Missing in DB, will be null
   default_lineup: LineupMember[]; // Missing in DB, will be []
+  default_fee: number | null;
+  default_currency: string | null;
+  default_payment_method: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -27,6 +27,7 @@ export interface RoleRow {
   notes?: string | null;
   sort_order: number | null;
   invitation_status: string | null;
+  agreed_fee?: number | null;
   contact: { email: string | null; phone: string | null } | null;
 }
 
@@ -133,6 +134,7 @@ export async function transformLineup(
       gigRoleId: r.id || undefined,
       userId: r.musician_id || undefined,
       contactId: r.contact_id || undefined,
+      agreedFee: r.agreed_fee ?? undefined,
       email: profile?.email || r.contact?.email || undefined,
       phone: profile?.phone || r.contact?.phone || undefined,
       avatarUrl: profile?.avatar_url || undefined,

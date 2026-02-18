@@ -359,6 +359,15 @@ export interface DashboardGig {
   } | null;
   // Accepted musicians for avatar display
   acceptedMusicians?: Array<{ name: string }>;
+  // Payment info (player's own role data, private)
+  playerAgreedFee?: number | null;
+  playerCurrency?: string | null;
+  playerIsPaid?: boolean | null;
+  playerPaidAt?: string | null;
+  playerPaymentMethod?: string | null;
+  playerExpectedPaymentDate?: string | null;
+  playerPersonalEarningsAmount?: number | null;
+  playerPersonalEarningsCurrency?: string | null;
 }
 
 /**
@@ -416,6 +425,60 @@ export interface PersonalEarnings {
   currency: string;
   notes: string | null;
   paidAt: string | null;
+}
+
+/**
+ * Combined payment info for a player on a gig
+ * Merges manager-set fields with player-recorded earnings
+ */
+export interface PlayerPaymentInfo {
+  // Manager-set (read-only for player)
+  agreedFee: number | null;
+  currency: string;
+  isPaid: boolean;
+  paidAt: string | null;
+  paymentMethod: string | null;
+  expectedPaymentDate: string | null;
+  // Player-recorded (editable by player)
+  personalEarnings: PersonalEarnings;
+}
+
+/**
+ * Earnings summary for the /money dashboard
+ */
+export interface EarningsSummary {
+  thisMonth: { total: number; gigCount: number; currency: string; pending: number };
+  lastMonth: { total: number; gigCount: number; currency: string };
+  thisYear: { total: number; gigCount: number; currency: string };
+  lastYear: { total: number; gigCount: number; currency: string };
+}
+
+/**
+ * Per-band earnings breakdown
+ */
+export interface BandEarnings {
+  bandId: string | null;
+  bandName: string | null;
+  total: number;
+  gigCount: number;
+  currency: string;
+}
+
+/**
+ * Individual gig in the earnings list
+ */
+export interface EarningsGig {
+  gigId: string;
+  gigTitle: string;
+  date: string;
+  bandName: string | null;
+  amount: number | null;
+  currency: string;
+  isPaid: boolean;
+  paidAt: string | null;
+  expectedPaymentDate: string | null;
+  paymentMethod: string | null;
+  hasEarningsData: boolean;
 }
 
 /**

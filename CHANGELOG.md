@@ -5,6 +5,16 @@ All notable changes to GigMaster are documented here. Update this file with ever
 ## [Unreleased]
 
 ### Added
+- Manager payment dialog — set agreed fee, currency, payment method, expected date, and paid status per musician from lineup row
+- Bulk "Set Payment for All" button to apply payment details to all musicians without payment in one click
+- Band payment defaults (fee, currency, method) in band editor — auto-fills payment dialogs
+- Smart auto-fill cascade: existing data → last gig history → band defaults
+- Player earnings dashboard at `/money` with monthly/yearly totals and per-band breakdown
+- Payment info display on gig cards (amount + paid/pending/overdue status)
+- Combined payment section in gig pack (manager-set fee + personal tracking)
+- Earnings widget on dashboard right column
+- "Money" link in top nav, bottom nav, and sidebar
+- `payment_method` and `expected_payment_date` columns on `gig_roles`
 - Comprehensive API test suite — coverage raised from 19% to 95% (827 tests across 26 files)
 - Mobile-first redesign for calendar, settings, layout, and gig pages
 - Swipe navigation and 3-day view for calendar

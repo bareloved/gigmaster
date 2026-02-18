@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { useContactAvatarLookup } from "@/hooks/use-contact-avatar-lookup";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverTrigger } from "@/components/ui/popover";
 import { RoleSelect } from "@/components/gigpack/ui/role-select";
+import { RolePaymentPopoverContent } from "@/components/roles/role-payment-popover";
 import { cn } from "@/lib/utils";
-import { X } from "lucide-react";
+import { X, Banknote } from "lucide-react";
 import { InvitationStatusIcon } from "@/components/gigpack/ui/invitation-status-icon";
 
 /**
@@ -29,8 +32,12 @@ interface LineupMemberRowProps {
   instrument?: string | null;
   invitationStatus?: string;
   avatarUrl?: string | null;
+  gigRoleId?: string;
+  bandId?: string | null;
+  hasPayment?: boolean;
   onRoleChange: (role: string) => void;
   onRemove: () => void;
+  onPaymentSaved?: () => void;
   disabled?: boolean;
 }
 
@@ -42,10 +49,16 @@ export function LineupMemberRow({
   instrument,
   invitationStatus,
   avatarUrl: propAvatarUrl,
+  gigRoleId,
+  bandId,
+  hasPayment = false,
   onRoleChange,
   onRemove,
+  onPaymentSaved,
   disabled = false,
 }: LineupMemberRowProps) {
+  const [paymentOpen, setPaymentOpen] = useState(false);
+
   // Look up avatar for the name if not provided via props
   const { avatarUrl: lookupAvatarUrl } = useContactAvatarLookup(name);
   const avatarUrl = propAvatarUrl || lookupAvatarUrl;
@@ -87,6 +100,38 @@ export function LineupMemberRow({
           className="h-8"
         />
       </div>
+
+      {/* Payment popover — only for saved roles */}
+      {gigRoleId && (
+        <Popover open={paymentOpen} onOpenChange={setPaymentOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-8 w-8 shrink-0",
+                hasPayment
+                  ? "text-green-600 dark:text-green-400"
+                  : "text-muted-foreground hover:text-primary"
+              )}
+            >
+              <Banknote className="h-4 w-4" />
+            </Button>
+          </PopoverTrigger>
+          {paymentOpen && (
+            <RolePaymentPopoverContent
+              roleId={gigRoleId}
+              bandId={bandId ?? null}
+              onSaved={() => {
+                onPaymentSaved?.();
+                setPaymentOpen(false);
+              }}
+              onClose={() => setPaymentOpen(false)}
+            />
+          )}
+        </Popover>
+      )}
 
       {/* Remove button */}
       <Button

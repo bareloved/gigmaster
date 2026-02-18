@@ -12,6 +12,7 @@ const navItems = [
   { title: "Gigs", href: "/gigs" },
   { title: "Calendar", href: "/calendar" },
   { title: "Bands", href: "/bands" },
+  { title: "Money", href: "/money" },
 ] as const;
 
 export function TopNav() {

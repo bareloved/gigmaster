@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { GigPack } from '@/lib/gigpack/types';
 import type { CalendarRefreshDiff } from '@/lib/types/shared';
-import { PersonalEarningsForm } from '@/components/gigpack/personal-earnings-form';
+import { PaymentSection } from '@/components/gigpack/payment-section';
 import { toast } from 'sonner';
 
 export default function GigPackPage() {
@@ -332,16 +332,8 @@ export default function GigPackPage() {
         openMaps={openMaps}
         slug={gigPack.public_slug || gigId}
         locale="en"
+        paymentSection={<PaymentSection gigId={gigId} />}
       />
-
-      {/* Personal Earnings - shown for external gigs */}
-      {isExternal && (
-        <div className="container max-w-6xl mx-auto px-4 -mt-4 mb-8">
-          <div className="max-w-sm mx-auto lg:mx-0">
-            <PersonalEarningsForm gigId={gigId} />
-          </div>
-        </div>
-      )}
       
       {/* Refresh Diff Dialog */}
       <Dialog open={refreshDialogOpen} onOpenChange={setRefreshDialogOpen}>
