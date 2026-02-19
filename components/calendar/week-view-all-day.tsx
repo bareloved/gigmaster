@@ -37,7 +37,7 @@ export function WeekViewAllDay({
       <div className="flex-1 grid" style={{ gridTemplateColumns: `repeat(${days.length}, 1fr)` }}>
         {days.map((day) => {
           const dayGigs = allDayGigs.filter((g) =>
-            isSameDay(new Date(g.date + "T00:00:00"), day)
+            isSameDay(new Date(g.date.slice(0, 10) + "T00:00:00"), day)
           );
 
           const isWeekend = getDay(day) === 5 || getDay(day) === 6;

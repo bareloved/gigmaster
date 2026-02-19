@@ -407,10 +407,12 @@ export default function DashboardPage() {
                     </Link>
                   </div>
 
-                  {/* Right: Status badges */}
-                  <div className="flex items-center gap-2 [&_div]:px-2 [&_div]:py-0.5 [&_div]:text-[10px] [&_div]:border [&_div]:rounded-md">
-                    <GigStatusBadge status={nextGig.status ?? 'confirmed'} />
-                  </div>
+                  {/* Right: Status badges (only for non-confirmed) */}
+                  {nextGig.status && nextGig.status !== 'confirmed' && (
+                    <div className="flex items-center gap-2 [&_div]:px-2 [&_div]:py-0.5 [&_div]:text-[10px] [&_div]:border [&_div]:rounded-md">
+                      <GigStatusBadge status={nextGig.status} />
+                    </div>
+                  )}
                 </div>
 
               </CardContent>
@@ -456,16 +458,10 @@ export default function DashboardPage() {
                 ) : (
                   <div className="space-y-2 sm:space-y-3 lg:space-y-4">
                     {upcomingGigs.map((gig) => (
-                      <div
+                      <Link
                         key={gig.gigId}
-                        onClick={() => {
-                          if (gig.isManager) {
-                            handleEditGig(gig.gigId);
-                          } else {
-                            router.push(`/gigs/${gig.gigId}/pack`);
-                          }
-                        }}
-                        className="cursor-pointer animate-fade-in"
+                        href={`/gigs/${gig.gigId}/pack`}
+                        className="block animate-fade-in"
                       >
                         <Card className="overflow-hidden hover:shadow-sm transition-all duration-200 border-l-4 border-l-primary">
                           <CardContent
@@ -510,27 +506,30 @@ export default function DashboardPage() {
                                 </div>
                               </div>
 
-                              {/* Right side: status dot on mobile, full badge on desktop + arrow */}
+                              {/* Right side: status indicator (only non-confirmed) + arrow */}
                               <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                                {/* Mobile: just a colored dot */}
-                                <div className="sm:hidden">
-                                  <span className={`inline-block w-2 h-2 rounded-full ${
-                                    gig.status === 'confirmed' ? 'bg-green-500' :
-                                    gig.status === 'cancelled' ? 'bg-red-500' :
-                                    gig.status === 'tentative' ? 'bg-amber-500' :
-                                    'bg-yellow-500'
-                                  }`} />
-                                </div>
-                                {/* Desktop: full badge */}
-                                <div className="hidden sm:block [&_div]:px-1.5 [&_div]:py-0 [&_div]:text-[9px] [&_div]:h-4 [&_div]:border [&_div]:rounded">
-                                  <GigStatusBadge status={gig.status ?? 'confirmed'} />
-                                </div>
+                                {gig.status && gig.status !== 'confirmed' && (
+                                  <>
+                                    {/* Mobile: just a colored dot */}
+                                    <div className="sm:hidden">
+                                      <span className={`inline-block w-2 h-2 rounded-full ${
+                                        gig.status === 'cancelled' ? 'bg-red-500' :
+                                        gig.status === 'tentative' ? 'bg-amber-500' :
+                                        'bg-yellow-500'
+                                      }`} />
+                                    </div>
+                                    {/* Desktop: full badge */}
+                                    <div className="hidden sm:block [&_div]:px-1.5 [&_div]:py-0 [&_div]:text-[9px] [&_div]:h-4 [&_div]:border [&_div]:rounded">
+                                      <GigStatusBadge status={gig.status} />
+                                    </div>
+                                  </>
+                                )}
                                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
                               </div>
                             </div>
                           </CardContent>
                         </Card>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 )}

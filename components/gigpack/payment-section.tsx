@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
 
 const CURRENCIES = ['ILS', 'USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY', 'CHF'];
@@ -36,7 +37,6 @@ export function PaymentSection({ gigId }: PaymentSectionProps) {
   const [paymentMethod, setPaymentMethod] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
   const [paidAt, setPaidAt] = useState<string>('');
-  const [showCurrency, setShowCurrency] = useState(false);
   const [trackingOpen, setTrackingOpen] = useState(false);
   const [formInitialized, setFormInitialized] = useState(false);
 
@@ -48,7 +48,6 @@ export function PaymentSection({ gigId }: PaymentSectionProps) {
     setPaymentMethod(pe.paymentMethod || '');
     setNotes(pe.notes || '');
     setPaidAt(pe.paidAt ? pe.paidAt.split('T')[0] : '');
-    if (pe.currency && pe.currency !== 'ILS') setShowCurrency(true);
     // Auto-expand if no manager data, or if player already has tracking
     const hasManager = paymentData.payment.agreedFee != null;
     const hasTracking = pe.amount != null;
@@ -103,7 +102,6 @@ export function PaymentSection({ gigId }: PaymentSectionProps) {
       setCurrency(p.currency);
       if (p.paymentMethod) setPaymentMethod(p.paymentMethod);
       setPaidAt(today);
-      if (p.currency !== 'ILS') setShowCurrency(true);
       queryClient.invalidateQueries({ queryKey: ['player-payment', gigId] });
       toast.success('Marked as paid');
     } catch {
@@ -277,26 +275,30 @@ export function PaymentSection({ gigId }: PaymentSectionProps) {
             }}
             className="h-9 text-sm flex-1 px-3"
           />
-          {showCurrency ? (
-            <Select value={currency} onValueChange={setCurrency}>
-              <SelectTrigger className="h-9 w-[60px] text-xs px-1.5">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CURRENCIES.map(c => (
-                  <SelectItem key={c} value={c} className="text-xs">{getCurrencySymbol(c).trim()} {c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowCurrency(true)}
-              className="text-sm text-muted-foreground hover:text-foreground shrink-0"
-            >
-              {getCurrencySymbol(currency).trim()}<ChevronDown className="inline h-3 w-3 ml-0.5" />
-            </button>
-          )}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="flex items-center gap-1 h-9 bg-transparent px-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {getCurrencySymbol(currency).trim()}
+                <ChevronDown className="h-3 w-3 opacity-50" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto min-w-[120px] p-1" align="end">
+              {CURRENCIES.map(c => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCurrency(c)}
+                  className={`flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm transition-colors hover:bg-accent ${c === currency ? 'bg-accent font-medium' : ''}`}
+                >
+                  <span className="w-5 text-center">{getCurrencySymbol(c).trim()}</span>
+                  {c}
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
         </div>
         <Select value={paymentMethod} onValueChange={setPaymentMethod}>
           <SelectTrigger className="h-9 text-sm">

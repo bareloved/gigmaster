@@ -140,7 +140,7 @@ export function MaterialsEditor({
   if (materials.length === 0) {
     return (
       <div className="space-y-3">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground px-4">
           {t("materials.description")}
         </p>
         {addOpen ? (

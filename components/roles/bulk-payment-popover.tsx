@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bulkSetPayment } from '@/lib/api/role-payment';
 import { createClient } from '@/lib/supabase/client';
-import { PopoverContent } from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -65,7 +65,6 @@ function BulkPaymentForm({
   onClose,
 }: BulkPaymentPopoverProps) {
   const queryClient = useQueryClient();
-  const [showCurrency, setShowCurrency] = useState(false);
 
   const [agreedFee, setAgreedFee] = useState('');
   const [currency, setCurrency] = useState('ILS');
@@ -107,7 +106,7 @@ function BulkPaymentForm({
     }
     if (info.bandDefaults.default_currency) {
       setCurrency(info.bandDefaults.default_currency);
-      if (info.bandDefaults.default_currency !== 'ILS') setShowCurrency(true);
+
     }
     if (info.bandDefaults.default_payment_method) {
       setPaymentMethod(info.bandDefaults.default_payment_method);
@@ -178,26 +177,30 @@ function BulkPaymentForm({
           className="h-9 text-sm flex-1 px-3"
           autoFocus
         />
-        {showCurrency ? (
-          <Select value={currency} onValueChange={setCurrency}>
-            <SelectTrigger className="h-9 w-[60px] text-xs px-2">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CURRENCIES.map(c => (
-                <SelectItem key={c} value={c} className="text-sm">{getCurrencySymbol(c).trim()} {c}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowCurrency(true)}
-            className="text-sm text-muted-foreground hover:text-foreground shrink-0"
-          >
-            {getCurrencySymbol(currency).trim()}<ChevronDown className="inline h-3.5 w-3.5 ml-0.5" />
-          </button>
-        )}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-1 h-9 bg-transparent px-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {getCurrencySymbol(currency).trim()}
+              <ChevronDown className="h-3 w-3 opacity-50" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto min-w-[120px] p-1" align="end">
+            {CURRENCIES.map(c => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCurrency(c)}
+                className={`flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm transition-colors hover:bg-accent ${c === currency ? 'bg-accent font-medium' : ''}`}
+              >
+                <span className="w-5 text-center">{getCurrencySymbol(c).trim()}</span>
+                {c}
+              </button>
+            ))}
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Method */}

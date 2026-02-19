@@ -56,6 +56,7 @@ BEGIN
       UPDATE gigs SET
         title = COALESCE(p_gig->>'title', title),
         date = COALESCE((p_gig->>'date')::timestamptz, date),
+        status = COALESCE(p_gig->>'status', status),
         band_id = CASE WHEN p_gig ? 'band_id' THEN (p_gig->>'band_id')::uuid ELSE band_id END,
         band_name = COALESCE(p_gig->>'band_name', band_name),
         call_time = p_gig->>'call_time',
@@ -88,7 +89,7 @@ BEGIN
       END IF;
     ELSE
       INSERT INTO gigs (
-        title, date, band_id, band_name, call_time, on_stage_time, start_time,
+        title, date, status, band_id, band_name, call_time, on_stage_time, start_time,
         location_name, venue_name, location_address, venue_address, venue_maps_url,
         hero_image_url, band_logo_url, gig_type, theme, poster_skin, accent_color,
         dress_code, backline_notes, parking_notes, setlist, setlist_pdf_url, internal_notes, payment_notes,
@@ -96,6 +97,7 @@ BEGIN
       ) VALUES (
         p_gig->>'title',
         COALESCE((p_gig->>'date')::timestamptz, now()),
+        COALESCE(p_gig->>'status', 'confirmed'),
         (p_gig->>'band_id')::uuid,
         p_gig->>'band_name',
         p_gig->>'call_time',
@@ -287,9 +289,29 @@ BEGIN
   END;
 
   -- ========================================
-  -- STEP 6: Handle gig roles (special merge logic)
+  -- STEP 6: Handle gig roles (smart merge)
   -- ========================================
   BEGIN
+    -- Delete removed roles BEFORE the jsonb_array_length check,
+    -- so removing ALL lineup members still works (empty p_roles).
+    IF p_is_editing THEN
+      SELECT array_agg(id) INTO v_existing_ids
+      FROM gig_roles WHERE gig_id = v_gig_id;
+
+      SELECT array_agg((item->>'gigRoleId')::uuid) INTO v_new_ids
+      FROM jsonb_array_elements(p_roles) AS item
+      WHERE item->>'gigRoleId' IS NOT NULL AND item->>'gigRoleId' != '';
+
+      IF v_existing_ids IS NOT NULL AND array_length(v_existing_ids, 1) > 0 THEN
+        SELECT array_agg(id) INTO v_to_delete
+        FROM unnest(v_existing_ids) AS id
+        WHERE id != ALL(COALESCE(v_new_ids, ARRAY[]::uuid[]));
+        IF v_to_delete IS NOT NULL AND array_length(v_to_delete, 1) > 0 THEN
+          DELETE FROM gig_roles WHERE id = ANY(v_to_delete);
+        END IF;
+      END IF;
+    END IF;
+
     IF jsonb_array_length(p_roles) > 0 THEN
       IF p_is_editing THEN
         UPDATE gig_roles gr SET

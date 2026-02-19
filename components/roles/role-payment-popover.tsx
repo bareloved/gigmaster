@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getRolePaymentDefaults, updateRolePayment, getBandPaymentDefaults } from '@/lib/api/role-payment';
 import { formatCurrency, getCurrencySymbol } from '@/lib/utils/currency';
-import { PopoverContent } from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -294,7 +294,6 @@ type RolePaymentFormProps = DbFormProps | LocalFormProps;
 function RolePaymentForm(props: RolePaymentFormProps) {
   const { mode, onClose } = props;
   const queryClient = useQueryClient();
-  const [showCurrency, setShowCurrency] = useState(false);
 
   const [agreedFee, setAgreedFee] = useState('');
   const [currency, setCurrency] = useState('ILS');
@@ -315,24 +314,17 @@ function RolePaymentForm(props: RolePaymentFormProps) {
       setPaymentTerm(dateToTerm(defaults.current.expectedPaymentDate));
       setIsPaid(defaults.current.isPaid);
       setPaidAt(defaults.current.paidAt ? defaults.current.paidAt.split('T')[0] : '');
-      if (defaults.current.currency && defaults.current.currency !== 'ILS') {
-        setShowCurrency(true);
-      }
     } else if (defaults.lastGig) {
       setAgreedFee(String(defaults.lastGig.agreedFee));
       setCurrency(defaults.lastGig.currency || 'ILS');
       setPaymentMethod(defaults.lastGig.paymentMethod || '');
       setAutoFillSource('Last gig');
-      if (defaults.lastGig.currency && defaults.lastGig.currency !== 'ILS') {
-        setShowCurrency(true);
-      }
     } else if (defaults.bandDefaults) {
       if (defaults.bandDefaults.defaultFee != null) {
         setAgreedFee(String(defaults.bandDefaults.defaultFee));
       }
       if (defaults.bandDefaults.defaultCurrency) {
         setCurrency(defaults.bandDefaults.defaultCurrency);
-        if (defaults.bandDefaults.defaultCurrency !== 'ILS') setShowCurrency(true);
       }
       if (defaults.bandDefaults.defaultPaymentMethod) {
         setPaymentMethod(defaults.bandDefaults.defaultPaymentMethod);
@@ -349,16 +341,12 @@ function RolePaymentForm(props: RolePaymentFormProps) {
       setCurrency(props.initialData.currency || 'ILS');
       setPaymentMethod(props.initialData.paymentMethod || '');
       setPaymentTerm(dateToTerm(props.initialData.expectedPaymentDate ?? null));
-      if (props.initialData.currency && props.initialData.currency !== 'ILS') {
-        setShowCurrency(true);
-      }
     } else if (props.bandDefaults) {
       if (props.bandDefaults.defaultFee != null) {
         setAgreedFee(String(props.bandDefaults.defaultFee));
       }
       if (props.bandDefaults.defaultCurrency) {
         setCurrency(props.bandDefaults.defaultCurrency);
-        if (props.bandDefaults.defaultCurrency !== 'ILS') setShowCurrency(true);
       }
       if (props.bandDefaults.defaultPaymentMethod) {
         setPaymentMethod(props.bandDefaults.defaultPaymentMethod);
@@ -429,26 +417,30 @@ function RolePaymentForm(props: RolePaymentFormProps) {
           className="h-8 text-sm flex-1 px-3"
           autoFocus
         />
-        {showCurrency ? (
-          <Select value={currency} onValueChange={setCurrency}>
-            <SelectTrigger className="h-8 w-[56px] text-xs px-1.5">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CURRENCIES.map(c => (
-                <SelectItem key={c} value={c} className="text-xs">{getCurrencySymbol(c).trim()} {c}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowCurrency(true)}
-            className="text-sm text-muted-foreground hover:text-foreground shrink-0"
-          >
-            {getCurrencySymbol(currency).trim()}<ChevronDown className="inline h-3 w-3 ml-0.5" />
-          </button>
-        )}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-1 h-8 bg-transparent px-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {getCurrencySymbol(currency).trim()}
+              <ChevronDown className="h-3 w-3 opacity-50" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto min-w-[120px] p-1" align="end">
+            {CURRENCIES.map(c => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCurrency(c)}
+                className={`flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm transition-colors hover:bg-accent ${c === currency ? 'bg-accent font-medium' : ''}`}
+              >
+                <span className="w-5 text-center">{getCurrencySymbol(c).trim()}</span>
+                {c}
+              </button>
+            ))}
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Method */}

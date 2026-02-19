@@ -95,8 +95,8 @@ export async function listDashboardGigs(
       p_offset: offset,
     });
 
-    if (!rpcError && rpcData && Array.isArray(rpcData) && rpcData.length > 0) {
-      // RPC succeeded - transform response
+    if (!rpcError && rpcData && Array.isArray(rpcData)) {
+      // RPC succeeded - transform response (may be empty array when no gigs in range)
       const total = rpcData[0]?.total_count ?? 0;
       const gigs: DashboardGig[] = (rpcData as DashboardRpcRow[]).map((row) => ({
         gigId: row.gig_id,
@@ -455,7 +455,8 @@ export async function listAllPastGigs(
       p_offset: offset,
     });
 
-    if (!rpcError && rpcData && Array.isArray(rpcData) && rpcData.length > 0) {
+    if (!rpcError && rpcData && Array.isArray(rpcData)) {
+      // RPC succeeded - may return empty array when user has no past gigs
       const total = rpcData[0]?.total_count ?? 0;
       const gigs: DashboardGig[] = (rpcData as DashboardRpcRow[]).map((row) => ({
         gigId: row.gig_id,

@@ -919,6 +919,7 @@ async function saveGigPackLegacy(
       setlist_pdf_url: data.setlist_pdf_url || null,
       internal_notes: data.internal_notes || null,
       payment_notes: data.payment_notes || null,
+      status: data.status || 'confirmed',
       owner_id: user.id,
       updated_at: new Date().toISOString(),
     };
