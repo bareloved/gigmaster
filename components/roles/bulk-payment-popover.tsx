@@ -106,7 +106,7 @@ function BulkPaymentForm({
     }
     if (info.bandDefaults.default_currency) {
       setCurrency(info.bandDefaults.default_currency);
-      if (info.bandDefaults.default_currency !== 'ILS') setShowCurrency(true);
+
     }
     if (info.bandDefaults.default_payment_method) {
       setPaymentMethod(info.bandDefaults.default_payment_method);

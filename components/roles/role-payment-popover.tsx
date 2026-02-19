@@ -314,24 +314,17 @@ function RolePaymentForm(props: RolePaymentFormProps) {
       setPaymentTerm(dateToTerm(defaults.current.expectedPaymentDate));
       setIsPaid(defaults.current.isPaid);
       setPaidAt(defaults.current.paidAt ? defaults.current.paidAt.split('T')[0] : '');
-      if (defaults.current.currency && defaults.current.currency !== 'ILS') {
-        setShowCurrency(true);
-      }
     } else if (defaults.lastGig) {
       setAgreedFee(String(defaults.lastGig.agreedFee));
       setCurrency(defaults.lastGig.currency || 'ILS');
       setPaymentMethod(defaults.lastGig.paymentMethod || '');
       setAutoFillSource('Last gig');
-      if (defaults.lastGig.currency && defaults.lastGig.currency !== 'ILS') {
-        setShowCurrency(true);
-      }
     } else if (defaults.bandDefaults) {
       if (defaults.bandDefaults.defaultFee != null) {
         setAgreedFee(String(defaults.bandDefaults.defaultFee));
       }
       if (defaults.bandDefaults.defaultCurrency) {
         setCurrency(defaults.bandDefaults.defaultCurrency);
-        if (defaults.bandDefaults.defaultCurrency !== 'ILS') setShowCurrency(true);
       }
       if (defaults.bandDefaults.defaultPaymentMethod) {
         setPaymentMethod(defaults.bandDefaults.defaultPaymentMethod);
@@ -348,16 +341,12 @@ function RolePaymentForm(props: RolePaymentFormProps) {
       setCurrency(props.initialData.currency || 'ILS');
       setPaymentMethod(props.initialData.paymentMethod || '');
       setPaymentTerm(dateToTerm(props.initialData.expectedPaymentDate ?? null));
-      if (props.initialData.currency && props.initialData.currency !== 'ILS') {
-        setShowCurrency(true);
-      }
     } else if (props.bandDefaults) {
       if (props.bandDefaults.defaultFee != null) {
         setAgreedFee(String(props.bandDefaults.defaultFee));
       }
       if (props.bandDefaults.defaultCurrency) {
         setCurrency(props.bandDefaults.defaultCurrency);
-        if (props.bandDefaults.defaultCurrency !== 'ILS') setShowCurrency(true);
       }
       if (props.bandDefaults.defaultPaymentMethod) {
         setPaymentMethod(props.bandDefaults.defaultPaymentMethod);

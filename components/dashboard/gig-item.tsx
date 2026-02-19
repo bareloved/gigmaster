@@ -532,15 +532,6 @@ export function DashboardGigItem({
           </div>
         </div>
 
-        {/* Tentative badge - top center of the card */}
-        {gig.status === 'tentative' && (
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-            <Badge variant="outline" className="bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-950 dark:border-amber-700 dark:text-amber-300 text-xs px-2.5 py-0.5 shadow-sm">
-              Tentative
-            </Badge>
-          </div>
-        )}
-
         {/* Invited badge - centered on the whole card */}
         {needsResponse && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">

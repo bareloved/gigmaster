@@ -311,6 +311,11 @@ export function DashboardGigItemGrid({
   const showManagerActions = gig.isManager && !isPastGig;
   const needsResponse = gig.isPlayer && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
 
+  // Determine gig URL: external gigs always go to pack, managers see full detail, players see pack
+  const gigUrl = gig.isManager && !gig.isExternal
+    ? `/gigs/${gig.gigId}?returnUrl=${returnUrl}`
+    : `/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`;
+
   // Get hero image - use fallback if no custom image
   const heroImage = gig.heroImageUrl || getGigFallbackImage(
     {
@@ -324,7 +329,7 @@ export function DashboardGigItemGrid({
   return (
     <>
       <Card className={`overflow-hidden hover:bg-muted/50 transition-colors group h-full flex flex-col relative rounded-none ${isPastGig ? 'opacity-70 saturate-75' : needsResponse ? 'opacity-75' : ''}`}>
-        <div className="flex-1 flex flex-col">
+        <Link href={gigUrl} className="flex-1 flex flex-col">
           <GigGridInnerContent
             gig={gig}
             gigDate={gigDate}
@@ -332,7 +337,7 @@ export function DashboardGigItemGrid({
             heroImage={heroImage}
             index={index}
           />
-        </div>
+        </Link>
 
         {/* Action Buttons — shown for all users */}
         <div className="mx-2 sm:mx-3 border-t border-border/50" />

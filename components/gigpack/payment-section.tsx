@@ -48,7 +48,7 @@ export function PaymentSection({ gigId }: PaymentSectionProps) {
     setPaymentMethod(pe.paymentMethod || '');
     setNotes(pe.notes || '');
     setPaidAt(pe.paidAt ? pe.paidAt.split('T')[0] : '');
-        // Auto-expand if no manager data, or if player already has tracking
+    // Auto-expand if no manager data, or if player already has tracking
     const hasManager = paymentData.payment.agreedFee != null;
     const hasTracking = pe.amount != null;
     setTrackingOpen(!hasManager || hasTracking);
@@ -102,7 +102,7 @@ export function PaymentSection({ gigId }: PaymentSectionProps) {
       setCurrency(p.currency);
       if (p.paymentMethod) setPaymentMethod(p.paymentMethod);
       setPaidAt(today);
-            queryClient.invalidateQueries({ queryKey: ['player-payment', gigId] });
+      queryClient.invalidateQueries({ queryKey: ['player-payment', gigId] });
       toast.success('Marked as paid');
     } catch {
       toast.error('Failed to save');
