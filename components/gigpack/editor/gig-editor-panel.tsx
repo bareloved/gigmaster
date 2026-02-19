@@ -36,6 +36,7 @@ import {
   ParkingCircle,
   Paperclip,
   Clipboard,
+  Copy,
   StickyNote,
 } from "lucide-react";
 import { GigPack, LineupMember, PackingChecklistItem, GigMaterial, GigScheduleItem, Band } from "@/lib/gigpack/types";
@@ -88,7 +89,7 @@ import { EmailCollectionModal } from "@/components/gigs/email-collection-modal";
 import { toast as sonnerToast } from "sonner";
 import { CalendarInviteBanner } from "@/components/gigpack/ui/calendar-invite-banner";
 import { isHtmlSetlist, plainTextToHtml } from "@/lib/utils/setlist-html";
-import { exportSetlistPdf } from "@/lib/utils/setlist-pdf-export";
+import { exportSetlistPdf, buildPdfFilename } from "@/lib/utils/setlist-pdf-export";
 
 const SetlistRichEditor = dynamic(
   () => import("@/components/gigpack/editor/setlist-rich-editor"),
@@ -1256,8 +1257,7 @@ export function GigEditorPanel({
 
   // PDF export handler
   const handleExportSetlistPdf = async () => {
-    const parts = [title || "Setlist", bandName, date].filter(Boolean);
-    const filename = parts.join(" - ") + ".pdf";
+    const filename = buildPdfFilename([title || "Setlist", bandName, date]);
     const subtitle = [
       venueName,
       date ? format(parse(date, "yyyy-MM-dd", new Date()), "dd.MM.yy") : null,
@@ -1826,6 +1826,28 @@ export function GigEditorPanel({
                   <Clipboard className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
                   {t("schedule.pasteSchedule")}
                 </Button>
+                {schedule.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const text = sortScheduleByTime([...schedule])
+                        .filter((item) => item.label.trim() || item.time)
+                        .map((item) =>
+                          item.time ? `${item.time} - ${item.label}` : item.label
+                        )
+                        .join("\n");
+                      navigator.clipboard.writeText(text);
+                      sonnerToast.success(tCommon("copied"));
+                    }}
+                    disabled={isLoading}
+                    className="flex-1"
+                  >
+                    <Copy className="mr-2 h-4 w-4 rtl:ml-2 rtl:mr-0" />
+                    {t("schedule.copySchedule")}
+                  </Button>
+                )}
               </div>
             </div>
           )}
