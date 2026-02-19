@@ -71,6 +71,7 @@ export function GigPackLayout({ gigPack, openMaps, paymentSection }: GigPackLayo
       case "corporate": return <Building className="h-3 w-3" />;
       case "bar_gig": return <Beer className="h-3 w-3" />;
       case "coffee_house": return <Coffee className="h-3 w-3" />;
+      case "concert_hall": return <Music className="h-3 w-3" />;
       case "festival": return <Tent className="h-3 w-3" />;
       case "rehearsal": return <Headphones className="h-3 w-3" />;
       default: return <Star className="h-3 w-3" />;
@@ -84,6 +85,7 @@ export function GigPackLayout({ gigPack, openMaps, paymentSection }: GigPackLayo
       case "corporate": return "bg-blue-500/20 border-blue-300/30 text-blue-100";
       case "bar_gig": return "bg-green-500/20 border-green-300/30 text-green-100";
       case "coffee_house": return "bg-amber-500/20 border-amber-300/30 text-amber-100";
+      case "concert_hall": return "bg-indigo-500/20 border-indigo-300/30 text-indigo-100";
       case "festival": return "bg-orange-500/20 border-orange-300/30 text-orange-100";
       case "rehearsal": return "bg-slate-500/20 border-slate-300/30 text-slate-100";
       default: return "bg-gray-500/20 border-gray-300/30 text-gray-100";
@@ -97,6 +99,7 @@ export function GigPackLayout({ gigPack, openMaps, paymentSection }: GigPackLayo
       case "corporate": return t("gigTypeCorporate");
       case "bar_gig": return t("gigTypeBarGig");
       case "coffee_house": return t("gigTypeCoffeeHouse");
+      case "concert_hall": return t("gigTypeConcertHall");
       case "festival": return t("gigTypeFestival");
       case "rehearsal": return t("gigTypeRehearsal");
       case "other": return t("gigTypeOther");

@@ -1735,7 +1735,7 @@ export function GigEditorPanel({
           {/* Schedule Tab */}
           {activeTab === "schedule" && (
             <div className="space-y-4">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground px-4">
                 {t("schedule.description")}
               </p>
 
@@ -1833,12 +1833,15 @@ export function GigEditorPanel({
           {/* Info/Logistics Tab */}
           {activeTab === "info" && (
             <div className="space-y-4">
+              <p className="text-sm text-muted-foreground px-4">
+                {t("logisticsDescription")}
+              </p>
               {/* Gig Contacts */}
               {showContacts && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-                      <Users className="h-4 w-4" />
+                    <label className="flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground">
+                      <Users className="h-5 w-5" />
                       {t("contacts.tabLabel")}
                     </label>
                     <button
@@ -1848,7 +1851,7 @@ export function GigEditorPanel({
                         setShowContacts(false);
                       }}
                       disabled={isLoading}
-                      className="text-[11px] text-muted-foreground hover:text-destructive transition-colors"
+                      className="text-xs text-muted-foreground hover:text-destructive transition-colors"
                     >
                       {t("materials.remove")}
                     </button>
@@ -1865,8 +1868,8 @@ export function GigEditorPanel({
               {showDressCode && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-                      <Shirt className="h-4 w-4" />
+                    <label className="flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground">
+                      <Shirt className="h-5 w-5" />
                       {t("dressCode")}
                     </label>
                     <button
@@ -1876,7 +1879,7 @@ export function GigEditorPanel({
                         setShowDressCode(false);
                       }}
                       disabled={isLoading}
-                      className="text-[11px] text-muted-foreground hover:text-destructive transition-colors"
+                      className="text-xs text-muted-foreground hover:text-destructive transition-colors"
                     >
                       {t("materials.remove")}
                     </button>
@@ -1899,8 +1902,8 @@ export function GigEditorPanel({
               {showBackline && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-                      <Package className="h-4 w-4" />
+                    <label className="flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground">
+                      <Package className="h-5 w-5" />
                       {t("backlineNotes")}
                     </label>
                     <button
@@ -1910,7 +1913,7 @@ export function GigEditorPanel({
                         setShowBackline(false);
                       }}
                       disabled={isLoading}
-                      className="text-[11px] text-muted-foreground hover:text-destructive transition-colors"
+                      className="text-xs text-muted-foreground hover:text-destructive transition-colors"
                     >
                       {t("materials.remove")}
                     </button>
@@ -1931,8 +1934,8 @@ export function GigEditorPanel({
               {showParking && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-                      <ParkingCircle className="h-4 w-4" />
+                    <label className="flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground">
+                      <ParkingCircle className="h-5 w-5" />
                       {t("parkingNotes")}
                     </label>
                     <button
@@ -1942,7 +1945,7 @@ export function GigEditorPanel({
                         setShowParking(false);
                       }}
                       disabled={isLoading}
-                      className="text-[11px] text-muted-foreground hover:text-destructive transition-colors"
+                      className="text-xs text-muted-foreground hover:text-destructive transition-colors"
                     >
                       {t("materials.remove")}
                     </button>
@@ -1963,8 +1966,8 @@ export function GigEditorPanel({
               {showNotes && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-                      <StickyNote className="h-4 w-4" />
+                    <label className="flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground">
+                      <StickyNote className="h-5 w-5" />
                       {t("generalInformation")}
                     </label>
                     <button
@@ -1974,7 +1977,7 @@ export function GigEditorPanel({
                         setShowNotes(false);
                       }}
                       disabled={isLoading}
-                      className="text-[11px] text-muted-foreground hover:text-destructive transition-colors"
+                      className="text-xs text-muted-foreground hover:text-destructive transition-colors"
                     >
                       {t("materials.remove")}
                     </button>
@@ -1995,8 +1998,8 @@ export function GigEditorPanel({
               {showInternalNotes && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
-                      <FileText className="h-4 w-4" />
+                    <label className="flex items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground">
+                      <FileText className="h-5 w-5" />
                       {t("internalNotes")}
                     </label>
                     <button
@@ -2006,7 +2009,7 @@ export function GigEditorPanel({
                         setShowInternalNotes(false);
                       }}
                       disabled={isLoading}
-                      className="text-[11px] text-muted-foreground hover:text-destructive transition-colors"
+                      className="text-xs text-muted-foreground hover:text-destructive transition-colors"
                     >
                       {t("materials.remove")}
                     </button>
@@ -2027,12 +2030,10 @@ export function GigEditorPanel({
               )}
 
               {/* Add buttons for hidden fields */}
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {!showContacts && (
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
-                    size="sm"
                     onClick={() => {
                       setShowContacts(true);
                       // Add an empty contact row when first opening
@@ -2047,82 +2048,66 @@ export function GigEditorPanel({
                       }
                     }}
                     disabled={isLoading}
-                    className="w-full justify-start text-xs"
+                    className="flex w-full items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                   >
-                    <Plus className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
-                    <Users className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
+                    <Users className="h-5 w-5" />
                     {t("contacts.tabLabel")}
-                  </Button>
+                  </button>
                 )}
                 {!showDressCode && (
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
-                    size="sm"
                     onClick={() => setShowDressCode(true)}
                     disabled={isLoading}
-                    className="w-full justify-start text-xs"
+                    className="flex w-full items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                   >
-                    <Plus className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
-                    <Shirt className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
+                    <Shirt className="h-5 w-5" />
                     {t("dressCode")}
-                  </Button>
+                  </button>
                 )}
                 {!showBackline && (
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
-                    size="sm"
                     onClick={() => setShowBackline(true)}
                     disabled={isLoading}
-                    className="w-full justify-start text-xs"
+                    className="flex w-full items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                   >
-                    <Plus className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
-                    <Package className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
+                    <Package className="h-5 w-5" />
                     {t("backlineNotes")}
-                  </Button>
+                  </button>
                 )}
                 {!showParking && (
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
-                    size="sm"
                     onClick={() => setShowParking(true)}
                     disabled={isLoading}
-                    className="w-full justify-start text-xs"
+                    className="flex w-full items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                   >
-                    <Plus className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
-                    <ParkingCircle className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
+                    <ParkingCircle className="h-5 w-5" />
                     {t("parkingNotes")}
-                  </Button>
+                  </button>
                 )}
                 {!showNotes && (
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
-                    size="sm"
                     onClick={() => setShowNotes(true)}
                     disabled={isLoading}
-                    className="w-full justify-start text-xs"
+                    className="flex w-full items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                   >
-                    <Plus className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
-                    <StickyNote className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
+                    <StickyNote className="h-5 w-5" />
                     {t("generalInformation")}
-                  </Button>
+                  </button>
                 )}
                 {!showInternalNotes && (
-                  <Button
+                  <button
                     type="button"
-                    variant="outline"
-                    size="sm"
                     onClick={() => setShowInternalNotes(true)}
                     disabled={isLoading}
-                    className="w-full justify-start text-xs"
+                    className="flex w-full items-center gap-2 text-sm uppercase tracking-wide text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                   >
-                    <Plus className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
-                    <FileText className="mr-1.5 h-3.5 w-3.5 rtl:ml-1.5 rtl:mr-0" />
+                    <FileText className="h-5 w-5" />
                     {t("internalNotes")}
-                  </Button>
+                  </button>
                 )}
               </div>
             </div>

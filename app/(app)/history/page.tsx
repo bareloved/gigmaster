@@ -71,10 +71,8 @@ export default function HistoryPage() {
   });
 
   const handleEditGig = (gig: DashboardGig) => {
-    if (gig.isManager) {
-      setEditingGigId(gig.gigId);
-      setIsEditorOpen(true);
-    }
+    setEditingGigId(gig.gigId);
+    setIsEditorOpen(true);
   };
 
   // Date range state (default: all time)
@@ -453,7 +451,7 @@ export default function HistoryPage() {
                       gig={gig}
                       isPastGig={true}
                       returnUrl="/history"
-                      onClick={() => handleEditGig(gig)}
+                      onEdit={handleEditGig}
                       index={index}
                     />
                   ))}
@@ -466,7 +464,7 @@ export default function HistoryPage() {
                       gig={gig}
                       isPastGig={true}
                       returnUrl="/history"
-                      onClick={() => handleEditGig(gig)}
+                      onEdit={handleEditGig}
                     />
                   ))}
                 </div>

@@ -73,7 +73,7 @@ export function GigContactsManager({
         type="button"
         onClick={handleAdd}
         disabled={disabled}
-        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
       >
         + Add another contact
       </button>

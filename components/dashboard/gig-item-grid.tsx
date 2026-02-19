@@ -22,7 +22,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Clock, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed } from "lucide-react";
+import { MapPin, Package, MoreVertical, Check, X, Crown, Mail, Share2, Clock, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUser } from "@/lib/providers/user-provider";
@@ -79,12 +79,22 @@ const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, he
           blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAYH/8QAIhAAAgEDBAMBAAAAAAAAAAAAAQIDAAQRBRIhMQYTQWH/xAAVAQEBAAAAAAAAAAAAAAAAAAADBf/EABkRAQADAQEAAAAAAAAAAAAAAAEAAgMREv/aAAwDAQACEQMRAD8AsfLNX1G4tLRY7cW8CTp7Y0ZBiRchsgDnAOOB91T0pTF2TiSz/9k="
         />
         {/* Date overlay on image */}
-        <div className="absolute top-2 left-2 flex flex-col items-center bg-background/90 backdrop-blur-sm rounded-lg p-2 min-w-[50px] shadow-sm">
+        <div className={`absolute top-2 left-2 flex flex-col items-center bg-background/90 backdrop-blur-sm rounded-none p-2 min-w-[50px] shadow-sm ${
+          gig.status === 'tentative' ? 'border border-amber-500/70 dark:border-amber-400/60' : ''
+        }`}>
           <span className="text-xs text-muted-foreground uppercase">
             {format(gigDate, "MMM")}
           </span>
           <span className="text-xl font-bold">{format(gigDate, "d")}</span>
         </div>
+        {/* Tentative badge - top center */}
+        {gig.status === 'tentative' && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10">
+            <Badge variant="outline" className="bg-amber-50/90 border-amber-300 text-amber-700 dark:bg-amber-950/90 dark:border-amber-700 dark:text-amber-300 text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 font-semibold backdrop-blur-sm shadow-sm">
+              Tentative
+            </Badge>
+          </div>
+        )}
         {/* Status overlay */}
         <div className="absolute top-2 right-2 flex flex-col gap-1 items-end origin-top-right scale-90">
           {gig.isExternal && (
@@ -104,13 +114,13 @@ const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, he
               {gig.hostName}
             </Badge>
           ) : null}
-          {gig.status && (
+          {gig.status && gig.status !== 'confirmed' && gig.status !== 'tentative' && (
             <GigStatusBadge status={gig.status} className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0 sm:py-0.5 border font-semibold backdrop-blur-sm !bg-background/90" />
           )}
         </div>
       </div>
 
-      <div className="px-2.5 sm:px-3 pt-2.5 sm:pt-3 pb-2.5 sm:pb-3 flex-1 flex flex-col">
+      <div className="px-2.5 sm:px-3 pt-2.5 sm:pt-3 pb-1 sm:pb-1.5 flex-1 flex flex-col">
         <div className="flex flex-col space-y-1 sm:space-y-1.5">
           {/* Title row */}
           <div>
@@ -188,7 +198,7 @@ interface DashboardGigItemGridProps {
   gig: DashboardGig;
   isPastGig?: boolean;
   returnUrl?: string;
-  onClick?: (gig: DashboardGig) => void;
+  onEdit?: (gig: DashboardGig) => void;
   index?: number;
 }
 
@@ -196,7 +206,7 @@ export function DashboardGigItemGrid({
   gig,
   isPastGig = false,
   returnUrl = "/gigs",
-  onClick,
+  onEdit,
   index
 }: DashboardGigItemGridProps) {
   const { user } = useUser();
@@ -299,13 +309,7 @@ export function DashboardGigItemGrid({
   const showInvitationActions = showPlayerActions && gig.invitationStatus === "invited" && !isPastGig;
   const showWithdrawAction = showPlayerActions && gig.invitationStatus === "accepted" && !isPastGig;
   const showManagerActions = gig.isManager && !isPastGig;
-  const isPlayerOnly = gig.isPlayer && !gig.isManager;
   const needsResponse = gig.isPlayer && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
-
-  // Determine gig URL: external gigs always go to pack, managers see full detail, players see pack
-  const gigUrl = gig.isManager && !gig.isExternal
-    ? `/gigs/${gig.gigId}?returnUrl=${returnUrl}`
-    : `/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`;
 
   // Get hero image - use fallback if no custom image
   const heroImage = gig.heroImageUrl || getGigFallbackImage(
@@ -319,56 +323,42 @@ export function DashboardGigItemGrid({
 
   return (
     <>
-      <Card className={`overflow-hidden hover:bg-muted/50 transition-colors group h-full flex flex-col relative ${isPastGig ? 'opacity-70 saturate-75' : needsResponse ? 'opacity-75' : ''}`}>
-        {onClick ? (
-          <div
-            onClick={() => onClick(gig)}
-            className="flex-1 flex flex-col cursor-pointer"
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                onClick(gig);
-              }
-            }}
-          >
-            <GigGridInnerContent
-              gig={gig}
-              gigDate={gigDate}
-              formattedDate={formattedDate}
-              heroImage={heroImage}
-              index={index}
-            />
-          </div>
-        ) : (
-          <Link href={gigUrl} className="flex-1 flex flex-col">
-            <GigGridInnerContent
-              gig={gig}
-              gigDate={gigDate}
-              formattedDate={formattedDate}
-              heroImage={heroImage}
-              index={index}
-            />
-          </Link>
-        )}
+      <Card className={`overflow-hidden hover:bg-muted/50 transition-colors group h-full flex flex-col relative rounded-none ${isPastGig ? 'opacity-70 saturate-75' : needsResponse ? 'opacity-75' : ''}`}>
+        <div className="flex-1 flex flex-col">
+          <GigGridInnerContent
+            gig={gig}
+            gigDate={gigDate}
+            formattedDate={formattedDate}
+            heroImage={heroImage}
+            index={index}
+          />
+        </div>
 
-        {/* Extra breathing room for player-only cards (no buttons below) */}
-        {isPlayerOnly && <div className="pb-3" />}
-
-        {/* Action Buttons - only full row for manager gigs */}
-        {!isPlayerOnly && (
-        <div className="px-2 sm:px-3 pb-2 sm:pb-3 pt-0 mt-auto flex gap-1 sm:gap-2">
-          {/* Gig Pack Button (only for hosts - players click card to go to pack) */}
-          {gig.isManager && (
-            <Link href={`/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`} onClick={(e) => e.stopPropagation()} className="flex-1">
-              <Button variant="outline" size="sm" className="w-full gap-1 sm:gap-2 text-xs h-7 sm:h-8">
-                <Package className="h-3 w-3 sm:h-4 sm:w-4" />
-                Gig Pack
-              </Button>
-            </Link>
+        {/* Action Buttons — shown for all users */}
+        <div className="mx-2 sm:mx-3 border-t border-border/50" />
+        <div className="px-2 sm:px-3 pb-2 sm:pb-3 pt-2 sm:pt-2.5 mt-auto flex gap-1 sm:gap-2">
+          {/* Edit button — managers of non-external gigs only */}
+          {gig.isManager && !gig.isExternal && onEdit && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1 sm:gap-2 text-xs h-7 sm:h-8"
+              onClick={() => onEdit(gig)}
+            >
+              <Pencil className="h-3 w-3 sm:h-4 sm:w-4" />
+              Edit
+            </Button>
           )}
 
-          {/* Share Button (only for hosts) - Icon only on very small screens */}
+          {/* GigPack button — always visible */}
+          <Link href={`/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`} className="flex-1">
+            <Button variant="outline" size="sm" className="w-full gap-1 sm:gap-2 text-xs h-7 sm:h-8">
+              <Package className="h-3 w-3 sm:h-4 sm:w-4" />
+              Gig Pack
+            </Button>
+          </Link>
+
+          {/* Share button — managers only */}
           {gig.isManager && (
             <Button
               variant="outline"
@@ -382,15 +372,15 @@ export function DashboardGigItemGrid({
             </Button>
           )}
 
-          {/* Quick Actions Dropdown */}
+          {/* Dropdown — anyone with actions */}
           {(showPlayerActions || showManagerActions) && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 px-0" onClick={(e) => e.stopPropagation()}>
+                <Button variant="ghost" size="sm" className="h-8 w-8 px-0">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuContent align="end">
                 {/* Group 1: Invitation Actions */}
                 {showInvitationActions && (
                   <>
@@ -457,40 +447,6 @@ export function DashboardGigItemGrid({
             </DropdownMenu>
           )}
         </div>
-        )}
-
-        {/* Player-only: compact dropdown at bottom-right */}
-        {isPlayerOnly && (showInvitationActions || showWithdrawAction) && (
-          <div className="absolute bottom-2 right-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={(e) => e.stopPropagation()}>
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                {showInvitationActions && (
-                  <>
-                    <DropdownMenuItem onClick={handleAcceptInvitation}>
-                      <Check className="h-4 w-4 mr-2 text-green-600" />
-                      Accept Invitation
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
-                      <X className="h-4 w-4 mr-2 text-red-600" />
-                      Decline Invitation
-                    </DropdownMenuItem>
-                  </>
-                )}
-                {showWithdrawAction && (
-                  <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
-                    <X className="h-4 w-4 mr-2 text-red-600" />
-                    Decline Gig
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        )}
       </Card>
 
       {/* Conflict Warning Dialog */}

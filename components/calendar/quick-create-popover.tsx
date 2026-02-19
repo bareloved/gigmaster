@@ -90,6 +90,7 @@ export function QuickCreatePopover({
         date: dateStr,
         start_time: onStageTime || time,
         end_time: endTime || null,
+        on_stage_time: onStageTime || time,
         call_time: callTime || null,
         band_id: bandId || null,
         venue_name: venueName.trim() || null,
@@ -237,10 +238,10 @@ export function QuickCreatePopover({
             </div>
           </div>
 
-          {/* Arrival */}
+          {/* Soundcheck */}
           <div className="flex items-center gap-3">
             <span className="w-20 shrink-0 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              Arrival
+              Soundcheck
             </span>
             <div className="flex-1 flex items-center gap-2">
               <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />
@@ -254,10 +255,10 @@ export function QuickCreatePopover({
             </div>
           </div>
 
-          {/* Soundcheck */}
+          {/* On Stage */}
           <div className="flex items-center gap-3">
             <span className="w-20 shrink-0 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              Soundcheck
+              On Stage
             </span>
             <div className="flex-1 flex items-center gap-2">
               <Clock3 className="h-3.5 w-3.5 text-muted-foreground" />

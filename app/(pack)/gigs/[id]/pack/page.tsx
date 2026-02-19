@@ -250,71 +250,67 @@ export default function GigPackPage() {
 
   return (
     <div className="relative">
-      {/* Top navigation bar - fixed on top */}
-      <div className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b">
-        <div className="container max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link href={isOwner && !isExternal ? `/gigs/${gigId}?returnUrl=${encodeURIComponent(returnUrl)}` : returnUrl}>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                {isOwner && !isExternal ? 'Manage Gig' : 'Back'}
+      {/* Floating action buttons */}
+      <div className="fixed top-4 left-4 z-50 flex items-center gap-2">
+        <Link href={returnUrl}>
+          <Button variant="outline" size="sm" className="gap-2 bg-background/80 backdrop-blur-sm shadow-sm">
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+        </Link>
+        {isExternal && (
+          <Badge variant="secondary" className="gap-1 text-xs bg-background/80 backdrop-blur-sm shadow-sm">
+            <CalendarSync className="h-3 w-3" />
+            External
+          </Badge>
+        )}
+      </div>
+
+      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+        {isExternal && (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 bg-background/80 backdrop-blur-sm shadow-sm"
+              disabled={refreshing}
+              onClick={handleRefreshFromCalendar}
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">{refreshing ? 'Checking...' : 'Check for updates'}</span>
+            </Button>
+            {externalEventUrl && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 bg-background/80 backdrop-blur-sm shadow-sm"
+                onClick={() => window.open(externalEventUrl, '_blank', 'noopener,noreferrer')}
+              >
+                <ExternalLink className="h-4 w-4" />
+                <span className="hidden sm:inline">Google Calendar</span>
+              </Button>
+            )}
+          </>
+        )}
+        {isOwner && !isExternal && (
+          <>
+            <Link href={`/gigs/${gigId}/edit`}>
+              <Button variant="outline" size="sm" className="gap-2 bg-background/80 backdrop-blur-sm shadow-sm">
+                <Edit className="h-4 w-4" />
+                Edit
               </Button>
             </Link>
-            {isExternal && (
-              <Badge variant="secondary" className="gap-1 text-xs">
-                <CalendarSync className="h-3 w-3" />
-                External Gig
-              </Badge>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {isExternal && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  disabled={refreshing}
-                  onClick={handleRefreshFromCalendar}
-                >
-                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                  {refreshing ? 'Checking...' : 'Check for updates'}
-                </Button>
-                {externalEventUrl && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                    onClick={() => window.open(externalEventUrl, '_blank', 'noopener,noreferrer')}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    <span className="hidden sm:inline">Google Calendar</span>
-                  </Button>
-                )}
-              </>
-            )}
-            {isOwner && !isExternal && (
-              <>
-                <Link href={`/gigs/${gigId}/edit`}>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Edit className="h-4 w-4" />
-                    Edit
-                  </Button>
-                </Link>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => setShareDialogOpen(true)}
-                >
-                  <Share2 className="h-4 w-4" />
-                  Share
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 bg-background/80 backdrop-blur-sm shadow-sm"
+              onClick={() => setShareDialogOpen(true)}
+            >
+              <Share2 className="h-4 w-4" />
+              Share
+            </Button>
+          </>
+        )}
       </div>
 
       {/* Invitation banner for invited players */}

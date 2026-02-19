@@ -21,7 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { MapPin, Clock, Package, MoreVertical, Check, X, Crown, Mail, Share2, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed } from "lucide-react";
+import { MapPin, Clock, Package, MoreVertical, Check, X, Crown, Mail, Share2, Trash2, CalendarSync, Copy, CircleCheck, CircleX, CircleDashed, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useUser } from "@/lib/providers/user-provider";
@@ -66,13 +66,8 @@ const GigInnerContent = memo(function GigInnerContent({ gig }: { gig: DashboardG
             )}
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0 pt-0.5">
-            {gig.status && (
-              <span className={`w-2.5 h-2.5 rounded-full ${
-                gig.status === 'confirmed' ? 'bg-green-500' :
-                gig.status === 'cancelled' ? 'bg-red-500' :
-                gig.status === 'tentative' ? 'bg-amber-500' :
-                'bg-yellow-500'
-              }`} />
+            {gig.status === 'cancelled' && (
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
             )}
             {gig.isManager ? (
               <Crown className="h-3.5 w-3.5 text-orange-500/70" />
@@ -172,14 +167,14 @@ interface DashboardGigItemProps {
   gig: DashboardGig;
   isPastGig?: boolean;
   returnUrl?: string;
-  onClick?: (gig: DashboardGig) => void;
+  onEdit?: (gig: DashboardGig) => void;
 }
 
 export function DashboardGigItem({
   gig,
   isPastGig = false,
   returnUrl = "/gigs",
-  onClick
+  onEdit
 }: DashboardGigItemProps) {
   const { user } = useUser();
   const gigDate = new Date(gig.date);
@@ -278,20 +273,16 @@ export function DashboardGigItem({
   const showInvitationActions = showPlayerActions && gig.invitationStatus === "invited" && !isPastGig;
   const showWithdrawAction = showPlayerActions && gig.invitationStatus === "accepted" && !isPastGig;
   const showManagerActions = gig.isManager && !isPastGig;
-  const isPlayerOnly = gig.isPlayer && !gig.isManager;
   const needsResponse = gig.isPlayer && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
-
-  // Determine gig URL: external gigs always go to pack, managers see full detail, players see pack
-  const gigUrl = gig.isManager && !gig.isExternal
-    ? `/gigs/${gig.gigId}?returnUrl=${returnUrl}`
-    : `/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`;
 
   return (
     <>
       <Card className={`p-3 sm:p-4 hover:bg-muted/50 transition-colors group relative ${isPastGig ? 'opacity-70 saturate-75' : needsResponse ? 'opacity-75' : ''}`}>
         <div className="flex items-start gap-3 sm:gap-4">
           {/* Date Badge - Ticket stub style on all sizes */}
-          <div className="flex flex-col items-center justify-center self-stretch pl-2 pr-6 sm:pl-3 sm:pr-7 border-r border-border/50 min-w-[48px] sm:min-w-[56px]">
+          <div className={`flex flex-col items-center justify-center self-stretch pl-2 pr-6 sm:pl-3 sm:pr-7 border-r border-border/50 min-w-[48px] sm:min-w-[56px] ${
+            gig.status === 'tentative' ? 'border-r-amber-500/70 dark:border-r-amber-400/60' : ''
+          }`}>
             <span className="text-xs sm:text-xs text-muted-foreground uppercase font-medium tracking-wide">
               {format(gigDate, "MMM")}
             </span>
@@ -300,32 +291,16 @@ export function DashboardGigItem({
 
           {/* Gig Details + Right column */}
           <div className="flex-1 min-w-0 sm:flex sm:gap-4 space-y-2 sm:space-y-0 relative self-stretch sm:self-auto">
-            {/* Clickable content */}
-            {onClick ? (
-              <div
-                onClick={() => onClick(gig)}
-                className="block space-y-2 sm:space-y-0 cursor-pointer sm:flex-1 sm:min-w-0"
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    onClick(gig);
-                  }
-                }}
-              >
-                <GigInnerContent gig={gig} />
-              </div>
-            ) : (
-              <Link href={gigUrl} className="block space-y-2 sm:space-y-0 sm:flex-1 sm:min-w-0">
-                <GigInnerContent gig={gig} />
-              </Link>
-            )}
+            {/* Non-clickable content */}
+            <div className="block space-y-2 sm:space-y-0 sm:flex-1 sm:min-w-0">
+              <GigInnerContent gig={gig} />
+            </div>
 
             {/* Desktop right column: badges / buttons stacked */}
             <div className="hidden sm:flex sm:flex-col sm:items-end sm:justify-between sm:flex-shrink-0 sm:self-stretch">
               {/* Row 1: Badges */}
               <div className="flex items-center gap-2">
-                {gig.status && (
+                {gig.status && gig.status !== 'confirmed' && gig.status !== 'tentative' && (
                   <GigStatusBadge status={gig.status} />
                 )}
                 {gig.isExternal && (
@@ -360,17 +335,30 @@ export function DashboardGigItem({
                 />
               )}
 
-              {/* Row 2: Buttons (manager only) */}
-              {!isPlayerOnly && (
+              {/* Row 2: Buttons — shown for all users */}
               <div className="flex items-center gap-2">
-                {gig.isManager && (
-                  <Link href={`/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`} onClick={(e) => e.stopPropagation()}>
-                    <Button variant="outline" size="sm" className="h-8 px-2.5 gap-1.5 text-xs">
-                      <Package className="h-3.5 w-3.5" />
-                      Gig Pack
-                    </Button>
-                  </Link>
+                {/* Edit button — managers of non-external gigs only */}
+                {gig.isManager && !gig.isExternal && onEdit && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-2.5 gap-1.5 text-xs"
+                    onClick={() => onEdit(gig)}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit
+                  </Button>
                 )}
+
+                {/* GigPack button — always visible */}
+                <Link href={`/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`}>
+                  <Button variant="outline" size="sm" className="h-8 px-2.5 gap-1.5 text-xs">
+                    <Package className="h-3.5 w-3.5" />
+                    Gig Pack
+                  </Button>
+                </Link>
+
+                {/* Share button — managers only */}
                 {gig.isManager && (
                   <Button
                     variant="outline"
@@ -384,15 +372,15 @@ export function DashboardGigItem({
                   </Button>
                 )}
 
-                {/* Quick Actions Dropdown */}
+                {/* Quick Actions Dropdown — anyone with actions */}
                 {(showPlayerActions || showManagerActions) && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 px-0" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 px-0">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                    <DropdownMenuContent align="end">
                       {/* Group 1: Invitation Actions */}
                       {showInvitationActions && (
                         <>
@@ -459,59 +447,40 @@ export function DashboardGigItem({
                   </DropdownMenu>
                 )}
               </div>
-              )}
-
-              {/* Player-only: dropdown in right column on desktop */}
-              {isPlayerOnly && (showInvitationActions || showWithdrawAction) && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 px-0" onClick={(e) => e.stopPropagation()}>
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                    {showInvitationActions && (
-                      <>
-                        <DropdownMenuItem onClick={handleAcceptInvitation}>
-                          <Check className="h-4 w-4 mr-2 text-green-600" />
-                          Accept Invitation
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
-                          <X className="h-4 w-4 mr-2 text-red-600" />
-                          Decline Invitation
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    {showWithdrawAction && (
-                      <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
-                        <X className="h-4 w-4 mr-2 text-red-600" />
-                        Decline Gig
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
             </div>
 
             {/* Mobile-only action buttons */}
-            {!isPlayerOnly && (
             <div className="sm:hidden absolute right-0 -bottom-2 flex items-center justify-end gap-1.5">
-              {gig.isManager && (
-                <Link href={`/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`} onClick={(e) => e.stopPropagation()}>
-                  <Button variant="outline" size="sm" className="h-6 px-2 gap-1 rounded-sm text-muted-foreground text-[11px]">
-                    <Package className="h-3 w-3" />
-                    Gig Pack
-                  </Button>
-                </Link>
+              {/* Edit button — managers of non-external gigs only */}
+              {gig.isManager && !gig.isExternal && onEdit && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 gap-1 rounded-sm text-muted-foreground text-[11px]"
+                  onClick={() => onEdit(gig)}
+                >
+                  <Pencil className="h-3 w-3" />
+                  Edit
+                </Button>
               )}
+
+              {/* GigPack button — always visible */}
+              <Link href={`/gigs/${gig.gigId}/pack?returnUrl=${returnUrl}`}>
+                <Button variant="outline" size="sm" className="h-6 px-2 gap-1 rounded-sm text-muted-foreground text-[11px]">
+                  <Package className="h-3 w-3" />
+                  Gig Pack
+                </Button>
+              </Link>
+
+              {/* Dropdown — anyone with actions */}
               {(showPlayerActions || showManagerActions) && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 px-2" onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 px-2">
                       <MoreVertical className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuContent align="end">
                     {showInvitationActions && (
                       <>
                         <DropdownMenuItem onClick={handleAcceptInvitation}>
@@ -559,43 +528,18 @@ export function DashboardGigItem({
                 </DropdownMenu>
               )}
             </div>
-            )}
-
-            {/* Player-only: compact dropdown (mobile) */}
-            {isPlayerOnly && (showInvitationActions || showWithdrawAction) && (
-              <div className="sm:hidden absolute right-0 -bottom-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={(e) => e.stopPropagation()}>
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                    {showInvitationActions && (
-                      <>
-                        <DropdownMenuItem onClick={handleAcceptInvitation}>
-                          <Check className="h-4 w-4 mr-2 text-green-600" />
-                          Accept Invitation
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
-                          <X className="h-4 w-4 mr-2 text-red-600" />
-                          Decline Invitation
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                    {showWithdrawAction && (
-                      <DropdownMenuItem onClick={() => declineInvitationMutation.mutate(gig.playerGigRoleId!)}>
-                        <X className="h-4 w-4 mr-2 text-red-600" />
-                        Decline Gig
-                      </DropdownMenuItem>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            )}
 
           </div>
         </div>
+
+        {/* Tentative badge - top center of the card */}
+        {gig.status === 'tentative' && (
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+            <Badge variant="outline" className="bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-950 dark:border-amber-700 dark:text-amber-300 text-xs px-2.5 py-0.5 shadow-sm">
+              Tentative
+            </Badge>
+          </div>
+        )}
 
         {/* Invited badge - centered on the whole card */}
         {needsResponse && (

@@ -27,6 +27,11 @@ export function useInvitationAction(options: UseInvitationActionOptions = {}) {
       queryClient.invalidateQueries({ queryKey: ['pending-invitations', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['declined-invitations', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-gigs', user?.id] });
+      queryClient.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === 'all-gigs' &&
+          (user?.id == null || query.queryKey[1] === user.id),
+      });
       queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['notifications-unread-count', user?.id] });
 

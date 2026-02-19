@@ -55,7 +55,7 @@ export function WeekViewTimeGrid({
   // Group gigs by day
   function gigsForDay(day: Date): DashboardGig[] {
     return gigs.filter((g) =>
-      isSameDay(new Date(g.date + "T00:00:00"), day)
+      isSameDay(new Date(g.date.slice(0, 10) + "T00:00:00"), day)
     );
   }
 

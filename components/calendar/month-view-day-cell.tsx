@@ -34,7 +34,7 @@ export function MonthViewDayCell({
   const isToday = isSameDay(date, today);
   const isWeekend = getDay(date) === 5 || getDay(date) === 6;
   const dayGigs = gigs.filter((g) =>
-    isSameDay(new Date(g.date + "T00:00:00"), date)
+    isSameDay(new Date(g.date.slice(0, 10) + "T00:00:00"), date)
   );
   const visibleGigs = dayGigs.slice(0, MAX_VISIBLE_EVENTS);
   const overflowCount = dayGigs.length - MAX_VISIBLE_EVENTS;

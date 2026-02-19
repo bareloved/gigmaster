@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useDocumentTitle } from "@/hooks/use-document-title";
-import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -92,7 +91,6 @@ type TimeFilter = "upcoming" | "previous";
 export default function AllGigsPage() {
   useDocumentTitle("Gigs");
   const { user } = useUser();
-  const router = useRouter();
 
   const [viewMode, setViewMode] = useState<ViewMode>(() => {
     if (typeof window !== "undefined") {
@@ -130,13 +128,8 @@ export default function AllGigsPage() {
   };
 
   const handleEditGig = (gig: DashboardGig) => {
-    if (gig.isManager) {
-      setEditingGigId(gig.gigId);
-      setIsEditorOpen(true);
-    } else {
-      // Players go to pack
-      router.push(`/gigs/${gig.gigId}/pack`);
-    }
+    setEditingGigId(gig.gigId);
+    setIsEditorOpen(true);
   };
 
   // Debounce search query
@@ -453,12 +446,6 @@ export default function AllGigsPage() {
           </p>
         </div>
         <div className="flex items-center gap-1 border rounded-md p-1">
-          <Link href="/gigs/trash">
-            <Button variant="ghost" size="sm" className="h-8 px-2.5 text-muted-foreground">
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </Link>
-          <div className="w-px h-4 bg-border" />
           <Button
             variant={timeFilter === "previous" ? "secondary" : "ghost"}
             size="sm"
@@ -479,15 +466,6 @@ export default function AllGigsPage() {
           </Button>
         </div>
         <div className="flex-1 flex justify-end gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsImportSheetOpen(true)}
-            className="gap-1.5 h-10 text-sm"
-          >
-            <Download className="h-4 w-4" />
-            Import
-          </Button>
           <Button onClick={handleCreateGig} className="gap-2 h-10 text-sm">
             <Plus className="h-4 w-4" />
             Create Gig
@@ -533,12 +511,31 @@ export default function AllGigsPage() {
               </button>
             )}
           </div>
-          <Link href="/invitations">
-            <Button variant="outline" size="sm" className="gap-1.5 h-10 text-sm">
-              <Mail className="h-4 w-4" />
-              Invitations
-            </Button>
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-10 w-10 p-0">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-[180px] p-1.5">
+              <DropdownMenuItem onClick={() => setIsImportSheetOpen(true)} className="text-sm py-2.5 px-3 gap-2.5">
+                <Download className="h-4.5 w-4.5" />
+                Import gigs
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="text-sm py-2.5 px-3 gap-2.5">
+                <Link href="/invitations">
+                  <Mail className="h-4.5 w-4.5" />
+                  Invitations
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="text-sm py-2.5 px-3 gap-2.5">
+                <Link href="/gigs/trash">
+                  <Trash2 className="h-4.5 w-4.5" />
+                  Trash
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -588,7 +585,7 @@ export default function AllGigsPage() {
                     <DashboardGigItem
                       key={gig.gigId}
                       gig={gig}
-                      onClick={() => handleEditGig(gig)}
+                      onEdit={handleEditGig}
                     />
                   ))}
                 </div>
@@ -598,7 +595,7 @@ export default function AllGigsPage() {
                     <DashboardGigItemGrid
                       key={gig.gigId}
                       gig={gig}
-                      onClick={() => handleEditGig(gig)}
+                      onEdit={handleEditGig}
                       index={index}
                     />
                   ))}
