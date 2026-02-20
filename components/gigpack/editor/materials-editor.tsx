@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useState, useRef } from "react";
-import { useTranslations, useLocale } from "@/lib/gigpack/i18n";
+import { useTranslations } from "@/lib/gigpack/i18n";
 import { cn } from "@/lib/utils";
 import {
   Mic,
@@ -12,16 +12,12 @@ import {
   Paperclip,
   Plus,
   MoreHorizontal,
+  Link2,
+  Pencil,
+  Check,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Popover,
   PopoverContent,
@@ -94,11 +90,11 @@ function detectKindFromUrl(url: string): GigMaterialKind | null {
 // ============================================================================
 
 const KIND_ICON: Record<GigMaterialKind, { icon: React.ElementType; color: string }> = {
-  rehearsal: { icon: Mic, color: "text-primary" },
-  performance: { icon: Star, color: "text-secondary" },
-  charts: { icon: Music, color: "text-accent" },
-  reference: { icon: Headphones, color: "text-[hsl(var(--chart-4))]" },
-  other: { icon: Paperclip, color: "text-muted-foreground" },
+  rehearsal: { icon: Mic, color: "text-amber-700 dark:text-amber-400" },
+  performance: { icon: Star, color: "text-rose-600 dark:text-rose-400" },
+  charts: { icon: Music, color: "text-blue-600 dark:text-blue-400" },
+  reference: { icon: Headphones, color: "text-violet-600 dark:text-violet-400" },
+  other: { icon: Paperclip, color: "text-slate-600 dark:text-slate-400" },
 };
 
 // ============================================================================
@@ -156,7 +152,7 @@ export function MaterialsEditor({
                 {t("materials.addButton")}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80 p-4" align="start" side="bottom">
+            <PopoverContent className="w-[22rem] p-4" align="start" side="bottom">
               <MaterialFormInner
                 onSave={handleAdd}
                 onCancel={() => setAddOpen(false)}
@@ -180,8 +176,8 @@ export function MaterialsEditor({
         {t("materials.description")}
       </p>
 
-      {/* Material list */}
-      <div className="rounded-lg border bg-card">
+      {/* Material grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {materials.map((material) => (
           <Popover
             key={material.id}
@@ -192,7 +188,7 @@ export function MaterialsEditor({
           >
             <PopoverTrigger asChild>
               <div>
-                <MaterialRow
+                <MaterialCard
                   material={material}
                   disabled={disabled}
                   onEdit={() => setEditingId(material.id)}
@@ -206,7 +202,7 @@ export function MaterialsEditor({
               </div>
             </PopoverTrigger>
             <PopoverContent
-              className="w-80 p-4"
+              className="w-[22rem] p-4"
               align="start"
               side="bottom"
             >
@@ -235,7 +231,7 @@ export function MaterialsEditor({
             {t("materials.addButton")}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-80 p-4" align="start" side="bottom">
+        <PopoverContent className="w-[22rem] p-4" align="start" side="bottom">
           <MaterialFormInner
             onSave={handleAdd}
             onCancel={() => setAddOpen(false)}
@@ -248,10 +244,10 @@ export function MaterialsEditor({
 }
 
 // ============================================================================
-// MaterialRow
+// MaterialCard (grid card matching gigpack layout)
 // ============================================================================
 
-interface MaterialRowProps {
+interface MaterialCardProps {
   material: GigMaterial;
   disabled: boolean;
   onEdit: () => void;
@@ -259,41 +255,31 @@ interface MaterialRowProps {
   onOpenLink: () => void;
 }
 
-function MaterialRow({
+function MaterialCard({
   material,
   disabled,
   onEdit,
   onRemove,
   onOpenLink,
-}: MaterialRowProps) {
+}: MaterialCardProps) {
   const t = useTranslations("gigpack");
   const kindConfig = KIND_ICON[material.kind] || KIND_ICON.other;
   const Icon = kindConfig.icon;
-
-  const hostname = (() => {
-    if (!material.url) return null;
-    try {
-      return new URL(material.url).hostname;
-    } catch {
-      return material.url;
-    }
-  })();
 
   return (
     <div
       role="button"
       tabIndex={disabled ? -1 : 0}
       className={cn(
-        "group flex items-center gap-3 py-2 px-3 rounded-lg cursor-pointer",
-        "hover:bg-muted/50 transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+        "group relative flex items-center gap-3.5 p-4 rounded-xl",
+        "border border-transparent bg-white dark:bg-card",
+        "hover:border-border/50 hover:shadow-sm transition-all cursor-pointer",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         disabled && "pointer-events-none opacity-60"
       )}
       onClick={(e) => {
         const target = e.target as HTMLElement;
-        if (target.closest("[data-material-menu]") || target.closest("[data-material-link]")) {
-          return;
-        }
+        if (target.closest("[data-material-menu]")) return;
         onEdit();
       }}
       onKeyDown={(e) => {
@@ -303,79 +289,80 @@ function MaterialRow({
         }
       }}
     >
+      {/* Hosting service icon (top-right) */}
+      {material.url && (
+        <div className="absolute top-2 right-2 rtl:right-auto rtl:left-2">
+          <HostingServiceIcon url={material.url} className="h-4 w-4" />
+        </div>
+      )}
+
+      {/* Menu button (top-right, shown on hover, overlaps hosting icon area) */}
+      <div className="absolute top-1 right-1 rtl:right-auto rtl:left-1 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              data-material-menu
+              className={cn(
+                "h-7 w-7 flex items-center justify-center rounded-md",
+                "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              )}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-36">
+            <DropdownMenuItem onClick={onEdit}>
+              {t("materials.edit")}
+            </DropdownMenuItem>
+            {material.url && (
+              <DropdownMenuItem onClick={onOpenLink}>
+                {t("materials.openLink")}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem
+              onClick={onRemove}
+              className="text-destructive focus:text-destructive"
+            >
+              {t("materials.remove")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       {/* Kind icon */}
       <div className="shrink-0">
-        <Icon className={cn("h-5 w-5", kindConfig.color)} />
+        <Icon className={cn("h-7 w-7", kindConfig.color)} />
       </div>
 
-      {/* Label + secondary info */}
-      <div className="flex-1 min-w-0">
-        <p className="font-medium text-sm truncate">
+      {/* Label + kind subtitle */}
+      <div className="flex-1 min-w-0 pr-4">
+        <p className="font-medium">
           {material.label || t(`materials.type.${material.kind}`)}
         </p>
-        <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
-          <span>{t(`materials.type.${material.kind}`)}</span>
-          {hostname && (
-            <>
-              <span className="text-border">·</span>
-              {material.url && (
-                <button
-                  type="button"
-                  data-material-link
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenLink();
-                  }}
-                  className="inline-flex items-center gap-1 hover:text-foreground transition-colors truncate"
-                >
-                  <HostingServiceIcon url={material.url} className="h-3 w-3 shrink-0" />
-                  <span className="truncate">{hostname}</span>
-                </button>
-              )}
-            </>
-          )}
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {t(`materials.type.${material.kind}`)}
         </p>
       </div>
-
-      {/* Menu button */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            data-material-menu
-            className={cn(
-              "shrink-0 h-8 w-8 flex items-center justify-center rounded-md",
-              "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-              "md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-opacity"
-            )}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-36">
-          <DropdownMenuItem onClick={onEdit}>
-            {t("materials.edit")}
-          </DropdownMenuItem>
-          {material.url && (
-            <DropdownMenuItem onClick={onOpenLink}>
-              {t("materials.openLink")}
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuItem
-            onClick={onRemove}
-            className="text-destructive focus:text-destructive"
-          >
-            {t("materials.remove")}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
     </div>
   );
 }
 
 // ============================================================================
-// MaterialFormInner (shared by edit + add popovers)
+// Kind chips config (for the selectable pill buttons)
+// ============================================================================
+
+const KIND_CHIPS: { value: GigMaterialKind; icon: React.ElementType }[] = [
+  { value: "rehearsal", icon: Mic },
+  { value: "performance", icon: Star },
+  { value: "charts", icon: Music },
+  { value: "reference", icon: Headphones },
+  { value: "other", icon: Paperclip },
+];
+
+// ============================================================================
+// MaterialFormInner (URL-first smart form)
 // ============================================================================
 
 interface MaterialFormInnerProps {
@@ -392,19 +379,37 @@ function MaterialFormInner({
   disabled,
 }: MaterialFormInnerProps) {
   const t = useTranslations("gigpack");
-  const locale = useLocale();
 
   const [label, setLabel] = useState(initial?.label ?? "");
   const [url, setUrl] = useState(initial?.url ?? "");
   const [kind, setKind] = useState<GigMaterialKind>(initial?.kind ?? "rehearsal");
+  const [editingLabel, setEditingLabel] = useState(false);
   const kindManuallySet = useRef(!!initial);
+  const labelInputRef = useRef<HTMLInputElement>(null);
+
+  const hasUrl = url.trim().length > 0;
+  const kindConfig = KIND_ICON[kind] || KIND_ICON.other;
+  const KindIcon = kindConfig.icon;
+
+  const handleUrlChange = (newUrl: string) => {
+    setUrl(newUrl);
+    if (!label) {
+      const parsed = parseNameFromUrl(newUrl);
+      if (parsed) setLabel(parsed);
+    }
+    if (!kindManuallySet.current) {
+      const detected = detectKindFromUrl(newUrl);
+      if (detected) setKind(detected);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation(); // Prevent bubbling to parent gig editor form via React portal
+    if (!url.trim()) return;
     onSave({
       id: initial?.id ?? crypto.randomUUID(),
-      label,
+      label: label || t(`materials.type.${kind}`),
       url,
       kind,
     });
@@ -412,50 +417,126 @@ function MaterialFormInner({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <Input
-        value={label}
-        onChange={(e) => setLabel(e.target.value)}
-        placeholder={t("materials.labelPlaceholder")}
-        disabled={disabled}
-        autoFocus
-      />
-      <Select
-        value={kind}
-        onValueChange={(v: GigMaterialKind) => {
-          kindManuallySet.current = true;
-          setKind(v);
-        }}
-        disabled={disabled}
-      >
-        <SelectTrigger dir={locale === "he" ? "rtl" : "ltr"}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent dir={locale === "he" ? "rtl" : "ltr"}>
-          <SelectItem value="rehearsal">{t("materials.type.rehearsal")}</SelectItem>
-          <SelectItem value="performance">{t("materials.type.performance")}</SelectItem>
-          <SelectItem value="charts">{t("materials.type.charts")}</SelectItem>
-          <SelectItem value="reference">{t("materials.type.reference")}</SelectItem>
-          <SelectItem value="other">{t("materials.type.other")}</SelectItem>
-        </SelectContent>
-      </Select>
-      <Input
-        value={url}
-        onChange={(e) => {
-          const newUrl = e.target.value;
-          setUrl(newUrl);
-          if (!label) {
-            const parsed = parseNameFromUrl(newUrl);
-            if (parsed) setLabel(parsed);
-          }
-          if (!kindManuallySet.current) {
-            const detected = detectKindFromUrl(newUrl);
-            if (detected) setKind(detected);
-          }
-        }}
-        placeholder={t("materials.urlPlaceholder")}
-        type="url"
-        disabled={disabled}
-      />
+      {/* URL input — always visible, prominent */}
+      <div className="relative">
+        <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Input
+          value={url}
+          onChange={(e) => handleUrlChange(e.target.value)}
+          onPaste={(e) => {
+            // Handle paste with a small delay so the value is updated
+            const pasted = e.clipboardData.getData("text");
+            if (pasted) {
+              setTimeout(() => handleUrlChange(pasted), 0);
+            }
+          }}
+          placeholder={t("materials.urlPlaceholder")}
+          disabled={disabled}
+          autoFocus
+          className="pl-9"
+        />
+      </div>
+
+      {/* Preview card — appears when URL is present */}
+      {hasUrl && (
+        <div className="rounded-xl border bg-white dark:bg-card p-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+          {/* Card preview */}
+          <div className="relative flex items-center gap-3">
+            {/* Hosting service icon (top-right) */}
+            {url && (
+              <div className="absolute top-0 right-0">
+                <HostingServiceIcon url={url} className="h-4 w-4" />
+              </div>
+            )}
+
+            {/* Kind icon */}
+            <div className="shrink-0">
+              <KindIcon className={cn("h-7 w-7", kindConfig.color)} />
+            </div>
+
+            {/* Label — click to edit */}
+            <div className="flex-1 min-w-0 pr-5">
+              {editingLabel ? (
+                <Input
+                  ref={labelInputRef}
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  onBlur={() => setEditingLabel(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      setEditingLabel(false);
+                    }
+                    if (e.key === "Escape") setEditingLabel(false);
+                  }}
+                  placeholder={t("materials.labelPlaceholder")}
+                  className="h-7 text-sm font-medium px-1.5"
+                  autoFocus
+                  disabled={disabled}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingLabel(true);
+                    // Focus the input after render
+                    setTimeout(() => labelInputRef.current?.focus(), 0);
+                  }}
+                  className={cn(
+                    "flex items-center gap-1.5 text-left w-full group/label",
+                    "rounded px-1.5 py-0.5 -mx-1.5",
+                    "hover:bg-muted/60 transition-colors"
+                  )}
+                >
+                  <span className="font-medium text-sm truncate">
+                    {label || (
+                      <span className="text-muted-foreground italic">
+                        {t("materials.labelPlaceholder")}
+                      </span>
+                    )}
+                  </span>
+                  <Pencil className="h-3 w-3 shrink-0 text-muted-foreground opacity-0 group-hover/label:opacity-100 transition-opacity" />
+                </button>
+              )}
+              <p className="text-xs text-muted-foreground mt-0.5 px-1.5">
+                {t(`materials.type.${kind}`)}
+              </p>
+            </div>
+          </div>
+
+          {/* Kind chips */}
+          <div className="flex flex-wrap gap-1.5">
+            {KIND_CHIPS.map(({ value, icon: ChipIcon }) => {
+              const selected = kind === value;
+              const chipColor = KIND_ICON[value].color;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => {
+                    kindManuallySet.current = true;
+                    setKind(value);
+                  }}
+                  disabled={disabled}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
+                    "border transition-all",
+                    selected
+                      ? "border-current bg-muted/80 shadow-sm"
+                      : "border-transparent hover:bg-muted/40 text-muted-foreground"
+                  )}
+                >
+                  <ChipIcon className={cn("h-3.5 w-3.5", selected ? chipColor : "")} />
+                  <span>{t(`materials.type.${value}`)}</span>
+                  {selected && <Check className="h-3 w-3 ml-0.5" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
       <div className="flex justify-end gap-2 pt-1">
         <Button
           type="button"
@@ -466,7 +547,7 @@ function MaterialFormInner({
         >
           {t("materials.cancel")}
         </Button>
-        <Button type="submit" size="sm" disabled={disabled}>
+        <Button type="submit" size="sm" disabled={disabled || !hasUrl}>
           {t("materials.save")}
         </Button>
       </div>
