@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useDocumentTitle } from "@/hooks/use-document-title";
+import Link from "next/link";
 import Image from "next/image";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/lib/providers/user-provider";
@@ -41,7 +41,6 @@ const BandCardSkeleton = () => (
 export default function BandsPage() {
   useDocumentTitle("Bands");
   const { user } = useUser();
-  const router = useRouter();
   const t = useTranslations("bands");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -163,68 +162,67 @@ export default function BandsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {bands.map((band) => (
-            <Card key={band.id} className="overflow-hidden hover:shadow-md transition-shadow flex flex-col">
-              {/* Band Logo/Hero */}
-              <div className="relative aspect-video bg-muted">
-                {band.hero_image_url ? (
-                  <Image
-                    src={band.hero_image_url}
-                    alt={band.name}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  />
-                ) : band.band_logo_url ? (
-                  <div className="flex items-center justify-center h-full relative">
+            <Card key={band.id} className="overflow-hidden hover:shadow-md transition-shadow flex flex-col group">
+              {/* Clickable area — image + name + description */}
+              <Link href={`/bands/${band.id}`} className="flex flex-col flex-1">
+                {/* Band Logo/Hero */}
+                <div className="relative aspect-video bg-muted">
+                  {band.hero_image_url ? (
                     <Image
-                      src={band.band_logo_url}
+                      src={band.hero_image_url}
                       alt={band.name}
-                      width={200}
-                      height={100}
-                      className="max-h-24 max-w-[80%] object-contain"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <ImageIcon className="h-12 w-12 text-muted-foreground opacity-30" />
-                  </div>
-                )}
-              </div>
-
-              {/* Band Info */}
-              <div className="p-3 sm:p-4 flex flex-col flex-1">
-                <h3 className="font-semibold text-sm sm:text-base mb-0.5">{band.name}</h3>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-3 line-clamp-2 min-h-[2lh]">
-                  {band.description || "\u00A0"}
-                </p>
-
-                {/* Actions */}
-                <div className="flex gap-2 mt-auto">
-                  <Button
-                    size="sm"
-                    onClick={() => router.push(`/gigs/new?band=${band.id}`)}
-                    className="flex-1 h-8 text-xs sm:text-sm"
-                  >
-                    <Plus className="mr-1.5 h-3.5 w-3.5" />
-                    New Gig
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(band)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Edit className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDeleteClick(band)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  ) : band.band_logo_url ? (
+                    <div className="flex items-center justify-center h-full relative">
+                      <Image
+                        src={band.band_logo_url}
+                        alt={band.name}
+                        width={200}
+                        height={100}
+                        className="max-h-24 max-w-[80%] object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <ImageIcon className="h-12 w-12 text-muted-foreground opacity-30" />
+                    </div>
+                  )}
                 </div>
+
+                {/* Band Info */}
+                <div className="p-3 sm:p-4 flex flex-col flex-1">
+                  <h3 className="font-semibold text-sm sm:text-base mb-0.5 group-hover:text-primary transition-colors">
+                    {band.name}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mb-3 line-clamp-2 min-h-[2lh]">
+                    {band.description || "\u00A0"}
+                  </p>
+                </div>
+              </Link>
+
+              {/* Actions — outside the link */}
+              <div className="flex gap-2 px-3 sm:px-4 pb-3 sm:pb-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); handleEdit(band); }}
+                  className="h-8 w-8 p-0"
+                  aria-label={`Edit ${band.name}`}
+                >
+                  <Edit className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); handleDeleteClick(band); }}
+                  className="h-8 w-8 p-0"
+                  aria-label={`Delete ${band.name}`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
             </Card>
           ))}
