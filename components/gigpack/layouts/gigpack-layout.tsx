@@ -12,7 +12,7 @@ import { Calendar, Clock, MapPin, Music, Users, Shirt, Package, ParkingCircle, P
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { normalizePhoneForWhatsApp } from "@/lib/utils/whatsapp";
 import { isHtmlSetlist, plainTextToHtml } from "@/lib/utils/setlist-html";
-import { exportSetlistPdf } from "@/lib/utils/setlist-pdf-export";
+import { exportSetlistPdf, buildPdfFilename } from "@/lib/utils/setlist-pdf-export";
 import { classifyGigVisualTheme, pickFallbackImageForTheme } from "@/lib/gigpack/gig-visual-theme";
 import { NeedHelpSection } from "@/components/gigpack/need-help-section";
 import { HostingServiceIcon } from "@/components/shared/hosting-service-icon";
@@ -149,10 +149,7 @@ export function GigPackLayout({ gigPack, openMaps, paymentSection }: GigPackLayo
       .filter(Boolean)
       .join(" \u2022 ");
     const title = gigPack.band_name || gigPack.title;
-    const filename =
-      [gigPack.title, gigPack.band_name, gigPack.date]
-        .filter(Boolean)
-        .join(" - ") + ".pdf";
+    const filename = buildPdfFilename([gigPack.title, gigPack.band_name, gigPack.date]);
     await exportSetlistPdf(
       { title, subtitle, bodyHtml: setlistHtml, numbered: true },
       filename

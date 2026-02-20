@@ -315,6 +315,7 @@
       "labelPlaceholder": "What's happening (e.g. Soundcheck, Doors open, Show starts)",
       "addButton": "Add item",
       "pasteSchedule": "Paste Schedule",
+      "copySchedule": "Copy",
       "pasteScheduleDialogTitle": "Paste Schedule",
       "pasteScheduleDialogDescription": "Paste text with times at the start of each line, and the system will automatically create schedule items.",
       "pasteScheduleTextareaPlaceholder": "14:00- System check and lines\n14:30- Roni and Bar sound check\n15:20- End sound check + audience\n16:40- Ido arrives\n18:00- Show",

@@ -44,7 +44,7 @@ export function WeekViewEvent({
   const { mode } = useTheme();
   const isDark = mode === "dark";
   const isCompact = height < 40;
-  const needsResponse = gig.isPlayer && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
+  const needsResponse = gig.isPlayer && !gig.isManager && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
   const widthPercent = 100 / totalColumns;
   const leftPercent = column * widthPercent;
 

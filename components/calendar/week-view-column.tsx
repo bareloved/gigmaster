@@ -251,7 +251,7 @@ export function WeekViewColumn({
         dragRef.current.isDragging = true;
       }
 
-      if (dragRef.current.isDragging) {
+      if (dragRef.current.isDragging && e.cancelable) {
         e.preventDefault();
       }
 

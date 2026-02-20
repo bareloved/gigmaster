@@ -142,7 +142,7 @@ const GigInnerContent = memo(function GigInnerContent({ gig }: { gig: DashboardG
         </TooltipProvider>
 
         {/* Participation Status (Musician-only) */}
-        {gig.isPlayer && gig.invitationStatus && gig.invitationStatus !== 'accepted' && (
+        {gig.isPlayer && !gig.isManager && gig.invitationStatus && gig.invitationStatus !== 'accepted' && (
           <div className="text-sm text-muted-foreground">
             Your status: {
               gig.invitationStatus === 'pending' ? 'Awaiting your response' :
@@ -273,7 +273,7 @@ export function DashboardGigItem({
   const showInvitationActions = showPlayerActions && gig.invitationStatus === "invited" && !isPastGig;
   const showWithdrawAction = showPlayerActions && gig.invitationStatus === "accepted" && !isPastGig;
   const showManagerActions = gig.isManager && !isPastGig;
-  const needsResponse = gig.isPlayer && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
+  const needsResponse = gig.isPlayer && !gig.isManager && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
 
   return (
     <>
