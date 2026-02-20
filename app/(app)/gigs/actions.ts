@@ -291,7 +291,8 @@ async function handleGigRoles(
   gigId: string,
   lineup: LineupMember[] | null | undefined,
   isEditing: boolean,
-  gigTitle?: string
+  gigTitle?: string,
+  ownerId?: string
 ) {
   if (!lineup || lineup.length === 0) return;
 
@@ -329,8 +330,8 @@ async function handleGigRoles(
           contact_id: member.contactId || null,
           notes: member.notes || null,
           sort_order: (existingRoles?.length || 0) + index,
-          // Set to 'invited' if we have a user ID, otherwise 'pending'
-          invitation_status: effectiveUserId ? 'invited' : 'pending',
+          // Creator gets 'accepted' — they don't need to accept their own gig
+          invitation_status: effectiveUserId && effectiveUserId === ownerId ? 'accepted' : effectiveUserId ? 'invited' : 'pending',
         };
       });
 
@@ -341,9 +342,9 @@ async function handleGigRoles(
 
       if (error) throw new Error(`Failed to insert roles: ${error.message}`);
 
-      // Send notifications to users who were added (using server client directly)
+      // Send notifications to users who were added (skip creator)
       if (insertedRoles) {
-        const rolesWithUsers = insertedRoles.filter(role => role.musician_id);
+        const rolesWithUsers = insertedRoles.filter(role => role.musician_id && role.musician_id !== ownerId);
         if (rolesWithUsers.length > 0) {
           const notifications = rolesWithUsers.map(role => ({
             user_id: role.musician_id!,
@@ -377,7 +378,8 @@ async function handleGigRoles(
         contact_id: member.contactId || null,
         notes: member.notes || null,
         sort_order: index,
-        invitation_status: effectiveUserId ? 'invited' : 'pending',
+        // Creator gets 'accepted' — they don't need to accept their own gig
+        invitation_status: effectiveUserId && effectiveUserId === ownerId ? 'accepted' : effectiveUserId ? 'invited' : 'pending',
       };
     });
 
@@ -388,9 +390,9 @@ async function handleGigRoles(
 
     if (error) throw new Error(`Failed to insert roles: ${error.message}`);
 
-    // Send notifications to users who were added (using server client directly)
+    // Send notifications to users who were added (skip creator)
     if (insertedRoles) {
-      const rolesWithUsers = insertedRoles.filter(role => role.musician_id);
+      const rolesWithUsers = insertedRoles.filter(role => role.musician_id && role.musician_id !== ownerId);
       if (rolesWithUsers.length > 0) {
         const notifications = rolesWithUsers.map(role => ({
           user_id: role.musician_id!,
@@ -424,7 +426,8 @@ async function sendInvitationNotifications(
   supabase: SupabaseClient,
   gigId: string,
   lineup: LineupMember[] | null | undefined,
-  gigTitle?: string
+  gigTitle?: string,
+  ownerId?: string
 ) {
   // Note: Notifications are now primarily created in the save_gig_pack RPC function.
   // This function serves as a backup for edge cases.
@@ -434,7 +437,7 @@ async function sendInvitationNotifications(
     const userIdsInLineup = lineup
       .filter(m => m.userId || m.linkedUserId)
       .map(m => m.userId || m.linkedUserId)
-      .filter((id): id is string => !!id);
+      .filter((id): id is string => !!id && id !== ownerId);
 
     if (userIdsInLineup.length === 0) return;
 
@@ -801,7 +804,7 @@ async function saveGigPackRPC(
 
     // Fire-and-forget: Send notifications to newly invited users
     // The function checks existing notifications to only notify NEW users
-    sendInvitationNotifications(supabase, finalGigId, data.lineup, data.title).catch(err =>
+    sendInvitationNotifications(supabase, finalGigId, data.lineup, data.title, user.id).catch(err =>
       console.error("Background invitation notification error:", err)
     );
 
@@ -951,7 +954,7 @@ async function saveGigPackLegacy(
     // Smart merge preserves IDs, only deletes removed items, upserts the rest
     const relatedItemsStart = performance.now();
     await Promise.all([
-      handleGigRoles(supabase, finalGigId, data.lineup, isEditing, data.title),
+      handleGigRoles(supabase, finalGigId, data.lineup, isEditing, data.title, user.id),
       smartMergeScheduleItems(supabase, finalGigId, data.schedule),
       smartMergeMaterials(supabase, finalGigId, data.materials),
       smartMergePackingItems(supabase, finalGigId, data.packing_checklist),

@@ -51,7 +51,7 @@ export function WeekViewAllDay({
             >
               {dayGigs.map((gig) => {
                 const color = getGigColor(gig.bandId);
-                const needsResponse = gig.isPlayer && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
+                const needsResponse = gig.isPlayer && !gig.isManager && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
                 return (
                   <button
                     key={gig.gigId}

@@ -202,13 +202,15 @@ export default function GigPackPage() {
   }, [poll, isUserActive]);
 
   // Check if user has a pending invitation for this gig
+  // Owner never sees the invitation banner on their own gig
   const pendingInvitationRole = useMemo(() => {
     if (!gigPack?.lineup || !user?.id) return null;
+    if (gigPack.owner_id === user.id) return null;
     return gigPack.lineup.find(
       (m) => (m.userId === user.id || m.linkedUserId === user.id) &&
         (m.invitationStatus === 'invited' || m.invitationStatus === 'pending')
     ) ?? null;
-  }, [gigPack?.lineup, user?.id]);
+  }, [gigPack?.lineup, gigPack?.owner_id, user?.id]);
 
   if (!user) {
     return (

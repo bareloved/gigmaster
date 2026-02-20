@@ -14,7 +14,7 @@ interface MonthViewEventPillProps {
 export function MonthViewEventPill({ gig, color, onClick }: MonthViewEventPillProps) {
   const { mode } = useTheme();
   const isDark = mode === "dark";
-  const needsResponse = gig.isPlayer && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
+  const needsResponse = gig.isPlayer && !gig.isManager && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
 
   return (
     <button

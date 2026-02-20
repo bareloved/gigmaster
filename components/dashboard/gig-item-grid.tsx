@@ -182,7 +182,7 @@ const GigGridInnerContent = memo(function GigGridInnerContent({ gig, gigDate, he
       </div>
 
       {/* Invited badge - centered on the whole card */}
-      {gig.isPlayer && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending') && (
+      {gig.isPlayer && !gig.isManager && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending') && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
           <Badge className="bg-white hover:bg-white text-black border-0 text-sm px-3 py-1 shadow-lg pointer-events-auto">
             <Mail className="h-3.5 w-3.5 mr-1.5" />
@@ -309,7 +309,7 @@ export function DashboardGigItemGrid({
   const showInvitationActions = showPlayerActions && gig.invitationStatus === "invited" && !isPastGig;
   const showWithdrawAction = showPlayerActions && gig.invitationStatus === "accepted" && !isPastGig;
   const showManagerActions = gig.isManager && !isPastGig;
-  const needsResponse = gig.isPlayer && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
+  const needsResponse = gig.isPlayer && !gig.isManager && (gig.invitationStatus === 'invited' || gig.invitationStatus === 'pending');
 
   // Get hero image - use fallback if no custom image
   const heroImage = gig.heroImageUrl || getGigFallbackImage(
