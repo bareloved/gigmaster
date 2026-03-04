@@ -30,11 +30,34 @@
   unicode-range: U+0024, U+00A3, U+00A5, U+20A0-20CF;
 }
 
+/* Helvetica Now Display — explicit @font-face as fallback for next/font */
+@font-face {
+  font-family: 'HelveticaNowDisplay';
+  src: url('/fonts/HelveticaNowDisplay-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'HelveticaNowDisplay';
+  src: url('/fonts/HelveticaNowDisplay-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'HelveticaNowDisplay';
+  src: url('/fonts/HelveticaNowDisplay-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Force form elements and Radix portals to use the app font */
 input, textarea, select, button,
 [data-radix-popper-content-wrapper],
 [data-radix-popper-content-wrapper] * {
-  font-family: PloniCurrency, var(--font-ploni), var(--font-helvetica-now), 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: var(--font-helvetica-now), HelveticaNowDisplay, PloniCurrency, var(--font-ploni), 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 @layer base {

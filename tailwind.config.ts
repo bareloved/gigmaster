@@ -10,7 +10,7 @@ const config: Config = {
   theme: {
   	extend: {
   		screens: {
-  			'xs': '400px',
+  			xs: '400px'
   		},
   		colors: {
   			background: 'hsl(var(--background))',
@@ -69,37 +69,67 @@ const config: Config = {
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
   		},
-        fontFamily: {
-            sans: [
-              'PloniCurrency',
-              'var(--font-ploni)',
-              'var(--font-helvetica-now)',
-              'Helvetica Neue',
-              'Helvetica',
-              'Arial',
-              'sans-serif',
-            ],
-            hebrew: [
-              'PloniCurrency',
-              'var(--font-ploni)',
-              'var(--font-helvetica-now)',
-              'sans-serif',
-            ],
-          },
-          animation: {
-            'fade-in': 'fadeIn 0.3s ease-out',
-            'slide-in': 'slideIn 0.2s ease-out',
-          },
-          keyframes: {
-            fadeIn: {
-              '0%': { opacity: '0' },
-              '100%': { opacity: '1' },
-            },
-            slideIn: {
-              '0%': { transform: 'translateY(-10px)', opacity: '0' },
-              '100%': { transform: 'translateY(0)', opacity: '1' },
-            },
-          },
+  		fontFamily: {
+  			sans: [
+  				'var(--font-helvetica-now)',
+  				'HelveticaNowDisplay',
+  				'PloniCurrency',
+  				'var(--font-ploni)',
+  				'Helvetica Neue',
+  				'Helvetica',
+  				'Arial',
+  				'sans-serif'
+  			],
+  			hebrew: [
+  				'PloniCurrency',
+  				'var(--font-ploni)',
+  				'var(--font-helvetica-now)',
+  				'HelveticaNowDisplay',
+  				'sans-serif'
+  			]
+  		},
+  		animation: {
+  			'fade-in': 'fadeIn 0.3s ease-out',
+  			'slide-in': 'slideIn 0.2s ease-out',
+  			'accordion-down': 'accordion-down 0.2s ease-out',
+  			'accordion-up': 'accordion-up 0.2s ease-out'
+  		},
+  		keyframes: {
+  			fadeIn: {
+  				'0%': {
+  					opacity: '0'
+  				},
+  				'100%': {
+  					opacity: '1'
+  				}
+  			},
+  			slideIn: {
+  				'0%': {
+  					transform: 'translateY(-10px)',
+  					opacity: '0'
+  				},
+  				'100%': {
+  					transform: 'translateY(0)',
+  					opacity: '1'
+  				}
+  			},
+  			'accordion-down': {
+  				from: {
+  					height: '0'
+  				},
+  				to: {
+  					height: 'var(--radix-accordion-content-height)'
+  				}
+  			},
+  			'accordion-up': {
+  				from: {
+  					height: 'var(--radix-accordion-content-height)'
+  				},
+  				to: {
+  					height: '0'
+  				}
+  			}
+  		}
   	}
   },
   plugins: [require("tailwindcss-animate")],
